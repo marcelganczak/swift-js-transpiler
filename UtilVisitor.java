@@ -17,7 +17,7 @@ public class UtilVisitor extends NativeOverriddenVisitor {
     protected ParseTree findNearestAncestorBlock(ParseTree node) {
         boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Function_bodyContext;
         if(isBlock) return node;
-        if(node.getParent() == null) return null;
+        if(node.getParent() == null || node.getParent() == node) return null;
         return findNearestAncestorBlock(node.getParent());
     }
 
@@ -27,6 +27,7 @@ public class UtilVisitor extends NativeOverriddenVisitor {
             Map<String, String> blockTypeCache = typeCache.get(node);
             if(blockTypeCache == null) continue;
             if(blockTypeCache.containsKey(varName)) return blockTypeCache.get(varName);
+            if(node instanceof SwiftParser.Top_levelContext) return null;
         }
         return null;
     }

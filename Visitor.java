@@ -1,3 +1,7 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+
+import java.util.ArrayList;
+
 public class Visitor extends TranspilerVisitor {
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
@@ -26,13 +30,17 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitExplicit_member_expression2(SwiftParser.Explicit_member_expression2Context ctx) {
-        if(isAssignment(ctx)) {
-            String varName = ctx.postfix_expression().getText();
-            String method = ctx.identifier().getText();
-            String type = findType(varName, ctx);
-            if(type.equals("Object")) return jsDictionaryMethod(varName, method, ctx);
-        }
-        return visitChildren(ctx);
+        boolean isOptional = ctx.getChild(1).getText().equals("?");
+        String memberAccess = jsMemberAccess(ctx, isOptional);
+        if(!isOptional) return memberAccess;
+        String L = visit(ctx.getChild(0));
+        return "(" + L + " != undefined ? " + memberAccess + " : undefined)";
+    }
+
+    @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {
+        String L = visit(ctx.getChild(0));
+        String R = visit(ctx.getChild(3));
+        return "(" + L + " != undefined ? " + L + " : " + R + ")";
     }
 
     @Override public String visitPattern_initializer_list(SwiftParser.Pattern_initializer_listContext ctx) {

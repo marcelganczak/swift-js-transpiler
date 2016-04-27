@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 
 public class TranspilerVisitor extends UtilVisitor {
@@ -33,7 +34,8 @@ public class TranspilerVisitor extends UtilVisitor {
 
     public String jsDictionaryLiteral(SwiftParser.Dictionary_literalContext ctx) {
         if(isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, ctx)) return "{}";
-        return '{' + visitChildren(ctx, 1, 1) + '}';
+        ArrayList<Integer> withoutNodes = new ArrayList<Integer>(); withoutNodes.add(0); withoutNodes.add(ctx.getChildCount() - 1);
+        return '{' + visitChildren(ctx, withoutNodes) + '}';
     }
 
     public String jsFunctionResult(SwiftParser.Function_resultContext ctx) {
@@ -44,8 +46,15 @@ public class TranspilerVisitor extends UtilVisitor {
         return isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx.postfix_expression());
     }
 
-    public boolean isAssignment(SwiftParser.Explicit_member_expression2Context ctx) {
-        return ctx.postfix_expression() != null && ctx.identifier() != null && ctx.getChild(1) != null && ctx.getChild(1).getText().equals(".");
+    public String jsMemberAccess(SwiftParser.Explicit_member_expression2Context ctx, boolean isOptional) {
+        String varName = ctx.postfix_expression().getText();
+        String method = ctx.identifier().getText();
+        String type = findType(varName, ctx);
+        if(type != null && type.equals("Object")) return jsDictionaryMethod(varName, method, ctx);
+
+        ArrayList<Integer> withoutNodes = new ArrayList<Integer>();
+        if(isOptional) withoutNodes.add(1);
+        return visitChildren(ctx, withoutNodes);
     }
 
     public String jsDictionaryMethod(String varName, String method, SwiftParser.Explicit_member_expression2Context ctx) {

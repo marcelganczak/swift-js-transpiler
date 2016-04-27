@@ -730,22 +730,20 @@ selector_expression : '#selector' '(' expression ')' ;
 // GRAMMAR OF A POSTFIX EXPRESSION (inlined many rules from spec to avoid indirect left-recursion)
 
 postfix_expression
- : primary_expression                                             # primary
- | postfix_expression postfix_operator                            # postfix_operation
- | postfix_expression parenthesized_expression                    # function_call_expression
- | postfix_expression parenthesized_expression? trailing_closure  # function_call_with_closure_expression
- | postfix_expression '.' 'init'                                  # initializer_expression
- | postfix_expression '.' 'init' '(' argument_names ')'           # initializer_expression_with_args
- | postfix_expression '.' Pure_decimal_digits                     # explicit_member_expression1
- | postfix_expression '.' identifier generic_argument_clause?     # explicit_member_expression2
- | postfix_expression '.' identifier '(' argument_names ')'       # explicit_member_expression3
- | postfix_expression '.' 'self'                                  # postfix_self_expression
- | postfix_expression '.' 'dynamicType'                           # dynamic_type_expression
- | postfix_expression '[' expression_list ']'                     # subscript_expression
-// ! is a postfix operator already
-// | postfix_expression '!'                                         # forced_value_expression
-// ? is a postfix operator already
-// | postfix_expression '?'                                         # optional_chaining_expression
+ : primary_expression                                              # primary
+// | postfix_expression postfix_operator                            # postfix_operation
+ | postfix_expression parenthesized_expression                     # function_call_expression
+ | postfix_expression parenthesized_expression? trailing_closure   # function_call_with_closure_expression
+ | postfix_expression '.' 'init'                                   # initializer_expression
+ | postfix_expression '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
+ | postfix_expression '.' Pure_decimal_digits                      # explicit_member_expression1
+ | postfix_expression '?'? '.' identifier generic_argument_clause? # explicit_member_expression2
+ | postfix_expression '.' identifier '(' argument_names ')'        # explicit_member_expression3
+ | postfix_expression '.' 'self'                                   # postfix_self_expression
+ | postfix_expression '.' 'dynamicType'                            # dynamic_type_expression
+ | postfix_expression '[' expression_list ']'                      # subscript_expression
+ | postfix_expression '!'                                          # forced_value_expression
+ | postfix_expression '?' '?' postfix_expression                   # nil_coalescing
  ;
 
 /* This might be faster than above
