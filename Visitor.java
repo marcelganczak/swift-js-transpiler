@@ -1,8 +1,3 @@
-import org.antlr.v4.runtime.tree.ParseTree;
-
-import java.util.HashMap;
-import java.util.Map;
-
 public class Visitor extends TranspilerVisitor {
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
@@ -40,11 +35,8 @@ public class Visitor extends TranspilerVisitor {
         return visitChildren(ctx);
     }
 
-    @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
-        String type = toJsType(ctx.pattern().type_annotation().type());
-        String identifier = ctx.pattern().identifier_pattern().getText();
-        cacheType(identifier, type, ctx);
-
+    @Override public String visitPattern_initializer_list(SwiftParser.Pattern_initializer_listContext ctx) {
+        cacheTypes(ctx.pattern_initializer());
         return visitChildren(ctx);
     }
 }

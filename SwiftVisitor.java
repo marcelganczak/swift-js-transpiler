@@ -1199,6 +1199,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitDictionary_literal_item(SwiftParser.Dictionary_literal_itemContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#empty_dictionary_literal}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEmpty_dictionary_literal(SwiftParser.Empty_dictionary_literalContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#self_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1402,6 +1408,18 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitType(SwiftParser.TypeContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#array_definition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitArray_definition(SwiftParser.Array_definitionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#dictionary_definition}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitDictionary_definition(SwiftParser.Dictionary_definitionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SwiftParser#type_annotation}.
 	 * @param ctx the parse tree

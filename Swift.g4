@@ -670,9 +670,10 @@ literal_expression
 array_literal			 : '[' array_literal_items? ']'  ;
 array_literal_items      : array_literal_item (',' array_literal_item)* ','?  ;
 array_literal_item       : expression ;
-dictionary_literal		 : '[' dictionary_literal_items ']' | '[' ':' ']'  ;
+dictionary_literal		 : '[' dictionary_literal_items ']' | empty_dictionary_literal ;
 dictionary_literal_items : dictionary_literal_item (',' dictionary_literal_item)* ','? ;
 dictionary_literal_item  : expression ':' expression  ;
+empty_dictionary_literal : '[' ':' ']';
 
 // GRAMMAR OF A SELF EXPRESSION
 
@@ -774,8 +775,8 @@ trailing_closure : closure_expression ;
 // GRAMMAR OF A TYPE
 
 type
- : '[' type ']'
- | '[' type ':' type ']'
+ : array_definition
+ | dictionary_definition
  | type 'throws'? arrow_operator type
  | type 'rethrows' arrow_operator type
  | type_identifier
@@ -786,6 +787,9 @@ type
  | type '.' 'Type'
  | type '.' 'Protocol'
  ;
+
+array_definition : '[' type ']';
+dictionary_definition : '[' type ':' type ']';
 
 // GRAMMAR OF A TYPE ANNOTATION
 
