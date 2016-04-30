@@ -15,10 +15,11 @@ public class UtilVisitor extends NativeOverriddenVisitor {
     }
 
     protected ParseTree findNearestAncestorBlock(ParseTree node) {
+        if(node.getParent() == null || node.getParent() == node) return null;
+        node = node.getParent();
         boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Function_bodyContext;
         if(isBlock) return node;
-        if(node.getParent() == null || node.getParent() == node) return null;
-        return findNearestAncestorBlock(node.getParent());
+        return findNearestAncestorBlock(node);
     }
 
     protected String findType(String varName, ParseTree node) {

@@ -19,6 +19,7 @@ public class NativeOverriddenVisitor extends SwiftBaseVisitor<String> {
     @Override public String visitChildren(RuleNode node) { return visitChildren(node, null); }
 
     public String visitChildren(RuleNode node, List<Integer> withoutNodes) {
+        if(node == null) return "";
         String result = this.defaultResult();
         int n = node.getChildCount();
 

@@ -26,6 +26,19 @@ public class Visitor extends TranspilerVisitor {
         return toJsType(ctx) + " ";
     }
 
+    @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
+        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
+        String beforeBlock = "";
+        if(isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
+            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
+            String constVar = visitWithoutTerminals(ifLet.pattern());
+            String var = visitWithoutTerminals(ifLet.initializer().expression());
+            condition = var + " != null";
+            beforeBlock = "const " + constVar + " = " + var + ";";
+        }
+        return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
+    }
+
     @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {
         String L = visit(ctx.getChild(0));
         String R = visit(ctx.getChild(3));
