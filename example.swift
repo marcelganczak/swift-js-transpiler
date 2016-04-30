@@ -1,3 +1,2 @@
-if let a = b {
-  print("success");
-}
+var airports: [String: String] = ["YYZ": "Toronto Pearson", "DUB": "Dublin"]
+airports.updateValue("YYZ", "Blabla")

@@ -1301,78 +1301,84 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSelector_expression(SwiftParser.Selector_expressionContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#postfix_expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPostfix_expression(SwiftParser.Postfix_expressionContext ctx);
+	/**
 	 * Visit a parse tree produced by the {@code function_call_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitFunction_call_expression(SwiftParser.Function_call_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code function_call_with_closure_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitFunction_call_with_closure_expression(SwiftParser.Function_call_with_closure_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code initializer_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitInitializer_expression(SwiftParser.Initializer_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code initializer_expression_with_args}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitInitializer_expression_with_args(SwiftParser.Initializer_expression_with_argsContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code explicit_member_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitExplicit_member_expression(SwiftParser.Explicit_member_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code optional_member_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitOptional_member_expression(SwiftParser.Optional_member_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code postfix_self_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitPostfix_self_expression(SwiftParser.Postfix_self_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code dynamic_type_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitDynamic_type_expression(SwiftParser.Dynamic_type_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code subscript_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitSubscript_expression(SwiftParser.Subscript_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code forced_value_expression}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitForced_value_expression(SwiftParser.Forced_value_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code nil_coalescing}
-	 * labeled alternative in {@link SwiftParser#postfix_expression}.
+	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */

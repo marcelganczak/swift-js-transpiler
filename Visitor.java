@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class Visitor extends TranspilerVisitor {
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
@@ -18,8 +20,14 @@ public class Visitor extends TranspilerVisitor {
 
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
         //TODO if(isSwiftishDictionaryConstructor(ctx)) return "{}";
-        String L = visit(ctx.getChild(0));
-        return jsChain(ctx, 1, L, findType(L, ctx));
+        ArrayList<SwiftParser.Chain_postfix_expressionContext> oneLevelChain = new ArrayList<SwiftParser.Chain_postfix_expressionContext>();
+        SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
+        while(postfix.postfix_expression() != null) {
+            if(postfix.chain_postfix_expression() != null) oneLevelChain.add(0, postfix.chain_postfix_expression());
+            postfix = postfix.postfix_expression();
+        }
+        String L = visit(postfix.primary_expression());
+        return jsChain(oneLevelChain, 0, L, findType(L, ctx));
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
@@ -27,16 +35,7 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
-        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
-        String beforeBlock = "";
-        if(isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
-            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
-            String constVar = visitWithoutTerminals(ifLet.pattern());
-            String var = visitWithoutTerminals(ifLet.initializer().expression());
-            condition = var + " != null";
-            beforeBlock = "const " + constVar + " = " + var + ";";
-        }
-        return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
+        return toJsIf(ctx);
     }
 
     @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {

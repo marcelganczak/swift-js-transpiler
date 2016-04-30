@@ -70,22 +70,24 @@ public class TranspilerVisitor extends UtilVisitor {
         return null;
     }
 
-    public String jsChain(SwiftParser.Prefix_expressionContext ctx, int postfixPos, String L, String lType) {
-        if(postfixPos >= ctx.getChildCount()) return L;
+    public String jsChain(ArrayList<SwiftParser.Chain_postfix_expressionContext> oneLevelChain, int chainPos, String L, String lType) {
+        if(chainPos >= oneLevelChain.size()) return L;
 
-        SwiftParser.Postfix_expressionContext rChild = (SwiftParser.Postfix_expressionContext) ctx.getChild(postfixPos);
+        SwiftParser.Chain_postfix_expressionContext rChild = oneLevelChain.get(chainPos);
 
-        String lodashMethod = this.lodashMethod(lType, visitWithoutTerminals(rChild).trim());
+        String lodashMethod = null;
+        if(rChild instanceof SwiftParser.Explicit_member_expressionContext) lodashMethod = this.lodashMethod(lType, ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText());
         String extraLodashParameters = null;
-        if(lodashMethod != null && ctx.getChild(postfixPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
-            extraLodashParameters = visitWithoutStrings(((SwiftParser.Function_call_expressionContext) ctx.getChild(postfixPos + 1)).parenthesized_expression(), "()");
-            postfixPos++;
+        if(lodashMethod != null && chainPos < oneLevelChain.size() - 1 && oneLevelChain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
+            extraLodashParameters = visitWithoutStrings(((SwiftParser.Function_call_expressionContext) oneLevelChain.get(chainPos + 1)).parenthesized_expression(), "()");
+            chainPos++;
         }
         String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (extraLodashParameters != null ? "," + extraLodashParameters : "") + ")" : L + visitWithoutStrings(rChild, "?");
 
-        String chain = jsChain(ctx, postfixPos + 1, LR, resultingType(lType, visitWithoutTerminals(rChild).trim()));
+        String chain = jsChain(oneLevelChain, chainPos + 1, LR, resultingType(lType, visitWithoutTerminals(rChild).trim()));
 
-        if(rChild instanceof SwiftParser.Optional_member_expressionContext) {
+        boolean isOptional = rChild.getChild(0).getText().equals("?");
+        if(isOptional) {
             return "(" + L + "!= null ? " + chain + " : null )";
         }
         else {
@@ -112,5 +114,18 @@ public class TranspilerVisitor extends UtilVisitor {
             System.out.println("Caching " + identifier + " as " + type);
             cacheType(identifier, type, initializers.get(i));
         }
+    }
+
+    public String toJsIf(SwiftParser.If_statementContext ctx) {
+        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
+        String beforeBlock = "";
+        if(isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
+            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
+            String constVar = visitWithoutTerminals(ifLet.pattern());
+            String var = visitWithoutTerminals(ifLet.initializer().expression());
+            condition = var + " != null";
+            beforeBlock = "const " + constVar + " = " + var + ";";
+        }
+        return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
     }
 };
