@@ -1,3 +1,4 @@
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -24,6 +25,34 @@ public class NativeOverriddenVisitor extends SwiftBaseVisitor<String> {
         for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
             if(withoutNodes != null && withoutNodes.contains(i)) continue;
             ParseTree c = node.getChild(i);
+            String childResult = c instanceof TerminalNode ? printTerminalNode((TerminalNode) c) : c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
+    }
+
+    public String visitWithoutTerminals(RuleNode node) {
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            ParseTree c = node.getChild(i);
+            if(c instanceof TerminalNode) continue;
+            String childResult = c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
+    }
+
+    public String visitWithoutStrings(RuleNode node, String string) {
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            ParseTree c = node.getChild(i);
+            if(string.contains(c.getText())) continue;
             String childResult = c instanceof TerminalNode ? printTerminalNode((TerminalNode) c) : c.accept(this);
             result = this.aggregateResult(result, childResult);
         }

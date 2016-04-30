@@ -1,3 +1,6 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -17,6 +20,11 @@ public class TranspilerVisitor extends UtilVisitor {
             return "boolean";
         }
         return text;
+    }
+
+    protected String resultingType(String lType, String accessor) {
+        //TODO
+        return null;
     }
 
     protected String inferJsType(SwiftParser.ExpressionContext ctx) {
@@ -43,25 +51,46 @@ public class TranspilerVisitor extends UtilVisitor {
     }
 
     public boolean isSwiftishDictionaryConstructor(SwiftParser.Function_call_expressionContext ctx) {
-        return isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx.postfix_expression());
+        return false;
+        //return isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx.postfix_expression());
     }
 
-    public String jsMemberAccess(SwiftParser.Explicit_member_expression2Context ctx, boolean isOptional) {
-        String varName = ctx.postfix_expression().getText();
-        String method = ctx.identifier().getText();
-        String type = findType(varName, ctx);
-        if(type != null && type.equals("Object")) return jsDictionaryMethod(varName, method, ctx);
-
-        ArrayList<Integer> withoutNodes = new ArrayList<Integer>();
-        if(isOptional) withoutNodes.add(1);
-        return visitChildren(ctx, withoutNodes);
+    public String lodashMethod(String lType, String R) {
+        if(lType != null && lType.equals("Object")) return jsDictionaryMethod(R);
+        return null;
     }
 
-    public String jsDictionaryMethod(String varName, String method, SwiftParser.Explicit_member_expression2Context ctx) {
+    public String jsDictionaryMethod(String method) {
         if(method.equals("count")) {
-            return "_.count(" + varName + ")";
+            return "size";
         }
-        return visitChildren(ctx);
+        if(method.equals("updateValue")) {
+            return "updateValue";
+        }
+        return null;
+    }
+
+    public String jsChain(SwiftParser.Prefix_expressionContext ctx, int postfixPos, String L, String lType) {
+        if(postfixPos >= ctx.getChildCount()) return L;
+
+        SwiftParser.Postfix_expressionContext rChild = (SwiftParser.Postfix_expressionContext) ctx.getChild(postfixPos);
+
+        String lodashMethod = this.lodashMethod(lType, visitWithoutTerminals(rChild).trim());
+        String extraLodashParameters = null;
+        if(lodashMethod != null && ctx.getChild(postfixPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
+            extraLodashParameters = visitWithoutStrings(((SwiftParser.Function_call_expressionContext) ctx.getChild(postfixPos + 1)).parenthesized_expression(), "()");
+            postfixPos++;
+        }
+        String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (extraLodashParameters != null ? "," + extraLodashParameters : "") + ")" : L + visitWithoutStrings(rChild, "?");
+
+        String chain = jsChain(ctx, postfixPos + 1, LR, resultingType(lType, visitWithoutTerminals(rChild).trim()));
+
+        if(rChild instanceof SwiftParser.Optional_member_expressionContext) {
+            return "(" + L + "!= null ? " + chain + " : null )";
+        }
+        else {
+            return chain;
+        }
     }
 
     public void cacheTypes(List<SwiftParser.Pattern_initializerContext> initializers) {

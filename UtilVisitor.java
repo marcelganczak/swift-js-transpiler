@@ -22,6 +22,7 @@ public class UtilVisitor extends NativeOverriddenVisitor {
     }
 
     protected String findType(String varName, ParseTree node) {
+        varName = varName.trim();
 
         while((node = findNearestAncestorBlock(node)) != null) {
             Map<String, String> blockTypeCache = typeCache.get(node);

@@ -604,8 +604,8 @@ expression_list : expression (',' expression)* ;
 // GRAMMAR OF A PREFIX EXPRESSION
 
 prefix_expression
-  : prefix_operator postfix_expression
-  | postfix_expression
+  : prefix_operator primary_expression postfix_expression*
+  | primary_expression postfix_expression*
   | in_out_expression
   ;
 
@@ -730,20 +730,19 @@ selector_expression : '#selector' '(' expression ')' ;
 // GRAMMAR OF A POSTFIX EXPRESSION (inlined many rules from spec to avoid indirect left-recursion)
 
 postfix_expression
- : primary_expression                                              # primary
 // | postfix_expression postfix_operator                            # postfix_operation
- | postfix_expression parenthesized_expression                     # function_call_expression
- | postfix_expression parenthesized_expression? trailing_closure   # function_call_with_closure_expression
- | postfix_expression '.' 'init'                                   # initializer_expression
- | postfix_expression '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
- | postfix_expression '.' Pure_decimal_digits                      # explicit_member_expression1
- | postfix_expression '?'? '.' identifier generic_argument_clause? # explicit_member_expression2
- | postfix_expression '.' identifier '(' argument_names ')'        # explicit_member_expression3
- | postfix_expression '.' 'self'                                   # postfix_self_expression
- | postfix_expression '.' 'dynamicType'                            # dynamic_type_expression
- | postfix_expression '[' expression_list ']'                      # subscript_expression
- | postfix_expression '!'                                          # forced_value_expression
- | postfix_expression '?' '?' postfix_expression                   # nil_coalescing
+ : parenthesized_expression                     # function_call_expression
+ | parenthesized_expression? trailing_closure   # function_call_with_closure_expression
+ | '.' 'init'                                   # initializer_expression
+ | '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
+ //| '.' Pure_decimal_digits                      # explicit_member_expression1
+ | '.' identifier generic_argument_clause?      # explicit_member_expression
+ | '?' '.' identifier generic_argument_clause?  # optional_member_expression
+ | '.' 'self'                                   # postfix_self_expression
+ | '.' 'dynamicType'                            # dynamic_type_expression
+ | '[' expression_list ']'                      # subscript_expression
+ | '!'                                          # forced_value_expression
+ | '?' '?' identifier                           # nil_coalescing
  ;
 
 /* This might be faster than above
