@@ -1,2 +1,4 @@
-var airports: [String: String] = ["YYZ": "Toronto Pearson", "DUB": "Dublin"]
-airports.updateValue("YYZ", "Blabla")
+func greet(n:String,d:String = "elo")->String{
+  return "Hello"
+ }
+greet("a",d:"b")

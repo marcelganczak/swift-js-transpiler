@@ -1,38 +1,14 @@
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class TranspilerVisitor extends UtilVisitor {
+public class TranspilerVisitor extends NativeOverriddenVisitor {
 
-    protected String toJsType(SwiftParser.TypeContext ctx) {
-        if(isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) return "Object";
-        if(isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) return "Array";
-        String text = ctx.getText();
-        if(text.equals("String")) {
-            return "string";
-        }
-        else if(text.equals("Int") || text.equals("Float") || text.equals("Double")) {
-            return "number";
-        }
-        else if(text.equals("Bool")) {
-            return "boolean";
-        }
-        return text;
-    }
+    protected CodeBlockCache cache = new CodeBlockCache();
 
     protected String resultingType(String lType, String accessor) {
         //TODO
-        return null;
-    }
-
-    protected String inferJsType(SwiftParser.ExpressionContext ctx) {
-        if(isDirectDescendant(SwiftParser.Numeric_literalContext.class, ctx)) return "number";
-        if(isDirectDescendant(SwiftParser.String_literalContext.class, ctx)) return "string";
-        if(isDirectDescendant(SwiftParser.Boolean_literalContext.class, ctx)) return "boolean";
-        if(isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx)) return "Object";
-        if(isDirectDescendant(SwiftParser.Array_literalContext.class, ctx)) return "Array";
         return null;
     }
 
@@ -41,7 +17,7 @@ public class TranspilerVisitor extends UtilVisitor {
     }
 
     public String jsDictionaryLiteral(SwiftParser.Dictionary_literalContext ctx) {
-        if(isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, ctx)) return "{}";
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, ctx)) return "{}";
         ArrayList<Integer> withoutNodes = new ArrayList<Integer>(); withoutNodes.add(0); withoutNodes.add(ctx.getChildCount() - 1);
         return '{' + visitChildren(ctx, withoutNodes) + '}';
     }
@@ -56,70 +32,80 @@ public class TranspilerVisitor extends UtilVisitor {
     }
 
     public String lodashMethod(String lType, String R) {
-        if(lType != null && lType.equals("Object")) return jsDictionaryMethod(R);
+        if(lType != null && lType.equals("Object")) return JsDictionaryMethod.translate(R);
         return null;
     }
 
-    public String jsDictionaryMethod(String method) {
-        if(method.equals("count")) {
-            return "size";
+    public ArrayList<ParserRuleContext> flattenChain(SwiftParser.Prefix_expressionContext ctx) {
+        ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
+        SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
+        while(postfix.postfix_expression() != null) {
+            if(postfix.chain_postfix_expression() != null) flattened.add(0, postfix.chain_postfix_expression());
+            postfix = postfix.postfix_expression();
         }
-        if(method.equals("updateValue")) {
-            return "updateValue";
-        }
-        return null;
+        flattened.add(0, postfix.primary_expression());
+        return flattened;
     }
 
-    public String jsChain(ArrayList<SwiftParser.Chain_postfix_expressionContext> oneLevelChain, int chainPos, String L, String lType) {
-        if(chainPos >= oneLevelChain.size()) return L;
+    public String functionNameWithExternalParams(String functionName, List<SwiftParser.Expression_elementContext> parameters) {
+        String externalNames = "";
+        for(int i = 0; i < parameters.size(); i++) {
+            SwiftParser.Expression_elementContext parameter = parameters.get(i);
+            if(parameter.identifier() != null) {
+                externalNames += "$" + parameter.identifier().getText();
+            }
+            else {
+                externalNames += "$";
+            }
+        }
+        if(externalNames.equals("$")) externalNames = "";
+        return functionName + externalNames;
+    }
 
-        SwiftParser.Chain_postfix_expressionContext rChild = oneLevelChain.get(chainPos);
+    public String jsChain(ArrayList<ParserRuleContext> chain, int chainPos, String L, String lType) {
+        if(chainPos >= chain.size()) return L;
+
+        ParserRuleContext rChild = chain.get(chainPos);
+        SwiftParser.IdentifierContext identifier = rChild instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) rChild).identifier() : rChild instanceof SwiftParser.Primary_expressionContext ? ((SwiftParser.Primary_expressionContext) rChild).identifier() : null;
+        String identifierText = identifier != null ? identifier.getText() : null;
+
+        SwiftParser.Function_call_expressionContext functionCall = null;
+        if(chainPos < chain.size() - 1 && chain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
+            functionCall = (SwiftParser.Function_call_expressionContext) chain.get(chainPos + 1);
+        }
 
         String lodashMethod = null;
-        if(rChild instanceof SwiftParser.Explicit_member_expressionContext) lodashMethod = this.lodashMethod(lType, ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText());
-        String extraLodashParameters = null;
-        if(lodashMethod != null && chainPos < oneLevelChain.size() - 1 && oneLevelChain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
-            extraLodashParameters = visitWithoutStrings(((SwiftParser.Function_call_expressionContext) oneLevelChain.get(chainPos + 1)).parenthesized_expression(), "()");
+        if(identifierText != null) lodashMethod = this.lodashMethod(lType, identifierText);
+
+        String functionParameters = null;
+        if(functionCall != null) {
+            functionParameters = visitWithoutStrings(functionCall.parenthesized_expression(), "()");
             chainPos++;
         }
-        String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (extraLodashParameters != null ? "," + extraLodashParameters : "") + ")" : L + visitWithoutStrings(rChild, "?");
 
-        String chain = jsChain(oneLevelChain, chainPos + 1, LR, resultingType(lType, visitWithoutTerminals(rChild).trim()));
+        if(lodashMethod == null && identifierText != null && functionCall != null) {
+            identifierText = functionNameWithExternalParams(identifierText, functionCall.parenthesized_expression().expression_element_list().expression_element());
+        }
+
+        String R = lodashMethod != null ? lodashMethod : identifierText != null ? (L.length() > 0 ? "." : "") + identifierText : visit(rChild);
+
+        String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (functionParameters != null ? "," + functionParameters : "") + ")" : L + R + (functionCall != null ? "(" + functionParameters + ")" : "");
+
+        String chainText = jsChain(chain, chainPos + 1, LR, resultingType(lType, identifierText));
 
         boolean isOptional = rChild.getChild(0).getText().equals("?");
         if(isOptional) {
-            return "(" + L + "!= null ? " + chain + " : null )";
+            return "(" + L + "!= null ? " + chainText + " : null )";
         }
         else {
-            return chain;
-        }
-    }
-
-    public void cacheTypes(List<SwiftParser.Pattern_initializerContext> initializers) {
-        int numInitializers = initializers.size();
-        if(numInitializers == 0) return;
-
-        String type;
-        SwiftParser.Pattern_initializerContext lastInitializer = initializers.get(numInitializers - 1);
-        if(lastInitializer.pattern().type_annotation() == null) {
-            type = inferJsType(lastInitializer.initializer().expression());
-            if(type == null) return;
-        }
-        else {
-            type = toJsType(lastInitializer.pattern().type_annotation().type());
-        }
-
-        for(int i = 0; i < numInitializers; i++) {
-            String identifier = initializers.get(i).pattern().identifier_pattern().getText();
-            System.out.println("Caching " + identifier + " as " + type);
-            cacheType(identifier, type, initializers.get(i));
+            return chainText;
         }
     }
 
     public String toJsIf(SwiftParser.If_statementContext ctx) {
         String condition = visitWithoutStrings(ctx.condition_clause(), "()");
         String beforeBlock = "";
-        if(isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
             SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
             String constVar = visitWithoutTerminals(ifLet.pattern());
             String var = visitWithoutTerminals(ifLet.initializer().expression());
@@ -127,5 +113,33 @@ public class TranspilerVisitor extends UtilVisitor {
             beforeBlock = "const " + constVar + " = " + var + ";";
         }
         return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
+    }
+
+    public String jsFunctionDeclaration(SwiftParser.Function_declarationContext ctx) {
+        String defaultValues = "", externalNames = "", jsParameters = "";
+        List<SwiftParser.ParameterContext> parameters = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list().parameter();
+
+        for(int i = 0; i < parameters.size(); i++) {
+            SwiftParser.ParameterContext parameter = parameters.get(i);
+            if(parameter.external_parameter_name() != null) {
+                externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : visit(parameter.external_parameter_name()).trim());
+            }
+            else {
+                externalNames += "$" + (i > 0 ? visit(parameter.local_parameter_name()).trim() : "");
+            }
+            if(parameter.default_argument_clause() != null) {
+                defaultValues += "if(typeof " + visit(parameter.local_parameter_name()) + " === 'undefined') " + visit(parameter.local_parameter_name()) + " = " + visit(parameter.default_argument_clause().expression()) + ";";
+            }
+            jsParameters += (jsParameters.length() > 0 ? "," : "") + visit(parameter.local_parameter_name()) + visit(parameter.type_annotation());
+        }
+
+        if(externalNames.equals("$")) externalNames = "";
+        String functionName = visit(ctx.function_name()).trim();
+        String jsFunctionName = functionName + externalNames;
+        String jsType = visit(ctx.function_signature().function_result()).trim();
+
+        cache.cacheOne(functionName, jsType, jsFunctionName, ctx);
+
+        return "function " + jsFunctionName + "(" + jsParameters + ")" + jsType + "{" + defaultValues + visitWithoutStrings(ctx.function_body().code_block(), "{}") + "}";
     }
 };

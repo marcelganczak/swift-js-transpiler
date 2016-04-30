@@ -1342,13 +1342,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitExplicit_member_expression(SwiftParser.Explicit_member_expressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code optional_member_expression}
-	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitOptional_member_expression(SwiftParser.Optional_member_expressionContext ctx);
-	/**
 	 * Visit a parse tree produced by the {@code postfix_self_expression}
 	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
 	 * @param ctx the parse tree

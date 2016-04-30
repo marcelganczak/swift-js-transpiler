@@ -1,3 +1,5 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.ArrayList;
 
 public class Visitor extends TranspilerVisitor {
@@ -14,28 +16,30 @@ public class Visitor extends TranspilerVisitor {
         return jsDictionaryLiteral(ctx);
     }
 
+    @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
+        return jsFunctionDeclaration(ctx);
+    }
+
     @Override public String visitFunction_result(SwiftParser.Function_resultContext ctx) {
         return jsFunctionResult(ctx);
     }
 
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
         //TODO if(isSwiftishDictionaryConstructor(ctx)) return "{}";
-        ArrayList<SwiftParser.Chain_postfix_expressionContext> oneLevelChain = new ArrayList<SwiftParser.Chain_postfix_expressionContext>();
-        SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
-        while(postfix.postfix_expression() != null) {
-            if(postfix.chain_postfix_expression() != null) oneLevelChain.add(0, postfix.chain_postfix_expression());
-            postfix = postfix.postfix_expression();
-        }
-        String L = visit(postfix.primary_expression());
-        return jsChain(oneLevelChain, 0, L, findType(L, ctx));
+        ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
+        return jsChain(flattenedChain, 0, "", null);
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return toJsType(ctx) + " ";
+        return JsType.translate(ctx) + " ";
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
         return toJsIf(ctx);
+    }
+
+    @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
+        return visit(ctx.expression());
     }
 
     @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {
@@ -45,7 +49,7 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitPattern_initializer_list(SwiftParser.Pattern_initializer_listContext ctx) {
-        cacheTypes(ctx.pattern_initializer());
+        cache.cacheInitializers(ctx.pattern_initializer());
         return visitChildren(ctx);
     }
 }
