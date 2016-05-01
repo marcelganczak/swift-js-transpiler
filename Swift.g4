@@ -861,13 +861,14 @@ class_requirement : 'class' ;
 
 // GRAMMAR OF AN IDENTIFIER
 
-identifier : Identifier | context_sensitive_keyword ;
-
-Identifier
- : Identifier_head Identifier_characters?
- | '`' Identifier_head Identifier_characters? '`'
- | Implicit_parameter_name
+identifier
+ : Regular_identifier          #regular_parameter
+ | '`' Regular_identifier '`'  #escaped_parameter
+ | Implicit_parameter_name     #implicit_parameter
+ | context_sensitive_keyword   #context_sensitive_keyword_parameter
  ;
+
+Regular_identifier: Identifier_head Identifier_characters?;
 
 identifier_list : identifier (',' identifier)* ;
 

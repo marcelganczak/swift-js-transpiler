@@ -1497,11 +1497,33 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitClass_requirement(SwiftParser.Class_requirementContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SwiftParser#identifier}.
+	 * Visit a parse tree produced by the {@code regular_parameter}
+	 * labeled alternative in {@link SwiftParser#identifier}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitIdentifier(SwiftParser.IdentifierContext ctx);
+	T visitRegular_parameter(SwiftParser.Regular_parameterContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code escaped_parameter}
+	 * labeled alternative in {@link SwiftParser#identifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitEscaped_parameter(SwiftParser.Escaped_parameterContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code implicit_parameter}
+	 * labeled alternative in {@link SwiftParser#identifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code context_sensitive_keyword_parameter}
+	 * labeled alternative in {@link SwiftParser#identifier}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitContext_sensitive_keyword_parameter(SwiftParser.Context_sensitive_keyword_parameterContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SwiftParser#identifier_list}.
 	 * @param ctx the parse tree

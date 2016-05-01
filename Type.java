@@ -76,6 +76,9 @@ public class Type {
         else if(swiftType.equals("Bool")) {
             return "boolean";
         }
+        else if(swiftType.equals("Void")) {
+            return "void";
+        }
         return null;
     }
 
@@ -164,6 +167,19 @@ public class Type {
             parameterTypes.put(parameterName, parameterType);
         }
         return parameterTypes;
+    }
+
+    public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, TranspilerVisitor visitor) {
+        if(functionResult != null) return fromDefinition(functionResult.type());
+        visitor.visitChildren(statements);
+        for(int i = 0; i < statements.getChildCount(); i++) {
+            if(WalkerUtil.has(SwiftParser.Return_statementContext.class, statements.getChild(i))) {
+                SwiftParser.ExpressionContext expression = ((SwiftParser.StatementContext)statements.getChild(i)).control_transfer_statement().return_statement().expression();
+                return expression != null ? infer(expression, visitor) : new BasicType("Void");
+            }
+        }
+        if(isClosure && statements.getChildCount() > 0) return infer((SwiftParser.ExpressionContext) statements.getChild(statements.getChildCount() - 1), visitor);
+        return new BasicType("Void");
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {

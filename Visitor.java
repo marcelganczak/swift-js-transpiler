@@ -47,6 +47,10 @@ public class Visitor extends TranspilerVisitor {
         return visit(ctx.expression());
     }
 
+    @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {
+        return "arguments[" + ctx.getText().substring(1) + "]";
+    }
+
     @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {
         String L = visit(ctx.getChild(0));
         String R = visit(ctx.getChild(3));

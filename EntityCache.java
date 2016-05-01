@@ -19,16 +19,15 @@ public class EntityCache {
 
     private ParseTree findNearestAncestorBlock(ParseTree node) {
         if(node.getParent() == null || node.getParent() == node) return null;
-        node = node.getParent();
-        boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Function_bodyContext;
+        boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Closure_expressionContext;
         if(isBlock) return node;
-        return findNearestAncestorBlock(node);
+        return findNearestAncestorBlock(node.getParent());
     }
 
     private CacheObject findCache(String varName, ParseTree node) {
         varName = varName.trim();
 
-        while((node = findNearestAncestorBlock(node)) != null) {
+        while((node = findNearestAncestorBlock(node.getParent())) != null) {
             Map<String, CacheObject> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             if(blockTypeCache.containsKey(varName)) return blockTypeCache.get(varName);
