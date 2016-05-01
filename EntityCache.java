@@ -44,6 +44,8 @@ public class EntityCache {
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {
+        System.out.println("Caching " + identifier + " as " + type);
+
         ParseTree nearestAncestorBlock = findNearestAncestorBlock(ctx);
 
         if(!cache.containsKey(nearestAncestorBlock)) {
@@ -68,7 +70,6 @@ public class EntityCache {
 
         for(int i = 0; i < numInitializers; i++) {
             String identifier = initializers.get(i).pattern().identifier_pattern().getText();
-            System.out.println("Caching " + identifier + " as " + type);
             cacheOne(identifier, type, initializers.get(i));
         }
     }

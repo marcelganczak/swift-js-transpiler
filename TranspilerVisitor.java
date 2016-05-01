@@ -2,7 +2,9 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.RuleNode;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class TranspilerVisitor extends NativeOverriddenVisitor {
 
@@ -92,9 +94,12 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
 
         String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (functionParameters != null ? "," + functionParameters : "") + ")" : L + R + (functionCall != null ? "(" + functionParameters + ")" : "");
 
+        AbstractType rType = Type.resulting(lType, identifierText, chain.get(0), this);
+        if(functionCall != null && rType instanceof FunctionType) rType = rType.resulting("()");
+
         JsChainResult nextChain =
-                chainPos + 1 < chain.size() ? jsChain(chain, chainPos + 1, LR, Type.resulting(lType, identifierText, chain.get(0), this))
-                                            : new JsChainResult(L, Type.resulting(lType, identifierText, chain.get(0), this));
+                chainPos + 1 < chain.size() ? jsChain(chain, chainPos + 1, LR, rType)
+                                            : new JsChainResult(LR, rType);
 
         boolean isOptional = rChild.getChild(0).getText().equals("?");
         if(isOptional) {
@@ -118,30 +123,39 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     }
 
     public String jsFunctionDeclaration(SwiftParser.Function_declarationContext ctx) {
-        String defaultValues = "", externalNames = "", jsParameters = "";
-        List<SwiftParser.ParameterContext> parameters = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list().parameter();
+        String externalNames = "";
+        SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
+        List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
 
-        for(int i = 0; i < parameters.size(); i++) {
-            SwiftParser.ParameterContext parameter = parameters.get(i);
-            if(parameter.external_parameter_name() != null) {
-                externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : visit(parameter.external_parameter_name()).trim());
+        if(parameters != null) {
+            for(int i = 0; i < parameters.size(); i++) {
+                SwiftParser.ParameterContext parameter = parameters.get(i);
+                if(parameter.external_parameter_name() != null) {
+                    externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : visit(parameter.external_parameter_name()).trim());
+                }
+                else {
+                    externalNames += "$" + (i > 0 ? visit(parameter.local_parameter_name()).trim() : "");
+                }
             }
-            else {
-                externalNames += "$" + (i > 0 ? visit(parameter.local_parameter_name()).trim() : "");
-            }
-            if(parameter.default_argument_clause() != null) {
-                defaultValues += "if(typeof " + visit(parameter.local_parameter_name()) + " === 'undefined') " + visit(parameter.local_parameter_name()) + " = " + visit(parameter.default_argument_clause().expression()) + ";";
-            }
-            jsParameters += (jsParameters.length() > 0 ? "," : "") + visit(parameter.local_parameter_name()) + visit(parameter.type_annotation());
         }
 
         if(externalNames.equals("$")) externalNames = "";
         String functionName = visit(ctx.function_name()).trim();
         String jsFunctionName = functionName + externalNames;
-        AbstractType type = Type.fromDefinition(ctx.function_signature().function_result().type());
+        AbstractType resultType = Type.fromDefinition(ctx.function_signature().function_result().type());
+        HashMap<String, AbstractType> parameterTypes = parameters != null ? Type.fromParameters(parameters, this) : new HashMap<String, AbstractType>();
+        AbstractType functionType = new FunctionType(parameterTypes, resultType);
 
-        cache.cacheOne(jsFunctionName, type, ctx);
+        cache.cacheOne(jsFunctionName, functionType, ctx);
+        for(Map.Entry<String, AbstractType> entry : parameterTypes.entrySet()) {
+            cache.cacheOne(entry.getKey(), entry.getValue(), ctx.function_body().code_block());
+        }
 
-        return "function " + jsFunctionName + "(" + jsParameters + ")" + type.jsType() + "{" + defaultValues + visitWithoutStrings(ctx.function_body().code_block(), "{}") + "}";
+        return "function " + jsFunctionName + "(" + (parameterList != null ? visit(parameterList) : "") + "):" + resultType.jsType() + visit(ctx.function_body().code_block());
+    }
+
+    public String jsClosureExpression(SwiftParser.Closure_expressionContext ctx) {
+
+        return "(" + visitChildren(ctx.closure_signature().parameter_clause().parameter_list()) + ") => {" + (ctx.statements() != null ? visitChildren(ctx.statements()) : "") + "}";
     }
 };

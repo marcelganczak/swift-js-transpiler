@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 interface AbstractType {
     String jsType();
@@ -22,6 +23,20 @@ class BasicType implements AbstractType {
         return null;
     }
 }
+class FunctionType implements AbstractType {
+    private AbstractType returnType;
+    private HashMap<String, AbstractType> parameterTypes;
+    public FunctionType(HashMap<String, AbstractType> parameterTypes, AbstractType returnType) {
+        this.parameterTypes = parameterTypes;
+        this.returnType = returnType;
+    }
+    public String jsType() {
+        return "Function";
+    }
+    public AbstractType resulting(String accessor) {
+        return returnType;
+    }
+}
 class NestedType implements AbstractType {
     private String wrapperType;//array or object
     private AbstractType wrappedType;
@@ -33,7 +48,6 @@ class NestedType implements AbstractType {
         return wrapperType;
     }
     public AbstractType resulting(String accessor) {
-        //TODO unless it's a method
         return wrappedType;
     }
 }
@@ -133,6 +147,23 @@ public class Type {
     private static AbstractType inferFromExpression(SwiftParser.Prefix_expressionContext ctx, TranspilerVisitor visitor) {
         ArrayList<ParserRuleContext> flattenedChain = visitor.flattenChain(ctx);
         return visitor.jsChain(flattenedChain, 0, "", null).type;
+    }
+
+    public static HashMap<String, AbstractType> fromParameters(List<SwiftParser.ParameterContext> parameters, TranspilerVisitor visitor) {
+        HashMap<String, AbstractType> parameterTypes = new HashMap<String, AbstractType>();
+        for(int i = 0; i < parameters.size(); i++) {
+            SwiftParser.ParameterContext parameter = parameters.get(i);
+            String parameterName = visitor.visit(parameter.local_parameter_name()).trim();
+            AbstractType parameterType;
+            if(parameter.type_annotation() != null) {
+                parameterType = fromDefinition(parameter.type_annotation().type());
+            }
+            else {
+                parameterType = infer(parameter.default_argument_clause().expression(), visitor);
+            }
+            parameterTypes.put(parameterName, parameterType);
+        }
+        return parameterTypes;
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {

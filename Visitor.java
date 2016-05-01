@@ -20,6 +20,10 @@ public class Visitor extends TranspilerVisitor {
         return jsFunctionDeclaration(ctx);
     }
 
+    @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
+        return jsClosureExpression(ctx);
+    }
+
     @Override public String visitFunction_result(SwiftParser.Function_resultContext ctx) {
         return jsFunctionResult(ctx);
     }
@@ -32,7 +36,7 @@ public class Visitor extends TranspilerVisitor {
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
         //return jsType(ctx) + " ";
-        return "";
+        return "jsType";
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
