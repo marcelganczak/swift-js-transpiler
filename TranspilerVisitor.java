@@ -1,16 +1,12 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.RuleNode;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class TranspilerVisitor extends NativeOverriddenVisitor {
 
-    protected CodeBlockCache cache = new CodeBlockCache();
-
-    protected String resultingType(String lType, String accessor) {
-        //TODO
-        return null;
-    }
+    protected EntityCache cache = new EntityCache();
 
     public String jsForIn(SwiftParser.For_in_statementContext ctx) {
         return "_.each(" + visit(ctx.expression()) + ", " + visit(ctx.pattern()) + " => " + visit(ctx.code_block()) + ")";
@@ -31,8 +27,8 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         //return isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx.postfix_expression());
     }
 
-    public String lodashMethod(String lType, String R) {
-        if(lType != null && lType.equals("Object")) return JsDictionaryMethod.translate(R);
+    public String lodashMethod(AbstractType lType, String R) {
+        if(lType != null && lType.jsType().equals("Object")) return JsDictionaryMethod.translate(R);
         return null;
     }
 
@@ -62,8 +58,13 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return functionName + externalNames;
     }
 
-    public String jsChain(ArrayList<ParserRuleContext> chain, int chainPos, String L, String lType) {
-        if(chainPos >= chain.size()) return L;
+    class JsChainResult {
+        public String code;
+        public AbstractType type;
+        JsChainResult(String code, AbstractType type) {this.code = code; this.type = type;}
+    }
+    public JsChainResult jsChain(ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
+        //if(chainPos >= chain.size()) return new JsChainResult(L, lType);
 
         ParserRuleContext rChild = chain.get(chainPos);
         SwiftParser.IdentifierContext identifier = rChild instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) rChild).identifier() : rChild instanceof SwiftParser.Primary_expressionContext ? ((SwiftParser.Primary_expressionContext) rChild).identifier() : null;
@@ -87,19 +88,20 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             identifierText = functionNameWithExternalParams(identifierText, functionCall.parenthesized_expression().expression_element_list().expression_element());
         }
 
-        String R = lodashMethod != null ? lodashMethod : identifierText != null ? (L.length() > 0 ? "." : "") + identifierText : visit(rChild);
+        String R = lodashMethod != null ? lodashMethod : identifierText != null ? (L.length() > 0 ? "." : "") + identifierText : WalkerUtil.isDirectDescendant(SwiftParser.Parenthesized_expressionContext.class, rChild) ? "[" + visitWithoutStrings((RuleNode) rChild.getChild(0), "()") + "]" : visit(rChild);
 
         String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (functionParameters != null ? "," + functionParameters : "") + ")" : L + R + (functionCall != null ? "(" + functionParameters + ")" : "");
 
-        String chainText = jsChain(chain, chainPos + 1, LR, resultingType(lType, identifierText));
+        JsChainResult nextChain =
+                chainPos + 1 < chain.size() ? jsChain(chain, chainPos + 1, LR, Type.resulting(lType, identifierText, chain.get(0), this))
+                                            : new JsChainResult(L, Type.resulting(lType, identifierText, chain.get(0), this));
 
         boolean isOptional = rChild.getChild(0).getText().equals("?");
         if(isOptional) {
-            return "(" + L + "!= null ? " + chainText + " : null )";
+            nextChain.code = "(" + L + "!= null ? " + nextChain.code + " : null )";
         }
-        else {
-            return chainText;
-        }
+
+        return nextChain;
     }
 
     public String toJsIf(SwiftParser.If_statementContext ctx) {
@@ -136,10 +138,10 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         if(externalNames.equals("$")) externalNames = "";
         String functionName = visit(ctx.function_name()).trim();
         String jsFunctionName = functionName + externalNames;
-        String jsType = visit(ctx.function_signature().function_result()).trim();
+        AbstractType type = Type.fromDefinition(ctx.function_signature().function_result().type());
 
-        cache.cacheOne(functionName, jsType, jsFunctionName, ctx);
+        cache.cacheOne(jsFunctionName, type, ctx);
 
-        return "function " + jsFunctionName + "(" + jsParameters + ")" + jsType + "{" + defaultValues + visitWithoutStrings(ctx.function_body().code_block(), "{}") + "}";
+        return "function " + jsFunctionName + "(" + jsParameters + ")" + type.jsType() + "{" + defaultValues + visitWithoutStrings(ctx.function_body().code_block(), "{}") + "}";
     }
 };
