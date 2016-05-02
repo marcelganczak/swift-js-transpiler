@@ -1,15 +1,10 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-interface AbstractType {
-    String jsType();
-    AbstractType resulting(String accessor);
-}
 class BasicType implements AbstractType {
     private String swiftType;
     public BasicType(String swiftType) {

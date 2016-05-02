@@ -1,0 +1,17 @@
+{
+  "name": "swift-ts-test",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+  },
+  "dependencies": {
+  },
+  "optionalDependencies": {
+  },
+  "devDependencies": {
+    "mocha": "2.1.0",
+    "acquit": "0.0.3",
+    "assert": "^1.3.0"
+  }
+
+}

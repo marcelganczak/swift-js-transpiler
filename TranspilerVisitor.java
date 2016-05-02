@@ -79,6 +79,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
 
         String lodashMethod = null;
         if(identifierText != null) lodashMethod = this.lodashMethod(lType, identifierText);
+        if(identifierText != null && identifierText.equals("print")) identifierText = "console.log";
 
         String functionParameters = null;
         if(functionCall != null) {

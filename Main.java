@@ -11,7 +11,7 @@ public class Main {
         ANTLRFileStream inputFile = null;
 
         try {
-            inputFile = new ANTLRFileStream("./example.swift");
+            inputFile = new ANTLRFileStream(args.length > 0 ? "./" + args[0] : "./example.swift");
         } catch (IOException e) {
             e.printStackTrace();
         }
