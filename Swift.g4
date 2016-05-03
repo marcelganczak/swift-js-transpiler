@@ -651,7 +651,7 @@ primary_expression
  | superclass_expression
  | closure_expression
  | parenthesized_expression
- | implicit_member_expression
+ //| implicit_member_expression NEEDED??
  | wildcard_expression
  | selector_expression
  ;
@@ -740,8 +740,9 @@ chain_postfix_expression
  // | postfix_operator
  | '.' 'init'                                   # initializer_expression
  | '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
- //| '.' Pure_decimal_digits                      # explicit_member_expression1
  | '?'? '.' identifier generic_argument_clause? # explicit_member_expression
+ | '.' Decimal_literal                          # explicit_member_expression_number
+ | '.' Floating_point_literal                   # explicit_member_expression_number_double
  | '.' 'self'                                   # postfix_self_expression
  | '.' 'dynamicType'                            # dynamic_type_expression
  | '[' expression_list ']'                      # subscript_expression

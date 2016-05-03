@@ -3,12 +3,16 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 class BasicType implements AbstractType {
     private String swiftType;
     public BasicType(String swiftType) {
         this.swiftType = swiftType;
+    }
+    public String swiftType() {
+        return swiftType;
     }
     public String jsType() {
         return Type.basicToJs(swiftType);
@@ -25,6 +29,9 @@ class FunctionType implements AbstractType {
         this.parameterTypes = parameterTypes;
         this.returnType = returnType;
     }
+    public String swiftType() {
+        return "Function";
+    }
     public String jsType() {
         return "Function";
     }
@@ -33,11 +40,14 @@ class FunctionType implements AbstractType {
     }
 }
 class NestedType implements AbstractType {
-    private String wrapperType;//array or object
+    private String wrapperType;//Dictionary/Array/Set
     private AbstractType wrappedType;
     public NestedType(String wrapperType, AbstractType wrappedType) {
         this.wrapperType = wrapperType;
         this.wrappedType = wrappedType;
+    }
+    public String swiftType() {
+        return wrapperType;
     }
     public String jsType() {
         return wrapperType;
@@ -47,12 +57,18 @@ class NestedType implements AbstractType {
     }
 }
 class NestedByIndexType implements AbstractType {
-    private HashMap<String, AbstractType> swiftType;
-    public NestedByIndexType(HashMap<String, AbstractType> swiftType) {
+    private LinkedHashMap<String, AbstractType> swiftType;
+    public NestedByIndexType(LinkedHashMap<String, AbstractType> swiftType) {
         this.swiftType = swiftType;
     }
+    public ArrayList<String> keys() {
+        return new ArrayList<String>(swiftType.keySet());
+    }
+    public String swiftType() {
+        return "Tuple";
+    }
     public String jsType() {
-        return "Object";
+        return "any";
     }
     public AbstractType resulting(String accessor) {
         return swiftType.get(accessor);
@@ -95,20 +111,23 @@ public class Type {
     }
 
     private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx) {
+        //tuple type, tuple type list(tuple type, tuple type list)
         int elementI = 0;
-        HashMap<String, AbstractType> types = new HashMap<String, AbstractType>();
-        for(int i = 0; i < ctx.getChildCount(); i++) {
-            if(!(ctx.getChild(i) instanceof SwiftParser.Tuple_type_elementContext)) continue;
-            SwiftParser.Tuple_type_elementContext child = (SwiftParser.Tuple_type_elementContext) ctx.getChild(i);
-            String index = child.element_name() != null ? child.element_name().getText() : Integer.toString(elementI);
-            types.put(index, new BasicType(child.type_annotation().type().getText()));
-            elementI++;
+        LinkedHashMap<String, AbstractType> types = new LinkedHashMap<String, AbstractType>();
+        while(ctx != null) {
+            SwiftParser.Tuple_type_elementContext tupleTypeElement = ctx.tuple_type_element();
+            if(tupleTypeElement != null) {
+                String index = tupleTypeElement.element_name() != null ? tupleTypeElement.element_name().getText() : Integer.toString(elementI);
+                types.put(index, new BasicType(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText()));
+                elementI++;
+            }
+            ctx = ctx.tuple_type_element_list();
         }
         return new NestedByIndexType(types);
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        if(WalkerUtil.has(SwiftParser.Integer_literalContext.class, ctx)) return new BasicType("Int");
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, ctx)) return new BasicType("Int");
         if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, ctx)) return new BasicType("Double");
         if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, ctx)) return new BasicType("String");
         if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, ctx)) return new BasicType("Bool");
@@ -131,7 +150,7 @@ public class Type {
 
     private static AbstractType inferFromTuple(SwiftParser.Expression_element_listContext ctx, TranspilerVisitor visitor) {
         int elementI = 0;
-        HashMap<String, AbstractType> types = new HashMap<String, AbstractType>();
+        LinkedHashMap<String, AbstractType> types = new LinkedHashMap<String, AbstractType>();
         for(int i = 0; i < ctx.getChildCount(); i++) {
             if(!(ctx.getChild(i) instanceof SwiftParser.Expression_elementContext)) continue;
             SwiftParser.Expression_elementContext child = (SwiftParser.Expression_elementContext) ctx.getChild(i);
@@ -144,7 +163,7 @@ public class Type {
 
     private static AbstractType inferFromExpression(SwiftParser.Prefix_expressionContext ctx, TranspilerVisitor visitor) {
         ArrayList<ParserRuleContext> flattenedChain = visitor.flattenChain(ctx);
-        return visitor.jsChain(flattenedChain, 0, "", null).type;
+        return visitor.jsChain(ctx, flattenedChain, 0, "", null).type;
     }
 
     public static HashMap<String, AbstractType> fromParameters(List<SwiftParser.ParameterContext> parameters, TranspilerVisitor visitor) {

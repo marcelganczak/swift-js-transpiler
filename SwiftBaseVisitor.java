@@ -1564,6 +1564,20 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitExplicit_member_expression_number(SwiftParser.Explicit_member_expression_numberContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
+	@Override public T visitExplicit_member_expression_number_double(SwiftParser.Explicit_member_expression_number_doubleContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitPostfix_self_expression(SwiftParser.Postfix_self_expressionContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

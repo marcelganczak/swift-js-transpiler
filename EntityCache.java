@@ -18,9 +18,9 @@ public class EntityCache {
     private Map<ParseTree, Map<String, CacheObject>> cache = new HashMap<ParseTree, Map<String, CacheObject>>();
 
     private ParseTree findNearestAncestorBlock(ParseTree node) {
-        if(node.getParent() == null || node.getParent() == node) return null;
         boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Closure_expressionContext;
         if(isBlock) return node;
+        if(node.getParent() == null || node.getParent() == node) return null;
         return findNearestAncestorBlock(node.getParent());
     }
 

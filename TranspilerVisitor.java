@@ -30,7 +30,8 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     }
 
     public String lodashMethod(AbstractType lType, String R) {
-        if(lType != null && lType.jsType().equals("Object")) return JsDictionaryMethod.translate(R);
+        if(R == null) return null;
+        if(lType != null && lType.swiftType().equals("Dictionary")) return JsDictionaryMethod.translate(R);
         return null;
     }
 
@@ -38,7 +39,10 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
         SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
         while(postfix.postfix_expression() != null) {
-            if(postfix.chain_postfix_expression() != null) flattened.add(0, postfix.chain_postfix_expression());
+            if(postfix.chain_postfix_expression() != null) {
+                flattened.add(0, postfix.chain_postfix_expression());
+                if(postfix.chain_postfix_expression() instanceof SwiftParser.Explicit_member_expression_number_doubleContext) flattened.add(0, postfix.chain_postfix_expression());
+            }
             postfix = postfix.postfix_expression();
         }
         flattened.add(0, postfix.primary_expression());
@@ -65,42 +69,82 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         public AbstractType type;
         JsChainResult(String code, AbstractType type) {this.code = code; this.type = type;}
     }
-    public JsChainResult jsChain(ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
-        //if(chainPos >= chain.size()) return new JsChainResult(L, lType);
-
+    public JsChainResult jsChain(SwiftParser.Prefix_expressionContext ctx, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
         ParserRuleContext rChild = chain.get(chainPos);
-        SwiftParser.IdentifierContext identifier = rChild instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) rChild).identifier() : rChild instanceof SwiftParser.Primary_expressionContext ? ((SwiftParser.Primary_expressionContext) rChild).identifier() : null;
-        String identifierText = identifier != null ? identifier.getText() : null;
+
+        String identifier = null, accessorType = ".", functionParameters = null, LR = null;
+        if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
+            identifier = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
+            accessorType = ".";
+        }
+        else if(rChild instanceof SwiftParser.Primary_expressionContext) {
+            identifier = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visit(rChild);
+            accessorType = ".";
+        }
+        else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
+            identifier = visitWithoutStrings(rChild, ".");
+            accessorType = "[]";
+        }
+        else if(rChild instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {
+            String[] split = visit(rChild).split("\\.");
+            int pos = 1, i = chainPos;
+            while(i > 0 && chain.get(i - 1) instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {i--; pos = pos == 1 ? 2 : 1;}
+            identifier = split[pos];
+            accessorType = "[]";
+        }
+        else {
+            identifier = visit(rChild);
+        }
+
+        String lodashMethod = this.lodashMethod(lType, identifier);
+        if(lodashMethod != null) {
+            identifier = lodashMethod;
+            accessorType = "_.()";
+        }
+
+        if(identifier != null && identifier.equals("println") && chainPos == 0) identifier = "console.log";
 
         SwiftParser.Function_call_expressionContext functionCall = null;
         if(chainPos < chain.size() - 1 && chain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
             functionCall = (SwiftParser.Function_call_expressionContext) chain.get(chainPos + 1);
         }
-
-        String lodashMethod = null;
-        if(identifierText != null) lodashMethod = this.lodashMethod(lType, identifierText);
-        if(identifierText != null && identifierText.equals("print")) identifierText = "console.log";
-
-        String functionParameters = null;
         if(functionCall != null) {
             functionParameters = visitWithoutStrings(functionCall.parenthesized_expression(), "()");
             chainPos++;
         }
 
-        if(lodashMethod == null && identifierText != null && functionCall != null) {
-            identifierText = functionNameWithExternalParams(identifierText, functionCall.parenthesized_expression().expression_element_list().expression_element());
+        if(lodashMethod == null && identifier != null && functionCall != null) {
+            identifier = functionNameWithExternalParams(identifier, functionCall.parenthesized_expression().expression_element_list().expression_element());
         }
 
-        String R = lodashMethod != null ? lodashMethod : identifierText != null ? (L.length() > 0 ? "." : "") + identifierText : WalkerUtil.isDirectDescendant(SwiftParser.Parenthesized_expressionContext.class, rChild) ? "[" + visitWithoutStrings((RuleNode) rChild.getChild(0), "()") + "]" : visit(rChild);
+        boolean isTuple = L.length() == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Parenthesized_expressionContext.class, rChild);
+        if(isTuple) {
+            ArrayList<String> keys = null;
+            SwiftParser.Pattern_initializerContext initializer = (SwiftParser.Pattern_initializerContext) WalkerUtil.findUp(SwiftParser.Pattern_initializerContext.class, ctx);
+            if(initializer != null) {
+                String declaredIdentifier = initializer.pattern().identifier_pattern().identifier() != null ? initializer.pattern().identifier_pattern().identifier().getText() : null;
+                AbstractType declaredType = declaredIdentifier != null ? this.cache.getType(declaredIdentifier, ctx) : null;
+                if(declaredType instanceof NestedByIndexType) keys = ((NestedByIndexType) declaredType).keys();
+            }
+            List<SwiftParser.Expression_elementContext> elementList = ((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element();
+            LR = "{";
+            for(int i = 0; i < elementList.size(); i++) {
+                if(i > 0) LR += ",";
+                LR += "'" + (keys != null ? keys.get(i) : elementList.get(i).identifier() != null ? elementList.get(i).identifier().getText() : i) + "':" + visit(elementList.get(i).expression());
+            }
+            LR += "}";
+        }
+        else {
+            LR = accessorType.equals("_.()") ? "_." + identifier + "(" + L + (functionParameters != null ? "," + functionParameters : "") + ")"
+                 : L + (L.length() == 0 ? identifier : accessorType.equals(".") ? "." + identifier : "[" + identifier + "]") + (functionCall != null ? "(" + functionParameters + ")" : "");
+        }
 
-        String LR = lodashMethod != null ? "_." + lodashMethod + "(" + L + (functionParameters != null ? "," + functionParameters : "") + ")" : L + R + (functionCall != null ? "(" + functionParameters + ")" : "");
-
-        AbstractType rType = Type.resulting(lType, identifierText, chain.get(0), this);
+        AbstractType rType = Type.resulting(lType, identifier, chain.get(0), this);
         if(functionCall != null && rType instanceof FunctionType) rType = rType.resulting("()");
 
         JsChainResult nextChain =
-                chainPos + 1 < chain.size() ? jsChain(chain, chainPos + 1, LR, rType)
-                                            : new JsChainResult(LR, rType);
+                chainPos + 1 < chain.size() ? jsChain(ctx, chain, chainPos + 1, LR, rType)
+                : new JsChainResult(LR, rType);
 
         boolean isOptional = rChild.getChild(0).getText().equals("?");
         if(isOptional) {

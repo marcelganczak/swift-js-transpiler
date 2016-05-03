@@ -17,4 +17,10 @@ public class WalkerUtil {
         }
         return false;
     }
+
+    public static ParseTree findUp(Class nodeType, ParseTree node) {
+        if(node == null) return null;
+        if(node.getClass() == nodeType) return node;
+        return findUp(nodeType, node.getParent());
+    }
 }

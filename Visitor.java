@@ -31,12 +31,11 @@ public class Visitor extends TranspilerVisitor {
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
         //TODO if(isSwiftishDictionaryConstructor(ctx)) return "{}";
         ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
-        return jsChain(flattenedChain, 0, "", null).code;
+        return jsChain(ctx, flattenedChain, 0, "", null).code;
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        //return jsType(ctx) + " ";
-        return "jsType";
+        return Type.fromDefinition(ctx).jsType();
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
