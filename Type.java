@@ -41,19 +41,21 @@ class FunctionType implements AbstractType {
 }
 class NestedType implements AbstractType {
     private String wrapperType;//Dictionary/Array/Set
-    private AbstractType wrappedType;
-    public NestedType(String wrapperType, AbstractType wrappedType) {
+    private AbstractType keyType;
+    private AbstractType valueType;
+    public NestedType(String wrapperType, AbstractType keyType, AbstractType valueType) {
         this.wrapperType = wrapperType;
-        this.wrappedType = wrappedType;
+        this.keyType = keyType;
+        this.valueType = valueType;
     }
     public String swiftType() {
         return wrapperType;
     }
     public String jsType() {
-        return wrapperType;
+        return wrapperType.equals("Dictionary") ? "Object" : wrapperType;
     }
     public AbstractType resulting(String accessor) {
-        return wrappedType;
+        return valueType;
     }
 }
 class NestedByIndexType implements AbstractType {
@@ -101,8 +103,8 @@ public class Type {
     }
 
     private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx) {
-        //TODO
-        return null;
+        List<SwiftParser.TypeContext> types = ctx.type();
+        return new NestedType("Dictionary", fromDefinition(types.get(0)), fromDefinition(types.get(1)));
     }
 
     private static AbstractType fromArrayDefinition(SwiftParser.Array_definitionContext ctx) {
@@ -131,19 +133,19 @@ public class Type {
         if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, ctx)) return new BasicType("Double");
         if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, ctx)) return new BasicType("String");
         if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, ctx)) return new BasicType("Bool");
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx)) return inferFromDictionary(ctx.prefix_expression().postfix_expression().primary_expression().literal_expression().dictionary_literal());
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, ctx)) return inferFromArray(ctx.prefix_expression().postfix_expression().primary_expression().literal_expression().array_literal());
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx)) return inferFromDictionary(ctx.prefix_expression().postfix_expression().primary_expression().literal_expression().dictionary_literal(), visitor);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, ctx)) return inferFromArray(ctx.prefix_expression().postfix_expression().primary_expression().literal_expression().array_literal(), visitor);
         if(WalkerUtil.isDirectDescendant(SwiftParser.Parenthesized_expressionContext.class, ctx)) return inferFromTuple(ctx.prefix_expression().postfix_expression().primary_expression().parenthesized_expression().expression_element_list(), visitor);
 
         return inferFromExpression(ctx.prefix_expression(), visitor);
     }
 
-    private static AbstractType inferFromDictionary(SwiftParser.Dictionary_literalContext ctx) {
-        //TODO
-        return null;
+    private static AbstractType inferFromDictionary(SwiftParser.Dictionary_literalContext ctx, TranspilerVisitor visitor) {
+        List<SwiftParser.ExpressionContext> keyVal = ctx.dictionary_literal_items().dictionary_literal_item(0).expression();
+        return new NestedType("Dictionary", infer(keyVal.get(0), visitor), infer(keyVal.get(1), visitor));
     }
 
-    private static AbstractType inferFromArray(SwiftParser.Array_literalContext ctx) {
+    private static AbstractType inferFromArray(SwiftParser.Array_literalContext ctx, TranspilerVisitor visitor) {
         //TODO
         return null;
     }

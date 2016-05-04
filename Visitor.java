@@ -29,7 +29,6 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
-        //TODO if(isSwiftishDictionaryConstructor(ctx)) return "{}";
         ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
         return jsChain(ctx, flattenedChain, 0, "", null).code;
     }

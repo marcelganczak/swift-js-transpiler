@@ -1,5 +1,4 @@
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.RuleNode;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,11 +23,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return ":" + visit(ctx.type());
     }
 
-    public boolean isSwiftishDictionaryConstructor(SwiftParser.Function_call_expressionContext ctx) {
-        return false;
-        //return isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx.postfix_expression());
-    }
-
     public String lodashMethod(AbstractType lType, String R) {
         if(R == null) return null;
         if(lType != null && lType.swiftType().equals("Dictionary")) return JsDictionaryMethod.translate(R);
@@ -39,7 +33,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
         SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
         while(postfix.postfix_expression() != null) {
-            if(postfix.chain_postfix_expression() != null) {
+            if(postfix.chain_postfix_expression() != null && !(postfix.chain_postfix_expression() instanceof SwiftParser.Forced_value_expressionContext)) {
                 flattened.add(0, postfix.chain_postfix_expression());
                 if(postfix.chain_postfix_expression() instanceof SwiftParser.Explicit_member_expression_number_doubleContext) flattened.add(0, postfix.chain_postfix_expression());
             }
@@ -80,6 +74,10 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         else if(rChild instanceof SwiftParser.Primary_expressionContext) {
             identifier = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visit(rChild);
             accessorType = ".";
+        }
+        else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
+            identifier = visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
+            accessorType = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
             identifier = visitWithoutStrings(rChild, ".");
