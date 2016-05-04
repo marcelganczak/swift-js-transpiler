@@ -20,7 +20,7 @@ public class EntityCache {
     private ParseTree findNearestAncestorBlock(ParseTree node) {
         boolean isBlock = node instanceof SwiftParser.Top_levelContext || node instanceof SwiftParser.Code_blockContext || node instanceof SwiftParser.Closure_expressionContext;
         if(isBlock) return node;
-        if(node.getParent() == null || node.getParent() == node) return null;
+        if(node == null || node.getParent() == null || node.getParent() == node) return null;
         return findNearestAncestorBlock(node.getParent());
     }
 
