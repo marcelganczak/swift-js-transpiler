@@ -127,7 +127,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             for(int i = 0; i < parameters.size(); i++) {
                 SwiftParser.ParameterContext parameter = parameters.get(i);
                 if(parameter.external_parameter_name() != null) {
-                    externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : visit(parameter.external_parameter_name()).trim());
+                    externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : parameter.external_parameter_name().getText());
                 }
                 else {
                     externalNames += "$" + (i > 0 ? visit(parameter.local_parameter_name()).trim() : "");

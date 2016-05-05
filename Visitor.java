@@ -8,6 +8,7 @@ public class Visitor extends TranspilerVisitor {
         return jsForIn(ctx);
     }
 
+    //TODO needed?
     @Override public String visitDictionary_literal(SwiftParser.Dictionary_literalContext ctx) {
         return jsDictionaryLiteral(ctx);
     }
@@ -22,6 +23,10 @@ public class Visitor extends TranspilerVisitor {
 
     @Override public String visitFunction_result(SwiftParser.Function_resultContext ctx) {
         return jsFunctionResult(ctx);
+    }
+
+    @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
+        return "";
     }
 
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
