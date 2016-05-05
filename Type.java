@@ -52,7 +52,7 @@ class NestedType implements AbstractType {
         return wrapperType;
     }
     public String jsType() {
-        return wrapperType.equals("Dictionary") ? "Object" : wrapperType.equals("Array") ? "Array<" + valueType.jsType() + ">" : wrapperType;
+        return wrapperType.equals("Dictionary") ? "Object" : wrapperType.equals("Array") ? "Array<" + valueType.jsType() + ">" : "Set<" + valueType.jsType() + ">";
     }
     public AbstractType resulting(String accessor) {
         return valueType;
@@ -80,7 +80,7 @@ class NestedByIndexType implements AbstractType {
 public class Type {
 
     public static String basicToJs(String swiftType) {
-        if(swiftType.equals("String")) {
+        if (swiftType.equals("String")) {
             return "string";
         }
         else if(swiftType.equals("Int") || swiftType.equals("Float") || swiftType.equals("Double")) {
@@ -127,23 +127,8 @@ public class Type {
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, ctx)) return new BasicType("Int");
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, ctx)) return new BasicType("Double");
-        if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, ctx)) return new BasicType("String");
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, ctx)) return new BasicType("Bool");
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_literalContext.class, ctx)) return inferFromDictionary(ctx.prefix_expression().postfix_expression().primary_expression().literal_expression().dictionary_literal(), visitor);
-
-        return inferFromExpression(ctx.prefix_expression(), visitor);
-    }
-
-    private static AbstractType inferFromDictionary(SwiftParser.Dictionary_literalContext ctx, TranspilerVisitor visitor) {
-        List<SwiftParser.ExpressionContext> keyVal = ctx.dictionary_literal_items().dictionary_literal_item(0).expression();
-        return new NestedType("Dictionary", infer(keyVal.get(0), visitor), infer(keyVal.get(1), visitor));
-    }
-
-    private static AbstractType inferFromExpression(SwiftParser.Prefix_expressionContext ctx, TranspilerVisitor visitor) {
-        ArrayList<ParserRuleContext> flattenedChain = visitor.flattenChain(ctx);
-        return visitor.jsChain(ctx, flattenedChain, 0, "", null).type;
+        ArrayList<ParserRuleContext> flattenedChain = visitor.flattenChain(ctx.prefix_expression());
+        return visitor.jsChain(ctx.prefix_expression()).type;
     }
 
     public static HashMap<String, AbstractType> fromParameters(List<SwiftParser.ParameterContext> parameters, TranspilerVisitor visitor) {

@@ -52,24 +52,4 @@ public class EntityCache {
         }
         cache.get(nearestAncestorBlock).put(identifier, new CacheObject(type));
     }
-
-    public void cacheInitializers(List<SwiftParser.Pattern_initializerContext> initializers, TranspilerVisitor visitor) {
-        int numInitializers = initializers.size();
-        if(numInitializers == 0) return;
-
-        AbstractType type;
-        SwiftParser.Pattern_initializerContext lastInitializer = initializers.get(numInitializers - 1);
-        if(lastInitializer.pattern().type_annotation() == null) {
-            type = Type.infer(lastInitializer.initializer().expression(), visitor);
-            if(type == null) return;
-        }
-        else {
-            type = Type.fromDefinition(lastInitializer.pattern().type_annotation().type());
-        }
-
-        for(int i = 0; i < numInitializers; i++) {
-            String identifier = initializers.get(i).pattern().identifier_pattern().getText();
-            cacheOne(identifier, type, initializers.get(i));
-        }
-    }
 }

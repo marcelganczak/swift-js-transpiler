@@ -29,12 +29,16 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
-        ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
-        return jsChain(ctx, flattenedChain, 0, "", null).code;
+        return jsChain(ctx).code;
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return Type.fromDefinition(ctx).jsType();
+        AbstractType type = Type.fromDefinition(ctx);
+
+        String declaredEntity = getDeclaredEntityForType(ctx);
+        if(declaredEntity != null) cache.cacheOne(declaredEntity, type, ctx);
+
+        return type.jsType();
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
@@ -57,10 +61,5 @@ public class Visitor extends TranspilerVisitor {
 
     @Override public String visitTuple_pattern(SwiftParser.Tuple_patternContext ctx) {
         return "[" + visitWithoutStrings(ctx, "()") + "]";
-    }
-
-    @Override public String visitPattern_initializer_list(SwiftParser.Pattern_initializer_listContext ctx) {
-        cache.cacheInitializers(ctx.pattern_initializer(), this);
-        return visitChildren(ctx);
     }
 }

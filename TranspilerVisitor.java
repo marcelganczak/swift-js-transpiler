@@ -37,20 +37,38 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return flattened;
     }
 
-    public String getDeclaredEntityForChain(SwiftParser.Prefix_expressionContext ctx) {
-        SwiftParser.Pattern_initializerContext initializer = (SwiftParser.Pattern_initializerContext) WalkerUtil.findUp(SwiftParser.Pattern_initializerContext.class, ctx);
-        if(initializer != null) {
-            return initializer.pattern().identifier_pattern().identifier() != null ? initializer.pattern().identifier_pattern().identifier().getText() : null;
-        }
-        return null;
-    }
-
     class JsChainResult {
         public String code;
         public AbstractType type;
         JsChainResult(String code, AbstractType type) {this.code = code; this.type = type;}
     }
-    public JsChainResult jsChain(SwiftParser.Prefix_expressionContext ctx, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
+    public JsChainResult jsChain(SwiftParser.Prefix_expressionContext ctx) {
+        ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
+        String declaredEntity = getDeclaredEntityForChain(ctx);
+        AbstractType declaredType = declaredEntity != null ? cache.getType(declaredEntity, ctx) : null;
+        JsChainResult result = jsChainElem(ctx, declaredType, flattenedChain, 0, "", null);
+        if(declaredEntity != null && declaredType == null) {
+            cache.cacheOne(declaredEntity, result.type, ctx);
+        }
+        return result;
+    }
+    public String getDeclaredEntityForType(SwiftParser.TypeContext ctx) {
+        SwiftParser.Pattern_initializerContext initializer = ctx.getParent().getParent().getParent() instanceof SwiftParser.Pattern_initializerContext ? (SwiftParser.Pattern_initializerContext) ctx.getParent().getParent().getParent() : null;
+        if(initializer != null) {
+            SwiftParser.IdentifierContext identifier = initializer.pattern().identifier_pattern().identifier();
+            if(identifier != null) return identifier.getText();
+        }
+        return null;
+    }
+    public String getDeclaredEntityForChain(SwiftParser.Prefix_expressionContext ctx) {
+        SwiftParser.Pattern_initializerContext initializer = ctx.getParent().getParent().getParent() instanceof SwiftParser.Pattern_initializerContext ? (SwiftParser.Pattern_initializerContext) ctx.getParent().getParent().getParent() : null;
+        if(initializer != null) {
+            SwiftParser.IdentifierContext identifier = initializer.pattern().identifier_pattern().identifier();
+            if(identifier != null) return identifier.getText();
+        }
+        return null;
+    }
+    public JsChainResult jsChainElem(SwiftParser.Prefix_expressionContext ctx, AbstractType declaredType, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
         ParserRuleContext rChild = chain.get(chainPos);
 
         SwiftParser.Function_call_expressionContext functionCall = null;
@@ -60,7 +78,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             functionCallParams = functionCall.parenthesized_expression().expression_element_list() != null ? functionCall.parenthesized_expression().expression_element_list().expression_element() : null;
         }
 
-        ChainElem chainElem = ChainElem.get(rChild, functionCall, functionCallParams, ctx, chain, chainPos, lType, this);
+        ChainElem chainElem = ChainElem.get(rChild, declaredType, functionCall, functionCallParams, ctx, chain, chainPos, lType, this);
 
         if(chainElem.type == null) {
             chainElem.type = Type.resulting(lType, chainElem.code, chain.get(0), this);
@@ -73,7 +91,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
                   : L + (L.length() == 0 ? chainElem.code : chainElem.accessorType.equals(".") ? "." + chainElem.code : "[" + chainElem.code + "]") + (chainElem.functionCallParams != null ? "(" + chainElem.functionCallParams + ")" : "");
 
         JsChainResult nextChain =
-                chainPos + 1 < chain.size() ? jsChain(ctx, chain, chainPos + 1, LR, chainElem.type)
+                chainPos + 1 < chain.size() ? jsChainElem(ctx, declaredType, chain, chainPos + 1, LR, chainElem.type)
                 : new JsChainResult(LR, chainElem.type);
 
         boolean isOptional = rChild.getChild(0).getText().equals("?");

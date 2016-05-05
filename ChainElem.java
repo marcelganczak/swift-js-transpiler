@@ -11,19 +11,16 @@ public class ChainElem {
     public String functionCallParams;
     public ChainElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; }
     
-    static public ChainElem get(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, SwiftParser.Prefix_expressionContext ctx, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
-        String declaredEntity = null;
-        AbstractType declaredType = null;
-        if(chainPos == 0) {
-            declaredEntity = visitor.getDeclaredEntityForChain(ctx);
-            declaredType = declaredEntity != null ? visitor.cache.getType(declaredEntity, ctx) : null;
-        }
+    static public ChainElem get(ParserRuleContext rChild, AbstractType declaredType, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, SwiftParser.Prefix_expressionContext ctx, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
 
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Parenthesized_expressionContext.class, rChild)) {
             return getTuple(rChild, declaredType, visitor);
         }
         else if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {
             return getConstructor(rChild, functionCall, functionCallParams, declaredType, visitor);
+        }
+        else if(chainPos == 0 && rChild instanceof SwiftParser.Primary_expressionContext && ((SwiftParser.Primary_expressionContext) rChild).generic_argument_clause() != null) {
+            return getTemplatedConstructor(rChild, functionCall, functionCallParams, declaredType, visitor);
         }
         else {
             return getBasic(rChild, functionCall, functionCallParams, chain, chainPos, lType, visitor);
@@ -87,6 +84,19 @@ public class ChainElem {
         }
 
         return new ChainElem(code, "", arrayType, null);
+    }
+
+    static private ChainElem getTemplatedConstructor(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
+
+        SwiftParser.Generic_argument_clauseContext template = ((SwiftParser.Primary_expressionContext) rChild).generic_argument_clause();
+        String typeStr = visitor.visit(rChild.getChild(0)).trim();
+
+        if(typeStr.equals("Set")) {
+            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()));
+            return new ChainElem("new " + type.jsType() + "()", "", type, null);
+        }
+
+        return null;
     }
 
     static private ChainElem getBasic(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
