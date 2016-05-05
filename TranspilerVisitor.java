@@ -61,10 +61,13 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return null;
     }
     public String getDeclaredEntityForChain(SwiftParser.Prefix_expressionContext ctx) {
-        SwiftParser.Pattern_initializerContext initializer = ctx.getParent().getParent().getParent() instanceof SwiftParser.Pattern_initializerContext ? (SwiftParser.Pattern_initializerContext) ctx.getParent().getParent().getParent() : null;
-        if(initializer != null) {
-            SwiftParser.IdentifierContext identifier = initializer.pattern().identifier_pattern().identifier();
+        ParserRuleContext parentExpression = ctx.getParent().getParent().getParent();
+        if(parentExpression instanceof SwiftParser.Pattern_initializerContext) {
+            SwiftParser.IdentifierContext identifier = ((SwiftParser.Pattern_initializerContext) parentExpression).pattern().identifier_pattern().identifier();
             if(identifier != null) return identifier.getText();
+        }
+        if(parentExpression instanceof SwiftParser.ExpressionContext && ctx.getParent().getChild(0).getText().equals("=")) {
+            return ((SwiftParser.ExpressionContext) parentExpression).prefix_expression().postfix_expression().primary_expression().getText();
         }
         return null;
     }

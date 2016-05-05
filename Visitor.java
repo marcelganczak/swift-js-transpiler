@@ -1,7 +1,3 @@
-import org.antlr.v4.runtime.ParserRuleContext;
-
-import java.util.ArrayList;
-
 public class Visitor extends TranspilerVisitor {
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {

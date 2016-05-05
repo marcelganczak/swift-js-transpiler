@@ -99,6 +99,7 @@ public class Type {
         if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) return fromDictionaryDefinition(ctx.dictionary_definition());
         if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) return fromArrayDefinition(ctx.array_definition());
         if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) return fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list());
+        if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) return fromSetDefinition(ctx.type_identifier());
         return new BasicType(ctx.getText());
     }
 
@@ -126,8 +127,11 @@ public class Type {
         return new NestedByIndexType(types);
     }
 
+    private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx) {
+        return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()));
+    }
+
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        ArrayList<ParserRuleContext> flattenedChain = visitor.flattenChain(ctx.prefix_expression());
         return visitor.jsChain(ctx.prefix_expression()).type;
     }
 
