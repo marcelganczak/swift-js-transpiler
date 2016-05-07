@@ -24,9 +24,11 @@ class BasicType implements AbstractType {
 }
 class FunctionType implements AbstractType {
     private AbstractType returnType;
-    private HashMap<String, AbstractType> parameterTypes;
-    public FunctionType(HashMap<String, AbstractType> parameterTypes, AbstractType returnType) {
+    public ArrayList<AbstractType> parameterTypes;
+    public int numParametersWithDefaultValue;
+    public FunctionType(ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType) {
         this.parameterTypes = parameterTypes;
+        this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
     }
     public String swiftType() {
@@ -131,27 +133,6 @@ public class Type {
         return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()));
     }
 
-    public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        return visitor.jsChain(ctx.prefix_expression()).type;
-    }
-
-    public static HashMap<String, AbstractType> fromParameters(List<SwiftParser.ParameterContext> parameters, TranspilerVisitor visitor) {
-        HashMap<String, AbstractType> parameterTypes = new HashMap<String, AbstractType>();
-        for(int i = 0; i < parameters.size(); i++) {
-            SwiftParser.ParameterContext parameter = parameters.get(i);
-            String parameterName = visitor.visit(parameter.local_parameter_name()).trim();
-            AbstractType parameterType;
-            if(parameter.type_annotation() != null) {
-                parameterType = fromDefinition(parameter.type_annotation().type());
-            }
-            else {
-                parameterType = infer(parameter.default_argument_clause().expression(), visitor);
-            }
-            parameterTypes.put(parameterName, parameterType);
-        }
-        return parameterTypes;
-    }
-
     public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, TranspilerVisitor visitor) {
         if(functionResult != null) return fromDefinition(functionResult.type());
         visitor.visitChildren(statements);
@@ -163,6 +144,10 @@ public class Type {
         }
         if(isClosure && statements.getChildCount() > 0) return infer((SwiftParser.ExpressionContext) statements.getChild(statements.getChildCount() - 1), visitor);
         return new BasicType("Void");
+    }
+
+    public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
+        return visitor.jsChain(ctx.prefix_expression()).type;
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {

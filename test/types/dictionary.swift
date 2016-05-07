@@ -1,11 +1,11 @@
 var dictionary: [String:Int] = ["one" : 1]
-println(dictionary["one"]!)
-println(dictionary.count)
+print(dictionary["one"]!)
+print(dictionary.count)
 var emptyDictionary: [Int:Int] = [:]
-println(emptyDictionary.count)
+print(emptyDictionary.count)
 var inferredIntIntDictionary = [1:2]
-println(inferredIntIntDictionary[1]!)
-println(inferredIntIntDictionary.count)
+print(inferredIntIntDictionary[1]!)
+print(inferredIntIntDictionary.count)
 var inferredIntStringDictionary = [1:"one"]
-println(inferredIntStringDictionary[1]!)
-println(inferredIntStringDictionary.count)
+print(inferredIntStringDictionary[1]!)
+print(inferredIntStringDictionary.count)

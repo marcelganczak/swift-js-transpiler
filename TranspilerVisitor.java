@@ -1,9 +1,6 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class TranspilerVisitor extends NativeOverriddenVisitor {
 
@@ -121,29 +118,17 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     public String jsFunctionDeclaration(SwiftParser.Function_declarationContext ctx) {
         SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
         List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
+        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
+        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
 
-        String externalNames = "";
-        if(parameters != null) {
-            for(int i = 0; i < parameters.size(); i++) {
-                SwiftParser.ParameterContext parameter = parameters.get(i);
-                if(parameter.external_parameter_name() != null) {
-                    externalNames += "$" + (parameter.external_parameter_name().getText().equals("_") ? "" : parameter.external_parameter_name().getText());
-                }
-                else {
-                    externalNames += "$" + (i > 0 ? visit(parameter.local_parameter_name()).trim() : "");
-                }
-            }
-        }
-        if(externalNames.equals("$")) externalNames = "";
-        String jsFunctionName = visit(ctx.function_name()).trim() + externalNames;
+        String jsFunctionName = FunctionUtil.nameFromDeclaration(ctx, parameters, parameterTypes);
 
-        HashMap<String, AbstractType> parameterTypes = parameters != null ? Type.fromParameters(parameters, this) : new HashMap<String, AbstractType>();
-        for(Map.Entry<String, AbstractType> entry : parameterTypes.entrySet()) {
-            cache.cacheOne(entry.getKey(), entry.getValue(), ctx.function_body().code_block());
+        for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
+            cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
         }
 
         AbstractType resultType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, this);
-        AbstractType functionType = new FunctionType(parameterTypes, resultType);
+        AbstractType functionType = new FunctionType(parameterTypes, numParametersWithDefaultValue, resultType);
         cache.cacheOne(jsFunctionName, functionType, ctx);
 
         return "function " + jsFunctionName + "(" + (parameterList != null ? visit(parameterList) : "") + "):" + resultType.jsType() + visit(ctx.function_body().code_block());
@@ -152,29 +137,14 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     public String jsClosureExpression(SwiftParser.Closure_expressionContext ctx) {
         SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
         List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
-        HashMap<String, AbstractType> parameterTypes = parameters != null ? Type.fromParameters(parameters, this) : new HashMap<String, AbstractType>();
-        for(Map.Entry<String, AbstractType> entry : parameterTypes.entrySet()) {
-            cache.cacheOne(entry.getKey(), entry.getValue(), ctx);
+        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
+        for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
+            cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
         }
 
         SwiftParser.StatementsContext statements = ctx.statements();
         //AbstractType resultType = Type.fromFunction(ctx.closure_signature().function_result(), statements, true, this);
 
         return "(" + (parameterList != null ? visit(parameterList) : "") + ") => " + (statements == null || statements.getChildCount() == 0 ? "{}" : statements.getChildCount() == 1 ? visitChildren(statements) : "{" + visitChildren(statements) + "}");
-    }
-
-    public String functionNameWithExternalParams(String functionName, List<SwiftParser.Expression_elementContext> parameters) {
-        String externalNames = "";
-        for(int i = 0; i < parameters.size(); i++) {
-            SwiftParser.Expression_elementContext parameter = parameters.get(i);
-            if(parameter.identifier() != null) {
-                externalNames += "$" + parameter.identifier().getText();
-            }
-            else {
-                externalNames += "$";
-            }
-        }
-        if(externalNames.equals("$")) externalNames = "";
-        return functionName + externalNames;
     }
 }

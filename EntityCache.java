@@ -1,6 +1,7 @@
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +32,7 @@ public class EntityCache {
             Map<String, CacheObject> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             if(blockTypeCache.containsKey(varName)) return blockTypeCache.get(varName);
-            if(node instanceof SwiftParser.Top_levelContext) return null;
+            if(node instanceof SwiftParser.Top_levelContext) break;
         }
         return null;
     }
@@ -40,6 +41,21 @@ public class EntityCache {
         CacheObject cache = findCache(varName, node);
         if(cache == null) return null;
         return cache.type;
+    }
+
+    public Map<String, AbstractType> getTypesStartingWith(String varName, ParseTree node) {
+        Map<String, AbstractType> matches = new HashMap<String, AbstractType>();
+        varName = varName.trim();
+
+        while((node = findNearestAncestorBlock(node.getParent())) != null) {
+            Map<String, CacheObject> blockTypeCache = cache.get(node);
+            if(blockTypeCache == null) continue;
+            for(Map.Entry<String, CacheObject> iterator:blockTypeCache.entrySet()) {
+                if(iterator.getKey().startsWith(varName)) matches.put(iterator.getKey(), iterator.getValue().type);
+            }
+            if(node instanceof SwiftParser.Top_levelContext) break;
+        }
+        return matches;
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {

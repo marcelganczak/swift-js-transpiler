@@ -1,16 +1,16 @@
 var arrayOfInts: [Int] = [1, 2, 3]
-println(arrayOfInts[0])
-println(arrayOfInts.count)
+print(arrayOfInts[0])
+print(arrayOfInts.count)
 var arrayOfStrings: [String] = ["We", "love", "Swift"]
-println(arrayOfStrings[0])
-println(arrayOfStrings.count)
+print(arrayOfStrings[0])
+print(arrayOfStrings.count)
 var emptyArray: [Int] = []
-println(emptyArray.count)
+print(emptyArray.count)
 var inferredArrayOfInts = [1, 2, 3]
-println(inferredArrayOfInts[0])
-println(inferredArrayOfInts.count)
+print(inferredArrayOfInts[0])
+print(inferredArrayOfInts.count)
 var inferredEmptyArray = [Int]()
-println(inferredEmptyArray.count)
+print(inferredEmptyArray.count)
 var inferredFilledArray = [Int](count: 3, repeatedValue: 0)
-println(inferredFilledArray[0])
-println(inferredFilledArray.count)
+print(inferredFilledArray[0])
+print(inferredFilledArray.count)
