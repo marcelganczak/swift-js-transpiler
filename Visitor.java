@@ -16,6 +16,10 @@ public class Visitor extends TranspilerVisitor {
         return jsRepeatWhile(ctx);
     }
 
+    @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
+        return toJsIf(ctx);
+    }
+
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
         return jsFunctionDeclaration(ctx);
     }
@@ -40,21 +44,11 @@ public class Visitor extends TranspilerVisitor {
         return jsType(ctx);
     }
 
-    @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
-        return toJsIf(ctx);
-    }
-
     @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
         return visit(ctx.expression());
     }
 
     @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {
         return "arguments[" + ctx.getText().substring(1) + "]";
-    }
-
-    @Override public String visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) {
-        String L = visit(ctx.getChild(0));
-        String R = visit(ctx.getChild(3));
-        return "(" + L + " != undefined ? " + L + " : " + R + ")";
     }
 }

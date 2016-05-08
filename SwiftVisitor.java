@@ -1384,13 +1384,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitForced_value_expression(SwiftParser.Forced_value_expressionContext ctx);
 	/**
-	 * Visit a parse tree produced by the {@code nil_coalescing}
-	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link SwiftParser#argument_names}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

@@ -16,6 +16,7 @@ public class BinaryExpression {
         priorites.put("?:",  8);
         priorites.put("&&",  7);
         priorites.put("||",  7);
+        priorites.put("??",  7);
         priorites.put("===", 6);
         priorites.put("==",  6);
         priorites.put("!==", 6);
@@ -83,9 +84,21 @@ public class BinaryExpression {
             return new ChainElem(code, "", type, null);
         }
         else {
+            ChainElem replacement = BinaryExpression.replacement(operator, L, R, visitor);
+            if(replacement != null) return replacement;
             String code = L.code + " " + operator.getText() + " " + R.code;
             AbstractType type = L.type;//TODO new type based on operator (eg bool for >)
             return new ChainElem(code, "", type, null);
         }
+    }
+
+    static private ChainElem replacement(ParserRuleContext operator, ChainElem L, ChainElem R, TranspilerVisitor visitor) {
+        String alias = BinaryExpression.operatorAlias(operator);
+        if(alias.equals("??")) {
+            String code = "(" + L.code + " != null ? " + L.code + " : " + R.code + ")";
+            AbstractType type = R.type;//TODO check passExpression and R: if one returns null, the type is the other and optional
+            return new ChainElem(code, "", type, null);
+        }
+        return null;
     }
 }

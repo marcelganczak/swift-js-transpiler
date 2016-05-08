@@ -27,8 +27,17 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return "do " + visit(ctx.code_block()) + "while(" + visit(ctx.expression()) + ")";
     }
 
-    public String jsFunctionResult(SwiftParser.Function_resultContext ctx) {
-        return ":" + visit(ctx.type());
+    public String toJsIf(SwiftParser.If_statementContext ctx) {
+        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
+        String beforeBlock = "";
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
+            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
+            String constVar = visitWithoutTerminals(ifLet.pattern());
+            String var = visitWithoutTerminals(ifLet.initializer().expression());
+            condition = var + " != null";
+            beforeBlock = "const " + constVar + " = " + var + ";";
+        }
+        return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
     }
 
     public ArrayList<ParserRuleContext> flattenChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
@@ -167,19 +176,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return null;
     }
 
-    public String toJsIf(SwiftParser.If_statementContext ctx) {
-        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
-        String beforeBlock = "";
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
-            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
-            String constVar = visitWithoutTerminals(ifLet.pattern());
-            String var = visitWithoutTerminals(ifLet.initializer().expression());
-            condition = var + " != null";
-            beforeBlock = "const " + constVar + " = " + var + ";";
-        }
-        return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
-    }
-
     public String jsType(SwiftParser.TypeContext ctx) {
         AbstractType type = Type.fromDefinition(ctx);
 
@@ -206,6 +202,10 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         cache.cacheOne(jsFunctionName, functionType, ctx);
 
         return "function " + jsFunctionName + "(" + (parameterList != null ? visit(parameterList) : "") + "):" + resultType.jsType() + visit(ctx.function_body().code_block());
+    }
+
+    public String jsFunctionResult(SwiftParser.Function_resultContext ctx) {
+        return ":" + visit(ctx.type());
     }
 
     public String jsClosureExpression(SwiftParser.Closure_expressionContext ctx) {

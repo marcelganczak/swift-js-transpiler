@@ -1606,13 +1606,6 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitNil_coalescing(SwiftParser.Nil_coalescingContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
 	@Override public T visitArgument_names(SwiftParser.Argument_namesContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

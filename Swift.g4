@@ -747,7 +747,6 @@ chain_postfix_expression
  | '?'? '.' 'dynamicType'                            # dynamic_type_expression
  | '?'? '[' expression_list ']'                      # subscript_expression
  | '!'                                               # forced_value_expression
- | '?' '?' identifier                                # nil_coalescing
  ;
 
 /* This might be faster than above
