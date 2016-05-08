@@ -8,10 +8,14 @@ public class Main {
 
     public static void main(String [] args) {
 
+        String srcFile = args.length > 0 ? args[0] : "./example.swift";
+
+        StringInterpolation.breakUp(srcFile);
+
         ANTLRFileStream inputFile = null;
 
         try {
-            inputFile = new ANTLRFileStream(args.length > 0 ? args[0] : "./example.swift");
+            inputFile = new ANTLRFileStream("./broke-up-string-interpolation.swift");
         } catch (IOException e) {
             e.printStackTrace();
         }
