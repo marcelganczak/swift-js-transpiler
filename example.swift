@@ -1,3 +1,5 @@
-print((["key":"val"]).count)
-print((true ? ["key":"val"] : ["val":"key"]).count)
-print((true ? ["key":"val"] : true ? ["key":"val"] : ["val":"key"]).count)
+func addTwoInts(a: Int, b: Int) -> Int {
+    return a + b
+}
+var mathFunction: (Int, c: Int) -> Int = addTwoInts
+print(mathFunction(1, c:1))

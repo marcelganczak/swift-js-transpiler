@@ -30,7 +30,7 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
 
     public ChainElem jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
         if(ctx instanceof SwiftParser.ExpressionContext && ((SwiftParser.ExpressionContext)ctx).binary_expressions() != null) {
-            return jsChainWithBinaryExpressions((SwiftParser.ExpressionContext)ctx);
+            return BinaryExpression.handle((SwiftParser.ExpressionContext) ctx, this);
         }
         ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
         String declaredEntity = getDeclaredEntityForChain(ctx);
@@ -40,21 +40,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             cache.cacheOne(declaredEntity, result.type, ctx);
         }
         return result;
-    }
-
-    private ChainElem jsChainWithBinaryExpressions(SwiftParser.ExpressionContext ctx) {
-        ChainElem R = jsChain(ctx.prefix_expression());
-        String code = R.code;
-        List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions().binary_expression();
-
-        for(int i = 0; i < binaries.size(); i++) {
-            SwiftParser.Binary_expressionContext binary = binaries.get(i);
-            ChainElem L = jsChain(binary.conditional_operator().expression());
-            R = jsChain(binary.prefix_expression());
-            code += " ? " + L.code + " : " + R.code;
-        }
-
-        return new ChainElem(code, "", R.type, null);
     }
 
     public String getDeclaredEntityForType(SwiftParser.TypeContext ctx) {
