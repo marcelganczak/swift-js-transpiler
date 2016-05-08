@@ -57,7 +57,7 @@ public class ChainElem {
 
         code += "{";
         for(int i = 0; i < elementList.size(); i++) {
-            String key = keys != null ? keys.get(i) : elementList.get(i).identifier() != null ? elementList.get(i).identifier().getText() : i + "':";
+            String key = keys != null ? keys.get(i) : elementList.get(i).identifier() != null ? elementList.get(i).identifier().getText() : i + "";
             String val = visitor.visit(elementList.get(i).expression());
             if(i > 0) code += ",";
             code += "'" + key + "':" + val;
@@ -160,14 +160,14 @@ public class ChainElem {
             accessorType = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
-            identifier = visitor.visitWithoutStrings(rChild, ".");
+            identifier = visitor.visitWithoutStrings(rChild, "?.");
             accessorType = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {
             String[] split = visitor.visit(rChild).split("\\.");
             int pos = 1, i = chainPos;
             while(i > 0 && chain.get(i - 1) instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {i--; pos = pos == 1 ? 2 : 1;}
-            identifier = split[pos];
+            identifier = split[pos].replaceAll("\\?", "");
             accessorType = "[]";
         }
         else {
