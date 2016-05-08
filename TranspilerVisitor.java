@@ -10,12 +10,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return "_.each(" + visit(ctx.expression()) + ", " + visit(ctx.pattern()) + " => " + visit(ctx.code_block()) + ")";
     }
 
-    public String jsDictionaryLiteral(SwiftParser.Dictionary_literalContext ctx) {
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, ctx)) return "{}";
-        ArrayList<Integer> withoutNodes = new ArrayList<Integer>(); withoutNodes.add(0); withoutNodes.add(ctx.getChildCount() - 1);
-        return '{' + visitChildren(ctx, withoutNodes) + '}';
-    }
-
     public String jsFunctionResult(SwiftParser.Function_resultContext ctx) {
         return ":" + visit(ctx.type());
     }

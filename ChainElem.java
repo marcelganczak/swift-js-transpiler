@@ -106,13 +106,20 @@ public class ChainElem {
     static private ChainElem getDictionary(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
 
         SwiftParser.Dictionary_literalContext dictionaryLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().dictionary_literal();
+        String code;
 
-        if(type == null) {
-            List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
-            type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, dictionaryLiteral)) {
+            code = "{}";
+        }
+        else {
+            if(type == null) {
+                List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
+                type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
+            }
+            code = '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
         }
 
-        return new ChainElem(visitor.visit(rChild), "", type, null);
+        return new ChainElem(code, "", type, null);
     }
 
     static private ChainElem getTemplatedConstructor(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {

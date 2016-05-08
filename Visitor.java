@@ -8,11 +8,6 @@ public class Visitor extends TranspilerVisitor {
         return jsForIn(ctx);
     }
 
-    //TODO needed?
-    @Override public String visitDictionary_literal(SwiftParser.Dictionary_literalContext ctx) {
-        return jsDictionaryLiteral(ctx);
-    }
-
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
         return jsFunctionDeclaration(ctx);
     }
