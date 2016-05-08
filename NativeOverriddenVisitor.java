@@ -66,15 +66,6 @@ public class NativeOverriddenVisitor extends SwiftBaseVisitor<String> {
         if(text.equals("<EOF>")) {
             return "";
         }
-        else if(text.equals("let")) {
-            return "const ";
-        }
-        else if(text.equals("print")) {
-            return "console.log ";
-        }
-        else if(text.equals("func")) {
-            return "function ";
-        }
         else if(text.equals(".")) {
             return ".";
         }

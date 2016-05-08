@@ -34,12 +34,7 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        AbstractType type = Type.fromDefinition(ctx);
-
-        String declaredEntity = getDeclaredEntityForType(ctx);
-        if(declaredEntity != null) cache.cacheOne(declaredEntity, type, ctx);
-
-        return type.jsType();
+        return jsType(ctx);
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {

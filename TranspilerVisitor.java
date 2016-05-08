@@ -78,7 +78,15 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             functionCallParams = functionCall.parenthesized_expression().expression_element_list() != null ? functionCall.parenthesized_expression().expression_element_list().expression_element() : null;
         }
 
-        ChainElem chainElem = ChainElem.get(rChild, declaredType, functionCall, functionCallParams, ctx, chain, chainPos, lType, this);
+        ChainElem chainElem;
+        Replacement replacement = this.replacement(chainPos == 0, lType, rChild instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText() : rChild.getText(), functionCallParams);
+        if(replacement != null) {
+            chainElem = replacement.chainElem;
+            chainPos += replacement.skip;
+        }
+        else {
+            chainElem = ChainElem.get(rChild, declaredType, functionCall, functionCallParams, ctx, chain, chainPos, lType, this);
+        }
 
         if(chainElem.type == null) {
             chainElem.type = Type.resulting(lType, chainElem.code, chain.get(0), this);
@@ -102,6 +110,51 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return nextChain;
     }
 
+    class Replacement {
+        public int skip = 0;
+        public ChainElem chainElem;
+        public Replacement(ChainElem chainElem) {
+            this.chainElem = chainElem;
+        }
+        public Replacement(ChainElem chainElem, int skip) {
+            this.chainElem = chainElem;
+            this.skip = skip;
+        }
+    }
+    private Replacement replacement(boolean isStart, AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams) {
+        if(R == null) return null;
+        if(lType != null && lType.swiftType().equals("Dictionary")) {
+            if(R.equals("count")) {
+                return new Replacement(new ChainElem("size", "_.()", new BasicType("Int"), null));
+            }
+            if(R.equals("updateValue")) {
+                return new Replacement(new ChainElem("updateValue", "_.()", new BasicType("Void"), null/*TODO*/));
+            }
+        }
+        if(lType != null && lType.swiftType().equals("Array")) {
+            if(R.equals("count")) {
+                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null));
+            }
+        }
+        if(lType != null && lType.swiftType().equals("Set")) {
+            if(R.equals("count")) {
+                return new Replacement(new ChainElem("size", ".", new BasicType("Int"), null));
+            }
+            if(R.equals("insert")) {
+                return new Replacement(new ChainElem("add", ".", new BasicType("Void"), visit(functionCallParams.get(0))));
+            }
+        }
+        if(lType != null && lType.swiftType().equals("String")) {
+            if(R.equals("characters")) {
+                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null), 1);
+            }
+        }
+        if(isStart) {
+            if(R.equals("print")) return new Replacement(new ChainElem("console.log", "", new BasicType("Void"), visit(functionCallParams.get(0))));
+        }
+        return null;
+    }
+
     public String toJsIf(SwiftParser.If_statementContext ctx) {
         String condition = visitWithoutStrings(ctx.condition_clause(), "()");
         String beforeBlock = "";
@@ -113,6 +166,15 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             beforeBlock = "const " + constVar + " = " + var + ";";
         }
         return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
+    }
+
+    public String jsType(SwiftParser.TypeContext ctx) {
+        AbstractType type = Type.fromDefinition(ctx);
+
+        String declaredEntity = getDeclaredEntityForType(ctx);
+        if(declaredEntity != null) cache.cacheOne(declaredEntity, type, ctx);
+
+        return type.jsType();
     }
 
     public String jsFunctionDeclaration(SwiftParser.Function_declarationContext ctx) {

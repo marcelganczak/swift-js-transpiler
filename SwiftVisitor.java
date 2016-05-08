@@ -1415,6 +1415,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitType(SwiftParser.TypeContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#optional_type}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitOptional_type(SwiftParser.Optional_typeContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#array_definition}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

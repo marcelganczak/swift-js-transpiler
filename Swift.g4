@@ -735,17 +735,17 @@ postfix_expression
  ;
 
 chain_postfix_expression
- : parenthesized_expression                     # function_call_expression
- | parenthesized_expression? trailing_closure   # function_call_with_closure_expression
+ : '?'? parenthesized_expression                     # function_call_expression
+ | '?'? parenthesized_expression? trailing_closure   # function_call_with_closure_expression
  // | postfix_operator
- | '.' 'init'                                   # initializer_expression
- | '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
+ | '?'? '.' 'init'                                   # initializer_expression
+ | '?'? '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
  | '?'? '.' identifier generic_argument_clause? # explicit_member_expression
- | '.' Decimal_literal                          # explicit_member_expression_number
- | '.' Floating_point_literal                   # explicit_member_expression_number_double
- | '.' 'self'                                   # postfix_self_expression
- | '.' 'dynamicType'                            # dynamic_type_expression
- | '[' expression_list ']'                      # subscript_expression
+ | '?'? '.' Decimal_literal                          # explicit_member_expression_number
+ | '?'? '.' Floating_point_literal                   # explicit_member_expression_number_double
+ | '?'? '.' 'self'                                   # postfix_self_expression
+ | '?'? '.' 'dynamicType'                            # dynamic_type_expression
+ | '?'? '[' expression_list ']'                      # subscript_expression
  | '!'                                          # forced_value_expression
  | '?' '?' identifier                           # nil_coalescing
  ;
@@ -783,12 +783,13 @@ type
  | type 'rethrows' arrow_operator type
  | type_identifier
  | tuple_type
- | type '?'
+ | type optional_type
  | type '!'
  | protocol_composition_type
  | type '.' 'Type'
  | type '.' 'Protocol'
  ;
+optional_type: '?';
 
 array_definition : '[' type ']';
 dictionary_definition : '[' type ':' type ']';
