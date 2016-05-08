@@ -740,14 +740,14 @@ chain_postfix_expression
  // | postfix_operator
  | '?'? '.' 'init'                                   # initializer_expression
  | '?'? '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
- | '?'? '.' identifier generic_argument_clause? # explicit_member_expression
+ | '?'? '.' identifier generic_argument_clause?      # explicit_member_expression
  | '?'? '.' Decimal_literal                          # explicit_member_expression_number
  | '?'? '.' Floating_point_literal                   # explicit_member_expression_number_double
  | '?'? '.' 'self'                                   # postfix_self_expression
  | '?'? '.' 'dynamicType'                            # dynamic_type_expression
  | '?'? '[' expression_list ']'                      # subscript_expression
- | '!'                                          # forced_value_expression
- | '?' '?' identifier                           # nil_coalescing
+ | '!'                                               # forced_value_expression
+ | '?' '?' identifier                                # nil_coalescing
  ;
 
 /* This might be faster than above

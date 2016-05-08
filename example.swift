@@ -1,4 +1,3 @@
-func dictionarySize(dict: [String:String]) -> Int {
-    return dict.count;
-}
-print(dictionarySize(["key":"val"]))
+print((["key":"val"]).count)
+print((true ? ["key":"val"] : ["val":"key"]).count)
+print((true ? ["key":"val"] : true ? ["key":"val"] : ["val":"key"]).count)

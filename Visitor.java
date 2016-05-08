@@ -24,7 +24,7 @@ public class Visitor extends TranspilerVisitor {
         return "";
     }
 
-    @Override public String visitPrefix_expression(SwiftParser.Prefix_expressionContext ctx) {
+    @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
         return jsChain(ctx).code;
     }
 

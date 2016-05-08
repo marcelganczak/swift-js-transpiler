@@ -158,7 +158,7 @@ public class Type {
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        return visitor.jsChain(ctx.prefix_expression()).type;
+        return visitor.jsChain(ctx).type;
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {
