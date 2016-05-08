@@ -19,6 +19,14 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return "_.each(" + visit(ctx.expression()) + ", " + visit(ctx.pattern()) + " => " + visit(ctx.code_block()) + ")";
     }
 
+    public String jsWhile(SwiftParser.While_statementContext ctx) {
+        return "while(" + visit(ctx.condition_clause()) + ") " + visit(ctx.code_block());
+    }
+
+    public String jsRepeatWhile(SwiftParser.Repeat_while_statementContext ctx) {
+        return "do " + visit(ctx.code_block()) + "while(" + visit(ctx.expression()) + ")";
+    }
+
     public String jsFunctionResult(SwiftParser.Function_resultContext ctx) {
         return ":" + visit(ctx.type());
     }

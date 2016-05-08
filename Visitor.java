@@ -8,6 +8,14 @@ public class Visitor extends TranspilerVisitor {
         return jsForIn(ctx);
     }
 
+    @Override public String visitWhile_statement(SwiftParser.While_statementContext ctx) {
+        return jsWhile(ctx);
+    }
+
+    @Override public String visitRepeat_while_statement(SwiftParser.Repeat_while_statementContext ctx) {
+        return jsRepeatWhile(ctx);
+    }
+
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
         return jsFunctionDeclaration(ctx);
     }

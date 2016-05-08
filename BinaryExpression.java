@@ -12,6 +12,7 @@ public class BinaryExpression {
         priorites.put("*=",  9);
         priorites.put("+=",  9);
         priorites.put("-=",  9);
+        priorites.put("=",   9);
         priorites.put("?:",  8);
         priorites.put("&&",  7);
         priorites.put("||",  7);
