@@ -7,6 +7,15 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     protected EntityCache cache = new EntityCache();
 
     public String jsForIn(SwiftParser.For_in_statementContext ctx) {
+        SwiftParser.ExpressionContext expression = ctx.expression();
+        if(expression != null && expression.binary_expressions() != null) {
+            SwiftParser.Binary_expressionContext binary = expression.binary_expressions().binary_expression(0);
+            String from = visit(expression.prefix_expression()),
+                   to = visit(binary.prefix_expression()),
+                   varName = ctx.pattern().getText().equals("_") ? "$" : ctx.pattern().getText(),
+                   operator = BinaryExpression.operatorAlias(binary.binary_operator());
+            return "for(let " + varName + " = " + from + "; " + varName + " " + (operator.equals("...") ? "<=" : "<") + " " + to + "; " + varName + "++) " + visit(ctx.code_block());
+        }
         return "_.each(" + visit(ctx.expression()) + ", " + visit(ctx.pattern()) + " => " + visit(ctx.code_block()) + ")";
     }
 

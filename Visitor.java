@@ -49,8 +49,4 @@ public class Visitor extends TranspilerVisitor {
         String R = visit(ctx.getChild(3));
         return "(" + L + " != undefined ? " + L + " : " + R + ")";
     }
-
-    @Override public String visitTuple_pattern(SwiftParser.Tuple_patternContext ctx) {
-        return "[" + visitWithoutStrings(ctx, "()") + "]";
-    }
 }

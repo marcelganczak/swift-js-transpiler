@@ -9,6 +9,9 @@ public class BinaryExpression {
     static private HashMap<String, Integer> priorites;
     static {
         priorites = new HashMap<String, Integer>();
+        priorites.put("*=",  9);
+        priorites.put("+=",  9);
+        priorites.put("-=",  9);
         priorites.put("?:",  8);
         priorites.put("&&",  7);
         priorites.put("||",  7);
@@ -43,7 +46,7 @@ public class BinaryExpression {
             }
         }
 
-        for(int priority = 4; priority <= 8; priority++) {
+        for(int priority = 4; priority <= 9; priority++) {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);
                 if(priorityForOperator(operator) != priority) continue;
@@ -65,7 +68,7 @@ public class BinaryExpression {
         String operatorAlias = BinaryExpression.operatorAlias(operator);
         return priorites.get(operatorAlias);
     }
-    static private String operatorAlias(ParserRuleContext operator) {
+    static public String operatorAlias(ParserRuleContext operator) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) return "?:";
         return operator.getText();
     }
@@ -73,7 +76,7 @@ public class BinaryExpression {
     static private ChainElem compute(ParserRuleContext operator, ChainElem L, ChainElem R, TranspilerVisitor visitor) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
-            ChainElem passExpression = visitor.jsChain(((SwiftParser.Conditional_operatorContext) operator).expression());
+            ChainElem passExpression = visitor.jsChain(conditionalOperator.expression());
             String code = L.code + " ? " + passExpression.code + " : " + R.code;
             AbstractType type = R.type;//TODO check passExpression and R: if one returns null, the type is the other and optional
             return new ChainElem(code, "", type, null);

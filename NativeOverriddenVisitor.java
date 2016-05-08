@@ -66,6 +66,12 @@ public class NativeOverriddenVisitor extends SwiftBaseVisitor<String> {
         if(text.equals("<EOF>")) {
             return "";
         }
+        else if(text.equals("let")) {
+            return "const ";
+        }
+        else if(text.equals("var")) {
+            return "let ";
+        }
         else if(text.equals(".")) {
             return ".";
         }
