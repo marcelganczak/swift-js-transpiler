@@ -4,13 +4,21 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+class ChainResult {
+    public String code;
+    public AbstractType type;
+    public ArrayList<ChainElem> elems;
+    public ChainResult(String code, AbstractType type, ArrayList<ChainElem> elems) { this.code = code; this.type = type; this.elems = elems; }
+    public ChainResult(String code, AbstractType type) { this.code = code; this.type = type; this.elems = null; }
+}
 public class ChainElem {
     public String code;
     public String accessorType;
     public AbstractType type;
     public String functionCallParams;
-    public ChainElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; }
-    
+    public boolean isOptional;
+    public ChainElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; this.isOptional = false; }
+
     static public ChainElem get(ParserRuleContext rChild, AbstractType declaredType, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
 
         boolean isFinalElem = chainPos + (functionCall != null ? 1 : 0) >= chain.size() - 1;
@@ -21,7 +29,8 @@ public class ChainElem {
                 return getTuple(rChild, assumedType, visitor);
             }
             else {
-                return visitor.jsChain(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression());
+                ChainResult parenthesized = visitor.jsChain(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression());
+                return new ChainElem(parenthesized.code, "", parenthesized.type, null);
             }
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {

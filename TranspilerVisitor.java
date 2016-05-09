@@ -54,14 +54,14 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return flattened;
     }
 
-    public ChainElem jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
+    public ChainResult jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
         if(ctx instanceof SwiftParser.ExpressionContext && ((SwiftParser.ExpressionContext)ctx).binary_expressions() != null) {
             return BinaryExpression.handle((SwiftParser.ExpressionContext) ctx, this);
         }
         ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
         String declaredEntity = getDeclaredEntityForChain(ctx);
         AbstractType declaredType = declaredEntity != null ? cache.getType(declaredEntity, ctx) : null;
-        ChainElem result = jsChainElem(declaredType, flattenedChain, 0, "", null);
+        ChainResult result = jsChainElem(declaredType, flattenedChain, 0, "", null, new ArrayList<ChainElem>());
         if(declaredEntity != null && declaredType == null) {
             cache.cacheOne(declaredEntity, result.type, ctx);
         }
@@ -78,18 +78,19 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
     }
 
     public String getDeclaredEntityForChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
-        ParserRuleContext baseParent = ctx instanceof SwiftParser.ExpressionContext ? ctx.getParent() : ctx;
-        ParserRuleContext parentExpression = baseParent.getParent().getParent();
-        if(parentExpression instanceof SwiftParser.Pattern_initializerContext) {
-            SwiftParser.IdentifierContext identifier = ((SwiftParser.Pattern_initializerContext) parentExpression).pattern().identifier_pattern().identifier();
+        ParserRuleContext baseParent = ctx instanceof SwiftParser.ExpressionContext ? ctx : ctx.getParent();
+        ParserRuleContext patternInitializer = baseParent.getParent().getParent();
+        if(patternInitializer instanceof SwiftParser.Pattern_initializerContext) {
+            SwiftParser.IdentifierContext identifier = ((SwiftParser.Pattern_initializerContext) patternInitializer).pattern().identifier_pattern().identifier();
             if(identifier != null) return identifier.getText();
         }
-        if(parentExpression instanceof SwiftParser.ExpressionContext && baseParent.getChild(0).getText().equals("=")) {
-            return ((SwiftParser.ExpressionContext) parentExpression).prefix_expression().postfix_expression().primary_expression().getText();
+        if(patternInitializer instanceof SwiftParser.ExpressionContext && baseParent.getChild(0).getText().equals("=")) {
+            SwiftParser.Postfix_expressionContext postfix = ((SwiftParser.ExpressionContext) patternInitializer).prefix_expression().postfix_expression();
+            if(postfix.primary_expression() != null) return postfix.primary_expression().getText();
         }
         return null;
     }
-    public ChainElem jsChainElem(AbstractType declaredType, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType) {
+    public ChainResult jsChainElem(AbstractType declaredType, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType, ArrayList<ChainElem> elems) {
         ParserRuleContext rChild = chain.get(chainPos);
 
         SwiftParser.Function_call_expressionContext functionCall = null;
@@ -109,6 +110,8 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             chainElem = ChainElem.get(rChild, declaredType, functionCall, functionCallParams, chain, chainPos, lType, this);
         }
 
+        chainElem.isOptional = rChild.getChild(0).getText().equals("?");
+
         if(chainElem.type == null) {
             chainElem.type = Type.resulting(lType, chainElem.code, chain.get(0), this);
             if(functionCall != null && chainElem.type instanceof FunctionType) chainElem.type = chainElem.type.resulting("()");
@@ -119,16 +122,17 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         String LR = chainElem.accessorType.equals("_.()") ? "_." + chainElem.code + "(" + L + (chainElem.functionCallParams != null ? "," + chainElem.functionCallParams : "") + ")"
                   : L + (L.length() == 0 ? chainElem.code : chainElem.accessorType.equals(".") ? "." + chainElem.code : "[" + chainElem.code + "]") + (chainElem.functionCallParams != null ? "(" + chainElem.functionCallParams + ")" : "");
 
-        ChainElem nextChain =
-                chainPos + 1 < chain.size() ? jsChainElem(declaredType, chain, chainPos + 1, LR, chainElem.type)
-                : new ChainElem(LR, "", chainElem.type, null);
+        elems.add(chainElem);
 
-        boolean isOptional = rChild.getChild(0).getText().equals("?");
-        if(isOptional) {
-            nextChain.code = "(" + L + "!= null ? " + nextChain.code + " : null )";
+        ChainResult nextResult =
+                chainPos + 1 < chain.size() ? jsChainElem(declaredType, chain, chainPos + 1, LR, chainElem.type, elems)
+                : new ChainResult(LR, chainElem.type, elems);
+
+        if(chainElem.isOptional /*TODO and not on the left side of assignment*/) {
+            nextResult.code = "(" + L + "!= null ? " + nextResult.code + " : null )";
         }
 
-        return nextChain;
+        return nextResult;
     }
 
     class Replacement {

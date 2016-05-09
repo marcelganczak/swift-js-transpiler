@@ -4,9 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-class BasicType implements AbstractType {
+class BasicType extends AbstractType {
     private String swiftType;
-    boolean isOptional;
     public BasicType(String swiftType) {
         this.swiftType = swiftType;
         this.isOptional = false;
@@ -24,12 +23,14 @@ class BasicType implements AbstractType {
     public AbstractType resulting(String accessor) {
         return null;
     }
+    public AbstractType copy() {
+        return new BasicType(this.swiftType, this.isOptional);
+    }
 }
-class FunctionType implements AbstractType {
+class FunctionType extends AbstractType {
     private AbstractType returnType;
     public ArrayList<AbstractType> parameterTypes;
     public int numParametersWithDefaultValue;
-    boolean isOptional = false;
     public FunctionType(ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType) {
         this.parameterTypes = parameterTypes;
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
@@ -44,12 +45,14 @@ class FunctionType implements AbstractType {
     public AbstractType resulting(String accessor) {
         return returnType;
     }
+    public AbstractType copy() {
+        return new FunctionType(this.parameterTypes, this.numParametersWithDefaultValue, this.returnType);
+    }
 }
-class NestedType implements AbstractType {
+class NestedType extends AbstractType {
     private String wrapperType;//Dictionary/Array/Set
     private AbstractType keyType;
     private AbstractType valueType;
-    boolean isOptional;
     public NestedType(String wrapperType, AbstractType keyType, AbstractType valueType, boolean isOptional) {
         this.wrapperType = wrapperType;
         this.keyType = keyType;
@@ -65,8 +68,11 @@ class NestedType implements AbstractType {
     public AbstractType resulting(String accessor) {
         return valueType;
     }
+    public AbstractType copy() {
+        return new NestedType(this.wrapperType, this.keyType, this.valueType, this.isOptional);
+    }
 }
-class NestedByIndexType implements AbstractType {
+class NestedByIndexType extends AbstractType {
     private LinkedHashMap<String, AbstractType> swiftType;
     public NestedByIndexType(LinkedHashMap<String, AbstractType> swiftType) {
         this.swiftType = swiftType;
@@ -82,6 +88,9 @@ class NestedByIndexType implements AbstractType {
     }
     public AbstractType resulting(String accessor) {
         return swiftType.get(accessor);
+    }
+    public AbstractType copy() {
+        return new NestedByIndexType(this.swiftType);
     }
 }
 
@@ -165,5 +174,22 @@ public class Type {
         if(accessor == null) return null;
         if(lType == null) return visitor.cache.getType(accessor, ctx);
         return lType.resulting(accessor);
+    }
+
+    public static AbstractType alternative(ChainResult L, ChainResult R) {
+        if(L.type.swiftType().equals(R.type.swiftType())) return L.type;
+        if(L.type.swiftType().equals("Void")) {
+            if(R.type.swiftType().equals("Void")) return new BasicType("Void");
+            AbstractType rClone = R.type.copy();
+            rClone.isOptional = true;
+            return rClone;
+        }
+        if(R.type.swiftType().equals("Void")) {
+            AbstractType lClone = L.type.copy();
+            lClone.isOptional = true;
+            return lClone;
+        }
+        System.out.println("//Ambiguous return type: " + L.type.swiftType() + " || " + R.type.swiftType());
+        return L.type;
     }
 }
