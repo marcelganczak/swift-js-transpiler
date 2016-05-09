@@ -54,16 +54,16 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return flattened;
     }
 
-    public ChainResult jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
+    public ExpressionResult jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
         if(ctx instanceof SwiftParser.ExpressionContext && ((SwiftParser.ExpressionContext)ctx).binary_expressions() != null) {
             return BinaryExpression.handle((SwiftParser.ExpressionContext) ctx, this);
         }
         ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
         String declaredEntity = getDeclaredEntityForChain(ctx);
         AbstractType declaredType = declaredEntity != null ? cache.getType(declaredEntity, ctx) : null;
-        ChainResult result = jsChainElem(declaredType, flattenedChain, 0, "", null, new ArrayList<ChainElem>());
+        ChainResult result = new ChainResult(declaredType, flattenedChain, this);
         if(declaredEntity != null && declaredType == null) {
-            cache.cacheOne(declaredEntity, result.type, ctx);
+            cache.cacheOne(declaredEntity, result.type(), ctx);
         }
         return result;
     }
@@ -87,95 +87,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         if(patternInitializer instanceof SwiftParser.ExpressionContext && baseParent.getChild(0).getText().equals("=")) {
             SwiftParser.Postfix_expressionContext postfix = ((SwiftParser.ExpressionContext) patternInitializer).prefix_expression().postfix_expression();
             if(postfix.primary_expression() != null) return postfix.primary_expression().getText();
-        }
-        return null;
-    }
-    public ChainResult jsChainElem(AbstractType declaredType, ArrayList<ParserRuleContext> chain, int chainPos, String L, AbstractType lType, ArrayList<ChainElem> elems) {
-        ParserRuleContext rChild = chain.get(chainPos);
-
-        SwiftParser.Function_call_expressionContext functionCall = null;
-        List<SwiftParser.Expression_elementContext> functionCallParams = null;
-        if(chainPos < chain.size() - 1 && chain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
-            functionCall = (SwiftParser.Function_call_expressionContext) chain.get(chainPos + 1);
-            functionCallParams = functionCall.parenthesized_expression().expression_element_list() != null ? functionCall.parenthesized_expression().expression_element_list().expression_element() : null;
-        }
-
-        ChainElem chainElem;
-        Replacement replacement = this.replacement(chainPos == 0, lType, rChild instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText() : rChild.getText(), functionCallParams);
-        if(replacement != null) {
-            chainElem = replacement.chainElem;
-            chainPos += replacement.skip;
-        }
-        else {
-            chainElem = ChainElem.get(rChild, declaredType, functionCall, functionCallParams, chain, chainPos, lType, this);
-        }
-
-        chainElem.isOptional = rChild.getChild(0).getText().equals("?");
-
-        if(chainElem.type == null) {
-            chainElem.type = Type.resulting(lType, chainElem.code, chain.get(0), this);
-            if(functionCall != null && chainElem.type instanceof FunctionType) chainElem.type = chainElem.type.resulting("()");
-        }
-
-        if(functionCall != null) chainPos++;
-
-        String LR = chainElem.accessorType.equals("_.()") ? "_." + chainElem.code + "(" + L + (chainElem.functionCallParams != null ? "," + chainElem.functionCallParams : "") + ")"
-                  : L + (L.length() == 0 ? chainElem.code : chainElem.accessorType.equals(".") ? "." + chainElem.code : "[" + chainElem.code + "]") + (chainElem.functionCallParams != null ? "(" + chainElem.functionCallParams + ")" : "");
-
-        elems.add(chainElem);
-
-        ChainResult nextResult =
-                chainPos + 1 < chain.size() ? jsChainElem(declaredType, chain, chainPos + 1, LR, chainElem.type, elems)
-                : new ChainResult(LR, chainElem.type, elems);
-
-        if(chainElem.isOptional /*TODO and not on the left side of assignment*/) {
-            nextResult.code = "(" + L + "!= null ? " + nextResult.code + " : null )";
-        }
-
-        return nextResult;
-    }
-
-    class Replacement {
-        public int skip = 0;
-        public ChainElem chainElem;
-        public Replacement(ChainElem chainElem) {
-            this.chainElem = chainElem;
-        }
-        public Replacement(ChainElem chainElem, int skip) {
-            this.chainElem = chainElem;
-            this.skip = skip;
-        }
-    }
-    private Replacement replacement(boolean isStart, AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams) {
-        if(R == null) return null;
-        if(lType != null && lType.swiftType().equals("Dictionary")) {
-            if(R.equals("count")) {
-                return new Replacement(new ChainElem("size", "_.()", new BasicType("Int"), null));
-            }
-            if(R.equals("updateValue")) {
-                return new Replacement(new ChainElem("updateValue", "_.()", new BasicType("Void"), null/*TODO*/));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("Array")) {
-            if(R.equals("count")) {
-                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("Set")) {
-            if(R.equals("count")) {
-                return new Replacement(new ChainElem("size", ".", new BasicType("Int"), null));
-            }
-            if(R.equals("insert")) {
-                return new Replacement(new ChainElem("add", ".", new BasicType("Void"), visit(functionCallParams.get(0))));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("String")) {
-            if(R.equals("characters")) {
-                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null), 1);
-            }
-        }
-        if(isStart) {
-            if(R.equals("print")) return new Replacement(new ChainElem("console.log", "", new BasicType("Void"), visit(functionCallParams.get(0))));
         }
         return null;
     }

@@ -167,7 +167,7 @@ public class Type {
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        return visitor.jsChain(ctx).type;
+        return visitor.jsChain(ctx).type();
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {
@@ -176,20 +176,19 @@ public class Type {
         return lType.resulting(accessor);
     }
 
-    public static AbstractType alternative(ChainResult L, ChainResult R) {
-        if(L.type.swiftType().equals(R.type.swiftType())) return L.type;
-        if(L.type.swiftType().equals("Void")) {
-            if(R.type.swiftType().equals("Void")) return new BasicType("Void");
-            AbstractType rClone = R.type.copy();
+    public static AbstractType alternative(ExpressionResult L, ExpressionResult R) {
+        if(L.type().swiftType().equals(R.type().swiftType())) return L.type();
+        if(L.type().swiftType().equals("Void")) {
+            AbstractType rClone = R.type().copy();
             rClone.isOptional = true;
             return rClone;
         }
-        if(R.type.swiftType().equals("Void")) {
-            AbstractType lClone = L.type.copy();
+        if(R.type().swiftType().equals("Void")) {
+            AbstractType lClone = L.type().copy();
             lClone.isOptional = true;
             return lClone;
         }
-        System.out.println("//Ambiguous return type: " + L.type.swiftType() + " || " + R.type.swiftType());
-        return L.type;
+        System.out.println("//Ambiguous return type: " + L.type().swiftType() + " || " + R.type().swiftType());
+        return L.type();
     }
 }

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-public class BinaryExpression {
+public class BinaryExpression implements ExpressionResult {
 
     static private HashMap<String, Integer> priorites;
     static {
@@ -32,10 +32,19 @@ public class BinaryExpression {
         priorites.put("%",   4);
     }
 
-    static public ChainResult handle(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
+    String code;
+    AbstractType type;
+    public BinaryExpression(String code, AbstractType type) {
+        this.code = code;
+        this.type = type;
+    }
+    public String code() {return code;}
+    public AbstractType type() {return type;}
+
+    static public BinaryExpression handle(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
 
         List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions().binary_expression();
-        ArrayList<ChainResult> elems = new ArrayList<ChainResult>();
+        ArrayList<ExpressionResult> elems = new ArrayList<ExpressionResult>();
         ArrayList<ParserRuleContext> operators = new ArrayList<ParserRuleContext>();
         for(int i = -1; i < binaries.size(); i++) {
             if(i >= 0) {
@@ -52,9 +61,9 @@ public class BinaryExpression {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);
                 if(priorityForOperator(operator) != priority) continue;
-                ChainResult L = elems.get(i);
-                ChainResult R = elems.get(i + 1);
-                ChainResult LR = compute(operator, L, R, visitor);
+                ExpressionResult L = elems.get(i);
+                ExpressionResult R = elems.get(i + 1);
+                ExpressionResult LR = compute(operator, L, R, visitor);
                 elems.remove(i);
                 elems.remove(i);
                 elems.add(i, LR);
@@ -63,7 +72,7 @@ public class BinaryExpression {
             }
         }
 
-        return new ChainResult(elems.get(0).code, elems.get(0).type);
+        return new BinaryExpression(elems.get(0).code(), elems.get(0).type());
     }
 
     static private int priorityForOperator(ParserRuleContext operator) {
@@ -75,35 +84,34 @@ public class BinaryExpression {
         return operator.getText();
     }
 
-    static private ChainResult compute(ParserRuleContext operator, ChainResult L, ChainResult R, TranspilerVisitor visitor) {
+    static private BinaryExpression compute(ParserRuleContext operator, ExpressionResult L, ExpressionResult R, TranspilerVisitor visitor) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
-            ChainResult passExpression = visitor.jsChain(conditionalOperator.expression());
-            String code = L.code + " ? " + passExpression.code + " : " + R.code;
+            ExpressionResult passExpression = visitor.jsChain(conditionalOperator.expression());
+            String code = L.code() + " ? " + passExpression.code() + " : " + R.code();
             AbstractType type = Type.alternative(passExpression, R);
-            return new ChainResult(code, type);
+            return new BinaryExpression(code, type);
         }
         else {
-            ChainResult replacement = BinaryExpression.replacement(operator, L, R, visitor);
+            BinaryExpression replacement = BinaryExpression.replacement(operator, L, R, visitor);
             if(replacement != null) return replacement;
-            String code = L.code + " " + operator.getText() + " " + R.code;
-            AbstractType type = L.type;//TODO new type based on operator (eg bool for >)
-            return new ChainResult(code, type);
+            String code = L.code() + " " + operator.getText() + " " + R.code();
+            AbstractType type = L.type();//TODO new type based on operator (eg bool for >)
+            return new BinaryExpression(code, type);
         }
     }
 
-    static private ChainResult replacement(ParserRuleContext operator, ChainResult L, ChainResult R, TranspilerVisitor visitor) {
+    static private BinaryExpression replacement(ParserRuleContext operator, ExpressionResult L, ExpressionResult R, TranspilerVisitor visitor) {
         String alias = BinaryExpression.operatorAlias(operator);
         if(alias.equals("??")) {
-            String code = "(" + L.code + " != null ? " + L.code + " : " + R.code + ")";
+            String code = "(" + L.code() + " != null ? " + L.code() + " : " + R.code() + ")";
             AbstractType type = Type.alternative(L, R);
-            return new ChainResult(code, type);
+            return new BinaryExpression(code, type);
         }
         if(alias.equals("=")) {
-            boolean lIsDictionaryIndex = L.elems.size() >= 2 && L.elems.get(L.elems.size() - 2).type.swiftType().equals("Dictionary") && L.elems.get(L.elems.size() - 1).accessorType.equals("[]");
-            if(lIsDictionaryIndex) {
-                if(R.type.swiftType().equals("Void")) return new ChainResult("delete " + L.code, new BasicType("Void"));
-                if(R.type.isOptional) return new ChainResult("if((" + R.code + ") != null) {" + L.code + " = " + R.code + "} else { delete " + L.code + " }", new BasicType("Void"));
+            if(L instanceof ChainResult && ((ChainResult) L).isDictionaryIndex()) {
+                if(R.type().swiftType().equals("Void")) return new BinaryExpression("delete " + L.code(), new BasicType("Void"));
+                if(R.type().isOptional) return new BinaryExpression("if((" + R.code() + ") != null) { " + L.code() + " = " + R.code() + " } else { delete " + L.code() + " }", new BasicType("Void"));
             }
             if(false/*L has ?.*/) {
 

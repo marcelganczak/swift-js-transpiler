@@ -4,13 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-class ChainResult {
-    public String code;
-    public AbstractType type;
-    public ArrayList<ChainElem> elems;
-    public ChainResult(String code, AbstractType type, ArrayList<ChainElem> elems) { this.code = code; this.type = type; this.elems = elems; }
-    public ChainResult(String code, AbstractType type) { this.code = code; this.type = type; this.elems = null; }
-}
 public class ChainElem {
     public String code;
     public String accessorType;
@@ -29,8 +22,8 @@ public class ChainElem {
                 return getTuple(rChild, assumedType, visitor);
             }
             else {
-                ChainResult parenthesized = visitor.jsChain(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression());
-                return new ChainElem(parenthesized.code, "", parenthesized.type, null);
+                ExpressionResult parenthesized = visitor.jsChain(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression());
+                return new ChainElem(parenthesized.code(), "", parenthesized.type(), null);
             }
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {
