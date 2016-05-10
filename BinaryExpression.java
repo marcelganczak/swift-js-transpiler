@@ -9,10 +9,12 @@ public class BinaryExpression implements ExpressionResult {
     static private HashMap<String, Integer> priorites;
     static {
         priorites = new HashMap<String, Integer>();
-        priorites.put("*=",  9);
+        priorites.put("=",   9);
         priorites.put("+=",  9);
         priorites.put("-=",  9);
-        priorites.put("=",   9);
+        priorites.put("*=",  9);
+        priorites.put("/=",  9);
+        priorites.put("%=",  9);
         priorites.put("?:",  8);
         priorites.put("&&",  7);
         priorites.put("||",  7);
@@ -95,6 +97,7 @@ public class BinaryExpression implements ExpressionResult {
         else {
             BinaryExpression replacement = BinaryExpression.replacement(operator, L, R, visitor);
             if(replacement != null) return replacement;
+            String alias = BinaryExpression.operatorAlias(operator);
             String code = L.code() + " " + operator.getText() + " " + R.code();
             AbstractType type = L.type();//TODO new type based on operator (eg bool for >)
             return new BinaryExpression(code, type);
@@ -108,15 +111,32 @@ public class BinaryExpression implements ExpressionResult {
             AbstractType type = Type.alternative(L, R);
             return new BinaryExpression(code, type);
         }
-        if(alias.equals("=")) {
-            if(L instanceof ChainResult && ((ChainResult) L).isDictionaryIndex()) {
-                if(R.type().swiftType().equals("Void")) return new BinaryExpression("delete " + L.code(), new BasicType("Void"));
-                if(R.type().isOptional) return new BinaryExpression("if((" + R.code() + ") != null) { " + L.code() + " = " + R.code() + " } else { delete " + L.code() + " }", new BasicType("Void"));
+        if(isAssignment(alias) && L instanceof ChainResult) {
+            String lCode = ((ChainResult)L).code(isAssignment(alias)), rCode = R.code(), ifCode0 = null, ifCode1 = null, elseCode1 = null;
+            if(((ChainResult) L).isDictionaryIndex()) {
+                if(R.type().swiftType().equals("Void")) {lCode = "delete " + lCode; rCode = null;}
+                else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}
             }
-            if(false/*L has ?.*/) {
-
+            if(((ChainResult) L).hasOptionals()) {
+                ifCode0 = optionalsGuardingIf(((ChainResult) L));
             }
+            String lrCode = lCode + " " + operator.getText() + " " + rCode;
+            if(ifCode1 != null) lrCode = "if(" + ifCode1 + ") { " + lrCode + " } else { " + elseCode1 + " }";
+            if(ifCode0 != null) lrCode = "if(" + ifCode0 + ") { " + lrCode + " }";
+            return new BinaryExpression(lrCode, new BasicType("Void"));
         }
         return null;
+    }
+
+    static private boolean isAssignment(String alias) {
+        return alias.equals("=") || alias.equals("+=") || alias.equals("-=") || alias.equals("*=") || alias.equals("/=") || alias.equals("%=");
+    }
+
+    static private String optionalsGuardingIf(ChainResult L) {
+        String ifCode = "";
+        for(int i = 0; i < L.elems.size(); i++) {
+            if(L.elems.get(i).isOptional) ifCode += (ifCode.length() > 0 ? " && " : "") + L.code(true, i) + " != null";
+        }
+        return ifCode;
     }
 }

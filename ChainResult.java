@@ -55,19 +55,25 @@ public class ChainResult implements ExpressionResult {
     }
 
     public String code() {
-        return elemCode(elems, 0, "");
+        return elemCode(elems, 0, "", false);
     }
-    static private String elemCode(ArrayList<ChainElem> elems, int chainPos, String L) {
+    public String code(boolean onAssignmentLeftHandSide) {
+        return elemCode(elems, 0, "", onAssignmentLeftHandSide);
+    }
+    public String code(boolean onAssignmentLeftHandSide, int limit) {
+        return elemCode(elems.subList(0, limit), 0, "", onAssignmentLeftHandSide);
+    }
+    static private String elemCode(List<ChainElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
         ChainElem elem = elems.get(chainPos);
 
         String LR = elem.accessorType.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
                   : L + (L.length() == 0 ? elem.code : elem.accessorType.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
         String nextCode =
-                chainPos + 1 < elems.size() ? elemCode(elems, chainPos + 1, LR)
+                chainPos + 1 < elems.size() ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
                 : LR;
 
-        if(elem.isOptional /*TODO and not on the left side of assignment*/) {
+        if(elem.isOptional && !onAssignmentLeftHandSide) {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
@@ -114,5 +120,12 @@ public class ChainResult implements ExpressionResult {
 
     public boolean isDictionaryIndex() {
         return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessorType.equals("[]");
+    }
+
+    public boolean hasOptionals() {
+        for(int i = 0; i < elems.size(); i++) {
+            if(elems.get(i).isOptional) return true;
+        }
+        return false;
     }
 }
