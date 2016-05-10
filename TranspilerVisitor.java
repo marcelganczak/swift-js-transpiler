@@ -27,17 +27,39 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
         return "do " + visit(ctx.code_block()) + "while(" + visit(ctx.expression()) + ")";
     }
 
+    class IfLet {
+        public String varName;
+        public String varVal;
+        public IfLet(ParserRuleContext ctx, TranspilerVisitor visitor) {
+            SwiftParser.Condition_clauseContext conditionClause = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause();
+            if(!(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, conditionClause))) return;
+            SwiftParser.Optional_binding_headContext ifLet = conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_head();
+            varName = visitWithoutTerminals(ifLet.pattern()).trim();
+            ExpressionResult varVal = visitor.jsChain(ifLet.initializer().expression());
+            SwiftParser.Code_blockContext block = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).code_block() : ((SwiftParser.Guard_statementContext)ctx).code_block();
+            visitor.cache.cacheOne(varName, varVal.type(), block);
+            this.varVal = varVal.code();
+        }
+    }
     public String toJsIf(SwiftParser.If_statementContext ctx) {
         String condition = visitWithoutStrings(ctx.condition_clause(), "()");
         String beforeBlock = "";
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, ctx.condition_clause())) {
-            SwiftParser.Optional_binding_headContext ifLet = ctx.condition_clause().condition_list().condition(0).optional_binding_condition().optional_binding_head();
-            String constVar = visitWithoutTerminals(ifLet.pattern());
-            String var = visitWithoutTerminals(ifLet.initializer().expression());
-            condition = var + " != null";
-            beforeBlock = "const " + constVar + " = " + var + ";";
+        IfLet ifLet = new IfLet(ctx, this);
+        if(ifLet.varName != null) {
+            condition = ifLet.varVal + " != null";
+            beforeBlock = "const " + ifLet.varName + " = " + ifLet.varVal + ";";
         }
         return "if(" + condition + ") {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{") + visitChildren(ctx.else_clause());
+    }
+    public String toJsGuard(SwiftParser.Guard_statementContext ctx) {
+        String condition = visitWithoutStrings(ctx.condition_clause(), "()");
+        String beforeBlock = "";
+        IfLet ifLet = new IfLet(ctx, this);
+        if(ifLet.varName != null) {
+            condition = ifLet.varVal + " != null";
+            beforeBlock = "const " + ifLet.varName + " = " + ifLet.varVal + ";";
+        }
+        return "if(!(" + condition + ")) {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{");
     }
 
     public ArrayList<ParserRuleContext> flattenChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {

@@ -6,32 +6,32 @@ import java.util.List;
 
 public class BinaryExpression implements ExpressionResult {
 
-    static private HashMap<String, Integer> priorites;
+    static private HashMap<String, Integer> priorities;
     static {
-        priorites = new HashMap<String, Integer>();
-        priorites.put("=",   9);
-        priorites.put("+=",  9);
-        priorites.put("-=",  9);
-        priorites.put("*=",  9);
-        priorites.put("/=",  9);
-        priorites.put("%=",  9);
-        priorites.put("?:",  8);
-        priorites.put("&&",  7);
-        priorites.put("||",  7);
-        priorites.put("??",  7);
-        priorites.put("===", 6);
-        priorites.put("==",  6);
-        priorites.put("!==", 6);
-        priorites.put("!=",  6);
-        priorites.put("<",   6);
-        priorites.put("<=",  6);
-        priorites.put(">",   6);
-        priorites.put(">=",  6);
-        priorites.put("+",   5);
-        priorites.put("-",   5);
-        priorites.put("*",   4);
-        priorites.put("/",   4);
-        priorites.put("%",   4);
+        priorities = new HashMap<String, Integer>();
+        priorities.put("=",   9);
+        priorities.put("+=",  9);
+        priorities.put("-=",  9);
+        priorities.put("*=",  9);
+        priorities.put("/=",  9);
+        priorities.put("%=",  9);
+        priorities.put("?:",  8);
+        priorities.put("&&",  7);
+        priorities.put("||",  7);
+        priorities.put("??",  7);
+        priorities.put("===", 6);
+        priorities.put("==",  6);
+        priorities.put("!==", 6);
+        priorities.put("!=",  6);
+        priorities.put("<",   6);
+        priorities.put("<=",  6);
+        priorities.put(">",   6);
+        priorities.put(">=",  6);
+        priorities.put("+",   5);
+        priorities.put("-",   5);
+        priorities.put("*",   4);
+        priorities.put("/",   4);
+        priorities.put("%",   4);
     }
 
     String code;
@@ -79,7 +79,7 @@ public class BinaryExpression implements ExpressionResult {
 
     static private int priorityForOperator(ParserRuleContext operator) {
         String operatorAlias = BinaryExpression.operatorAlias(operator);
-        return priorites.get(operatorAlias);
+        return priorities.get(operatorAlias);
     }
     static public String operatorAlias(ParserRuleContext operator) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) return "?:";

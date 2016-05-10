@@ -20,6 +20,10 @@ public class Visitor extends TranspilerVisitor {
         return toJsIf(ctx);
     }
 
+    @Override public String visitGuard_statement(SwiftParser.Guard_statementContext ctx) {
+        return toJsGuard(ctx);
+    }
+
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
         return jsFunctionDeclaration(ctx);
     }
