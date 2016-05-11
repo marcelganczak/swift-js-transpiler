@@ -5,35 +5,31 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
-        return jsForIn(ctx);
+        return ControlFlow.forIn(ctx, this);
     }
 
     @Override public String visitWhile_statement(SwiftParser.While_statementContext ctx) {
-        return jsWhile(ctx);
+        return ControlFlow.whileRepeat(ctx, this);
     }
 
     @Override public String visitRepeat_while_statement(SwiftParser.Repeat_while_statementContext ctx) {
-        return jsRepeatWhile(ctx);
+        return ControlFlow.repeatWhile(ctx, this);
     }
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
-        return toJsIf(ctx);
+        return ControlFlow.ifThen(ctx, this);
     }
 
     @Override public String visitGuard_statement(SwiftParser.Guard_statementContext ctx) {
-        return toJsGuard(ctx);
+        return ControlFlow.guard(ctx, this);
     }
 
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
-        return jsFunctionDeclaration(ctx);
+        return FunctionUtil.functionDeclaration(ctx, this);
     }
 
     @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
-        return jsClosureExpression(ctx);
-    }
-
-    @Override public String visitFunction_result(SwiftParser.Function_resultContext ctx) {
-        return jsFunctionResult(ctx);
+        return FunctionUtil.closureExpression(ctx, this);
     }
 
     @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {

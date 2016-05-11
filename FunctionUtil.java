@@ -42,7 +42,7 @@ public class FunctionUtil {
         return ctx.function_name().getText() + nameAugment(parameters, parameterTypes);
     }
 
-    public static ArrayList<AbstractType> parameterTypes(List<?extends ParserRuleContext> parameters, TranspilerVisitor visitor) {
+    static public ArrayList<AbstractType> parameterTypes(List<?extends ParserRuleContext> parameters, TranspilerVisitor visitor) {
         ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
         if(parameters == null) return parameterTypes;
 
@@ -60,7 +60,7 @@ public class FunctionUtil {
         return parameterTypes;
     }
 
-    public static int numParametersWithDefaultValue(List<SwiftParser.ParameterContext> parameters) {
+    static public int numParametersWithDefaultValue(List<SwiftParser.ParameterContext> parameters) {
         if(parameters == null) return 0;
 
         int numParametersWithDefaultValue = 0;
@@ -72,7 +72,7 @@ public class FunctionUtil {
         return numParametersWithDefaultValue;
     }
 
-    public static String nameFromCall(String swiftFunctionName, List<SwiftParser.Expression_elementContext>parameters, ParserRuleContext ctx, TranspilerVisitor visitor) {
+    static public String nameFromCall(String swiftFunctionName, List<SwiftParser.Expression_elementContext>parameters, ParserRuleContext ctx, TranspilerVisitor visitor) {
         ArrayList<AbstractType> parameterTypes = parameterTypes(parameters, visitor);
         String defaultFunctionName = swiftFunctionName + nameAugment(parameters, parameterTypes);
         if(visitor.cache.getType(defaultFunctionName, ctx) != null) return defaultFunctionName;
@@ -86,5 +86,38 @@ public class FunctionUtil {
         }
 
         return null;
+    }
+
+    static public String functionDeclaration(SwiftParser.Function_declarationContext ctx, TranspilerVisitor visitor) {
+        SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
+        List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
+        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
+        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+
+        String jsFunctionName = FunctionUtil.nameFromDeclaration(ctx, parameters, parameterTypes);
+
+        for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
+            visitor.cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
+        }
+
+        AbstractType resultType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, visitor);
+        AbstractType functionType = new FunctionType(parameterTypes, numParametersWithDefaultValue, resultType);
+        visitor.cache.cacheOne(jsFunctionName, functionType, ctx);
+
+        return "function " + jsFunctionName + "(" + (parameterList != null ? visitor.visit(parameterList) : "") + "):" + resultType.jsType() + visitor.visit(ctx.function_body().code_block());
+    }
+
+    static public String closureExpression(SwiftParser.Closure_expressionContext ctx, TranspilerVisitor visitor) {
+        SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
+        List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
+        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
+        for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
+            visitor.cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
+        }
+
+        SwiftParser.StatementsContext statements = ctx.statements();
+        //AbstractType resultType = Type.fromFunction(ctx.closure_signature().function_result(), statements, true, this);
+
+        return "(" + (parameterList != null ? visitor.visit(parameterList) : "") + ") => " + (statements == null || statements.getChildCount() == 0 ? "{}" : statements.getChildCount() == 1 ? visitor.visitChildren(statements) : "{" + visitor.visitChildren(statements) + "}");
     }
 }
