@@ -1,3 +1,5 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,36 +15,30 @@ public class CacheVisitor extends Visitor {
         AbstractType varType =
                 ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type())
                 : Type.infer(ctx.initializer().expression(), this);
+        if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
         cache.cacheOne(varName, varType, ctx);
         return null;
     }
 
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
-        SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
-        List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
-        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
-        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+        FunctionType functionType = new FunctionType(ctx, this);
+        cache.cacheOne(FunctionUtil.functionName(ctx, functionType), functionType, ctx);
 
-        for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
-            cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
+        ArrayList<String> parameterLocalNames = FunctionUtil.parameterLocalNames(FunctionUtil.parameters(ctx));
+        for(int i = 0; i < parameterLocalNames.size(); i++) {
+            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), ctx);
         }
-
-        String jsFunctionName = FunctionUtil.nameFromDeclaration(ctx, parameters, parameterTypes);
-
-        AbstractType resultType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, this);
-        AbstractType functionType = new FunctionType(parameterTypes, numParametersWithDefaultValue, resultType);
-        cache.cacheOne(jsFunctionName, functionType, ctx);
 
         return null;
     }
 
     @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
-        SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
+        /*SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
         List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
         ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
         for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
             cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
-        }
+        }*/
 
         return null;
     }

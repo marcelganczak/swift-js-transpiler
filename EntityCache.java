@@ -39,19 +39,26 @@ public class EntityCache {
 
     public AbstractType getType(String varName, ParseTree node) {
         CacheObject cache = findCache(varName, node);
-        if(cache == null) return null;
+        if(cache == null) {
+            Map<String, FunctionType> candidates = getFunctionTypesStartingWith(varName, node);
+            if(candidates.size() == 0) return null;
+            if(candidates.size() > 1) System.out.println("//Found more than 1 candidate for " + varName);
+            return candidates.get(candidates.keySet().toArray()[0]);
+        }
         return cache.type;
     }
 
-    public Map<String, AbstractType> getTypesStartingWith(String varName, ParseTree node) {
-        Map<String, AbstractType> matches = new HashMap<String, AbstractType>();
+    public Map<String, FunctionType> getFunctionTypesStartingWith(String varName, ParseTree node) {
+        Map<String, FunctionType> matches = new HashMap<String, FunctionType>();
         varName = varName.trim();
 
         while((node = findNearestAncestorBlock(node.getParent())) != null) {
             Map<String, CacheObject> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             for(Map.Entry<String, CacheObject> iterator:blockTypeCache.entrySet()) {
-                if(iterator.getKey().startsWith(varName)) matches.put(iterator.getKey(), iterator.getValue().type);
+                if(iterator.getKey().startsWith(varName) && iterator.getValue().type instanceof FunctionType) {
+                    matches.put(iterator.getKey(), (FunctionType)iterator.getValue().type);
+                }
             }
             if(node instanceof SwiftParser.Top_levelContext) break;
         }

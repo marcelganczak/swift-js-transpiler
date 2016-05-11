@@ -30,8 +30,8 @@ public class Main {
         CacheVisitor cacheVisitor = new CacheVisitor(cache);
         cacheVisitor.visit(tree);
 
-        //TranspilerVisitor transpilerVisitor = new TranspilerVisitor(cache);
-        //System.out.println(transpilerVisitor.visit(tree));
+        TranspilerVisitor transpilerVisitor = new TranspilerVisitor(cache);
+        System.out.println(transpilerVisitor.visit(tree));
     }
 
 

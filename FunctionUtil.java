@@ -6,7 +6,17 @@ import java.util.Map;
 
 public class FunctionUtil {
 
-    static public String parameterExternalName(ParserRuleContext parameter, int parameterPos) {
+    static public List<SwiftParser.ParameterContext> parameters(SwiftParser.Function_declarationContext ctx) {
+        SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
+        return parameterList != null ? parameterList.parameter() : new ArrayList<SwiftParser.ParameterContext>();
+    }
+
+    static public ArrayList<String> parameterExternalNames(List<SwiftParser.ParameterContext> parameters) {
+        ArrayList<String> names = new ArrayList<String>();
+        for(int i = 0; parameters != null && i < parameters.size(); i++) names.add(parameterExternalName(parameters.get(i), i));
+        return names;
+    }
+    static private String parameterExternalName(ParserRuleContext parameter, int parameterPos) {
         if(parameter instanceof SwiftParser.ParameterContext) {
             if(((SwiftParser.ParameterContext)parameter).external_parameter_name() != null) {
                 if(((SwiftParser.ParameterContext)parameter).external_parameter_name().getText().equals("_")) return "";
@@ -17,7 +27,12 @@ public class FunctionUtil {
         return parameterLocalName(parameter);
     }
 
-    static public String parameterLocalName(ParserRuleContext parameter) {
+    static public ArrayList<String> parameterLocalNames(List<SwiftParser.ParameterContext> parameters) {
+        ArrayList<String> names = new ArrayList<String>();
+        for(int i = 0; parameters != null && i < parameters.size(); i++) names.add(parameterLocalName(parameters.get(i)));
+        return names;
+    }
+    static private String parameterLocalName(ParserRuleContext parameter) {
         if(parameter instanceof SwiftParser.ParameterContext) {
             return ((SwiftParser.ParameterContext)parameter).local_parameter_name().getText();
         }
@@ -28,7 +43,14 @@ public class FunctionUtil {
         return "";
     }
 
-    static public String nameAugment(List<?extends ParserRuleContext> parameters, ArrayList<AbstractType> parameterTypes) {
+    static public String nameAugment(FunctionType type) {
+        String augment = "";
+        for(int i = 0; i < type.parameterTypes.size(); i++) {
+            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).swiftType();
+        }
+        return augment;
+    }
+    static private String nameAugment(List<SwiftParser.Expression_elementContext>parameters, ArrayList<AbstractType> parameterTypes) {
         if(parameters == null) return "";
         String augment = "";
         for(int i = 0; i < parameters.size(); i++) {
@@ -38,8 +60,8 @@ public class FunctionUtil {
         return augment;
     }
 
-    static public String nameFromDeclaration(SwiftParser.Function_declarationContext ctx, List<SwiftParser.ParameterContext> parameters, ArrayList<AbstractType> parameterTypes) {
-        return ctx.function_name().getText() + nameAugment(parameters, parameterTypes);
+    static public String functionName(SwiftParser.Function_declarationContext ctx, FunctionType type) {
+        return ctx.function_name().getText() + nameAugment(type);
     }
 
     static public ArrayList<AbstractType> parameterTypes(List<?extends ParserRuleContext> parameters, Visitor visitor) {
@@ -77,11 +99,10 @@ public class FunctionUtil {
         String defaultFunctionName = swiftFunctionName + nameAugment(parameters, parameterTypes);
         if(visitor.cache.getType(defaultFunctionName, ctx) != null) return defaultFunctionName;
 
-        Map<String, AbstractType> candidates = visitor.cache.getTypesStartingWith(defaultFunctionName, ctx);
+        Map<String, FunctionType> candidates = visitor.cache.getFunctionTypesStartingWith(defaultFunctionName, ctx);
         int numUsedParameters = parameters != null ? parameters.size() : 0;
-        for(Map.Entry<String, AbstractType> iterator:candidates.entrySet()) {
-            if(!(iterator.getValue() instanceof FunctionType)) continue;
-            FunctionType functionType = (FunctionType)iterator.getValue();
+        for(Map.Entry<String, FunctionType> iterator:candidates.entrySet()) {
+            FunctionType functionType = iterator.getValue();
             if(numUsedParameters >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey();
         }
 
@@ -89,19 +110,9 @@ public class FunctionUtil {
     }
 
     static public String functionDeclaration(SwiftParser.Function_declarationContext ctx, Visitor visitor) {
+        FunctionType functionType = new FunctionType(ctx, visitor);
 
-        //TODO get function shtuff from cache
-
-        SwiftParser.Parameter_listContext parameterList = ctx.function_signature().parameter_clauses().parameter_clause().parameter_list();
-        List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
-        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
-        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
-
-        String jsFunctionName = FunctionUtil.nameFromDeclaration(ctx, parameters, parameterTypes);
-
-        AbstractType resultType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, visitor);
-
-        return "function " + jsFunctionName + "(" + (parameterList != null ? visitor.visit(parameterList) : "") + "):" + resultType.jsType() + visitor.visit(ctx.function_body().code_block());
+        return "function " + FunctionUtil.functionName(ctx, functionType) + "(" + visitor.visitChildren(ctx.function_signature().parameter_clauses().parameter_clause().parameter_list()) + "):" + functionType.returnType.jsType() + visitor.visit(ctx.function_body().code_block());
     }
 
     static public String closureExpression(SwiftParser.Closure_expressionContext ctx, Visitor visitor) {

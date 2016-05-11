@@ -1,8 +1,6 @@
 import org.antlr.v4.runtime.tree.ParseTree;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.*;
 
 class BasicType extends AbstractType {
     private String swiftType;
@@ -28,10 +26,21 @@ class BasicType extends AbstractType {
     }
 }
 class FunctionType extends AbstractType {
-    private AbstractType returnType;
+    public ArrayList<String> parameterExternalNames;
     public ArrayList<AbstractType> parameterTypes;
     public int numParametersWithDefaultValue;
-    public FunctionType(ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType) {
+    public AbstractType returnType;
+    public FunctionType(SwiftParser.Function_declarationContext ctx, Visitor visitor) {
+        List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
+
+        parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
+        parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
+        numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+
+        returnType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, visitor);
+    }
+    public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType) {
+        this.parameterExternalNames = parameterExternalNames;
         this.parameterTypes = parameterTypes;
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
@@ -46,7 +55,7 @@ class FunctionType extends AbstractType {
         return returnType;
     }
     public AbstractType copy() {
-        return new FunctionType(this.parameterTypes, this.numParametersWithDefaultValue, this.returnType);
+        return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType);
     }
 }
 class NestedType extends AbstractType {
@@ -122,6 +131,7 @@ public class Type {
         if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) return fromArrayDefinition(ctx.array_definition(), isOptional);
         if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) return fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional);
         if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) return fromSetDefinition(ctx.type_identifier(), isOptional);
+        if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) return fromFunctionDefinition(ctx.type(0), ctx.type(1), isOptional);
         return new BasicType(ctx.getText(), isOptional);
     }
 
@@ -134,23 +144,39 @@ public class Type {
         return new NestedType("Array", new BasicType("Int"), fromDefinition(ctx.type()), isOptional);
     }
 
-    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional) {
+    private static LinkedHashMap<String, AbstractType> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx) {
         int elementI = 0;
-        LinkedHashMap<String, AbstractType> types = new LinkedHashMap<String, AbstractType>();
+        LinkedHashMap<String, AbstractType> flattened = new LinkedHashMap<String, AbstractType>();
         while(ctx != null) {
             SwiftParser.Tuple_type_elementContext tupleTypeElement = ctx.tuple_type_element();
             if(tupleTypeElement != null) {
                 String index = tupleTypeElement.element_name() != null ? tupleTypeElement.element_name().getText() : Integer.toString(elementI);
-                types.put(index, new BasicType(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText()));
+                flattened.put(index, new BasicType(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText()));
                 elementI++;
             }
             ctx = ctx.tuple_type_element_list();
         }
-        return new NestedByIndexType(types);
+        return flattened;
+    }
+    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional) {
+        LinkedHashMap<String, AbstractType> elems = flattenTupleDefinition(ctx);
+        return new NestedByIndexType(elems);
     }
 
     private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional) {
         return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()), isOptional);
+    }
+
+    private static AbstractType fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, boolean isOptional) {
+        LinkedHashMap<String, AbstractType> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list());
+        ArrayList<String> parameterExternalNames = new ArrayList<String>();
+        ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
+        for(Map.Entry<String, AbstractType> iterator:params.entrySet()) {
+            String externalName = iterator.getKey();
+            parameterExternalNames.add(externalName.matches("^\\d+$") ? "" : externalName);
+            parameterTypes.add(iterator.getValue());
+        }
+        return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(returnType));
     }
 
     public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {

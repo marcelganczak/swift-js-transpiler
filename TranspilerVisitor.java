@@ -5,10 +5,6 @@ public class TranspilerVisitor extends Visitor {
         this.cache = cache;
     }
 
-    @Override public String visitStatement(SwiftParser.StatementContext ctx) {
-        return visitChildren(ctx) + "\n";
-    }
-
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
         return ControlFlow.forIn(ctx, this);
     }
@@ -37,20 +33,28 @@ public class TranspilerVisitor extends Visitor {
         return FunctionUtil.closureExpression(ctx, this);
     }
 
-    @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
-        return "";
+    @Override public String visitType(SwiftParser.TypeContext ctx) {
+        return Type.fromDefinition(ctx).jsType();
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
         return new Expression(ctx, this).code;
     }
 
-    @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return Type.fromDefinition(ctx).jsType();
+    @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
+        return AssignmentUtil.handleInitializer(ctx, this);
     }
 
     @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
         return visit(ctx.expression());
+    }
+
+    @Override public String visitStatement(SwiftParser.StatementContext ctx) {
+        return visitChildren(ctx) + "\n";
+    }
+
+    @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
+        return "";
     }
 
     @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {

@@ -1,4 +1,5 @@
-var a = 1
-var b = a
-var c: Int
-var d: Int, e: Int
+func multiplyTwoInts(a: Int, b: Int) -> Int {
+    return a * b
+}
+let mathFunction: (Int, c: Int) -> Int = multiplyTwoInts
+mathFunction(1, c:2)
