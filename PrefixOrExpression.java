@@ -1,4 +1,4 @@
-public interface ExpressionResult {
+public interface PrefixOrExpression {
     String code();
     AbstractType type();
 }

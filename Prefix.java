@@ -5,19 +5,21 @@ import java.util.List;
 
 class Replacement {
     public int skip = 0;
-    public ChainElem elem;
-    public Replacement(ChainElem elem) {
+    public PrefixElem elem;
+    public Replacement(PrefixElem elem) {
         this.elem = elem;
     }
-    public Replacement(ChainElem elem, int skip) {
+    public Replacement(PrefixElem elem, int skip) {
         this.elem = elem;
         this.skip = skip;
     }
 }
-public class ChainResult implements ExpressionResult {
-    public ArrayList<ChainElem> elems = new ArrayList<ChainElem>();
+public class Prefix implements PrefixOrExpression {
+    public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
 
-    public ChainResult(AbstractType declaredType, ArrayList<ParserRuleContext> chain, TranspilerVisitor visitor) {
+    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, TranspilerVisitor visitor) {
+        ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
+        
         AbstractType currType = null;
         
         for(int chainPos = 0; chainPos < chain.size(); chainPos++) {
@@ -30,14 +32,14 @@ public class ChainResult implements ExpressionResult {
                 functionCallParams = functionCall.parenthesized_expression().expression_element_list() != null ? functionCall.parenthesized_expression().expression_element_list().expression_element() : null;
             }
 
-            ChainElem elem;
-            Replacement replacement = ChainResult.replacement(chainPos == 0, currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
+            PrefixElem elem;
+            Replacement replacement = Prefix.replacement(chainPos == 0, currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
             if(replacement != null) {
                 elem = replacement.elem;
                 chainPos += replacement.skip;
             }
             else {
-                elem = ChainElem.get(ctx, declaredType, functionCall, functionCallParams, chain, chainPos, currType, visitor);
+                elem = PrefixElem.get(ctx, null/*declaredType*/, functionCall, functionCallParams, chain, chainPos, currType, visitor);
             }
 
             elem.isOptional = ctx.getChild(0).getText().equals("?");
@@ -63,8 +65,8 @@ public class ChainResult implements ExpressionResult {
     public String code(boolean onAssignmentLeftHandSide, int limit) {
         return elemCode(elems.subList(0, limit), 0, "", onAssignmentLeftHandSide);
     }
-    static private String elemCode(List<ChainElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
-        ChainElem elem = elems.get(chainPos);
+    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
+        PrefixElem elem = elems.get(chainPos);
 
         String LR = elem.accessorType.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
                   : L + (L.length() == 0 ? elem.code : elem.accessorType.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
@@ -84,32 +86,32 @@ public class ChainResult implements ExpressionResult {
         if(R == null) return null;
         if(lType != null && lType.swiftType().equals("Dictionary")) {
             if(R.equals("count")) {
-                return new Replacement(new ChainElem("size", "_.()", new BasicType("Int"), null));
+                return new Replacement(new PrefixElem("size", "_.()", new BasicType("Int"), null));
             }
             if(R.equals("updateValue")) {
-                return new Replacement(new ChainElem("updateValue", "_.()", new BasicType("Void"), null/*TODO*/));
+                return new Replacement(new PrefixElem("updateValue", "_.()", new BasicType("Void"), null/*TODO*/));
             }
         }
         if(lType != null && lType.swiftType().equals("Array")) {
             if(R.equals("count")) {
-                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null));
+                return new Replacement(new PrefixElem("length", ".", new BasicType("Int"), null));
             }
         }
         if(lType != null && lType.swiftType().equals("Set")) {
             if(R.equals("count")) {
-                return new Replacement(new ChainElem("size", ".", new BasicType("Int"), null));
+                return new Replacement(new PrefixElem("size", ".", new BasicType("Int"), null));
             }
             if(R.equals("insert")) {
-                return new Replacement(new ChainElem("add", ".", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
+                return new Replacement(new PrefixElem("add", ".", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
             }
         }
         if(lType != null && lType.swiftType().equals("String")) {
             if(R.equals("characters")) {
-                return new Replacement(new ChainElem("length", ".", new BasicType("Int"), null), 1);
+                return new Replacement(new PrefixElem("length", ".", new BasicType("Int"), null), 1);
             }
         }
         if(isStart) {
-            if(R.equals("print")) return new Replacement(new ChainElem("console.log", "", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
+            if(R.equals("print")) return new Replacement(new PrefixElem("console.log", "", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
         }
         return null;
     }
@@ -127,5 +129,19 @@ public class ChainResult implements ExpressionResult {
             if(elems.get(i).isOptional) return true;
         }
         return false;
+    }
+
+    static private ArrayList<ParserRuleContext> flattenChain(SwiftParser.Prefix_expressionContext ctx) {
+        ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
+        SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
+        while(postfix.postfix_expression() != null) {
+            if(postfix.chain_postfix_expression() != null && !(postfix.chain_postfix_expression() instanceof SwiftParser.Forced_value_expressionContext)) {
+                flattened.add(0, postfix.chain_postfix_expression());
+                if(postfix.chain_postfix_expression() instanceof SwiftParser.Explicit_member_expression_number_doubleContext) flattened.add(0, postfix.chain_postfix_expression());
+            }
+            postfix = postfix.postfix_expression();
+        }
+        flattened.add(0, postfix.primary_expression());
+        return flattened;
     }
 }

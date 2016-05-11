@@ -35,10 +35,10 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             if(!(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, conditionClause))) return;
             SwiftParser.Optional_binding_headContext ifLet = conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_head();
             varName = visitWithoutTerminals(ifLet.pattern()).trim();
-            ExpressionResult varVal = visitor.jsChain(ifLet.initializer().expression());
+            Expression varVal = new Expression(ifLet.initializer().expression(), visitor);
             SwiftParser.Code_blockContext block = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).code_block() : ((SwiftParser.Guard_statementContext)ctx).code_block();
-            visitor.cache.cacheOne(varName, varVal.type(), block);
-            this.varVal = varVal.code();
+            visitor.cache.cacheOne(varName, varVal.type, block);
+            this.varVal = varVal.code;
         }
     }
     public String toJsIf(SwiftParser.If_statementContext ctx) {
@@ -60,34 +60,6 @@ public class TranspilerVisitor extends NativeOverriddenVisitor {
             beforeBlock = "const " + ifLet.varName + " = " + ifLet.varVal + ";";
         }
         return "if(!(" + condition + ")) {" + beforeBlock + visitWithoutStrings(ctx.code_block(), "{");
-    }
-
-    public ArrayList<ParserRuleContext> flattenChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
-        ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
-        SwiftParser.Postfix_expressionContext postfix = (ctx instanceof SwiftParser.ExpressionContext ? ((SwiftParser.ExpressionContext)ctx).prefix_expression() : (SwiftParser.Prefix_expressionContext)ctx).postfix_expression();
-        while(postfix.postfix_expression() != null) {
-            if(postfix.chain_postfix_expression() != null && !(postfix.chain_postfix_expression() instanceof SwiftParser.Forced_value_expressionContext)) {
-                flattened.add(0, postfix.chain_postfix_expression());
-                if(postfix.chain_postfix_expression() instanceof SwiftParser.Explicit_member_expression_number_doubleContext) flattened.add(0, postfix.chain_postfix_expression());
-            }
-            postfix = postfix.postfix_expression();
-        }
-        flattened.add(0, postfix.primary_expression());
-        return flattened;
-    }
-
-    public ExpressionResult jsChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
-        if(ctx instanceof SwiftParser.ExpressionContext && ((SwiftParser.ExpressionContext)ctx).binary_expressions() != null) {
-            return BinaryExpression.handle((SwiftParser.ExpressionContext) ctx, this);
-        }
-        ArrayList<ParserRuleContext> flattenedChain = flattenChain(ctx);
-        String declaredEntity = getDeclaredEntityForChain(ctx);
-        AbstractType declaredType = declaredEntity != null ? cache.getType(declaredEntity, ctx) : null;
-        ChainResult result = new ChainResult(declaredType, flattenedChain, this);
-        if(declaredEntity != null && declaredType == null) {
-            cache.cacheOne(declaredEntity, result.type(), ctx);
-        }
-        return result;
     }
 
     public String getDeclaredEntityForType(SwiftParser.TypeContext ctx) {

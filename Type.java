@@ -167,7 +167,7 @@ public class Type {
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
-        return visitor.jsChain(ctx).type();
+        return new Expression(ctx, visitor).type;
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {
@@ -176,7 +176,7 @@ public class Type {
         return lType.resulting(accessor);
     }
 
-    public static AbstractType alternative(ExpressionResult L, ExpressionResult R) {
+    public static AbstractType alternative(PrefixOrExpression L, PrefixOrExpression R) {
         if(L.type().swiftType().equals(R.type().swiftType())) return L.type();
         if(L.type().swiftType().equals("Void")) {
             AbstractType rClone = R.type().copy();

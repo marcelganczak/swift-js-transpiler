@@ -4,15 +4,15 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public class ChainElem {
+public class PrefixElem {
     public String code;
     public String accessorType;
     public AbstractType type;
     public String functionCallParams;
     public boolean isOptional;
-    public ChainElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; this.isOptional = false; }
+    public PrefixElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; this.isOptional = false; }
 
-    static public ChainElem get(ParserRuleContext rChild, AbstractType declaredType, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
+    static public PrefixElem get(ParserRuleContext rChild, AbstractType declaredType, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
 
         boolean isFinalElem = chainPos + (functionCall != null ? 1 : 0) >= chain.size() - 1;
         AbstractType assumedType = isFinalElem ? declaredType : null;
@@ -22,8 +22,8 @@ public class ChainElem {
                 return getTuple(rChild, assumedType, visitor);
             }
             else {
-                ExpressionResult parenthesized = visitor.jsChain(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression());
-                return new ChainElem(parenthesized.code(), "", parenthesized.type(), null);
+                Expression parenthesized = new Expression(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression(), visitor);
+                return new PrefixElem(parenthesized.code, "", parenthesized.type, null);
             }
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {
@@ -47,7 +47,7 @@ public class ChainElem {
         if(elementList.size() <= 1) return false;
         return true;
     }
-    static private ChainElem getTuple(ParserRuleContext rChild, AbstractType type, TranspilerVisitor visitor) {
+    static private PrefixElem getTuple(ParserRuleContext rChild, AbstractType type, TranspilerVisitor visitor) {
 
         SwiftParser.Expression_element_listContext tupleLiteral = ((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list();
         List<SwiftParser.Expression_elementContext> elementList = tupleLiteral.expression_element();
@@ -76,10 +76,10 @@ public class ChainElem {
             elementI++;
         }
 
-        return new ChainElem(code, "", type == null ? new NestedByIndexType(types) : type, null);
+        return new PrefixElem(code, "", type == null ? new NestedByIndexType(types) : type, null);
     }
 
-    static private ChainElem getArray(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
+    static private PrefixElem getArray(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
 
         SwiftParser.Array_literalContext arrayLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().array_literal();
 
@@ -104,10 +104,10 @@ public class ChainElem {
             if(type.swiftType().equals("Set")) code = "new Set(" + code + ")";
         }
 
-        return new ChainElem(code, "", type, null);
+        return new PrefixElem(code, "", type, null);
     }
 
-    static private ChainElem getDictionary(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
+    static private PrefixElem getDictionary(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
 
         SwiftParser.Dictionary_literalContext dictionaryLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().dictionary_literal();
         String code;
@@ -123,33 +123,33 @@ public class ChainElem {
             code = '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
         }
 
-        return new ChainElem(code, "", type, null);
+        return new PrefixElem(code, "", type, null);
     }
 
-    static private ChainElem getTemplatedConstructor(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
+    static private PrefixElem getTemplatedConstructor(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, AbstractType type, TranspilerVisitor visitor) {
 
         SwiftParser.Generic_argument_clauseContext template = ((SwiftParser.Primary_expressionContext) rChild).generic_argument_clause();
         String typeStr = visitor.visit(rChild.getChild(0)).trim();
 
         if(typeStr.equals("Set")) {
             if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false);
-            return new ChainElem("new " + type.jsType() + "()", "", type, null);
+            return new PrefixElem("new " + type.jsType() + "()", "", type, null);
         }
 
         return null;
     }
 
-    static private ChainElem getLiteral(ParserRuleContext rChild, TranspilerVisitor visitor) {
+    static private PrefixElem getLiteral(ParserRuleContext rChild, TranspilerVisitor visitor) {
         AbstractType type = null;
         if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
         else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
         else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");
         else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new BasicType("Bool");
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, rChild)) return new ChainElem("null ", "", new BasicType("Void"), null);
-        return new ChainElem(visitor.visit(rChild), "", type, null);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, rChild)) return new PrefixElem("null ", "", new BasicType("Void"), null);
+        return new PrefixElem(visitor.visit(rChild), "", type, null);
     }
 
-    static private ChainElem getBasic(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
+    static private PrefixElem getBasic(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, TranspilerVisitor visitor) {
         String identifier = null, accessorType = ".", functionCallParamsStr = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
             identifier = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
@@ -183,6 +183,6 @@ public class ChainElem {
             functionCallParamsStr = visitor.visitWithoutStrings(functionCall.parenthesized_expression(), "()");
         }
 
-        return new ChainElem(identifier, accessorType, null, functionCallParamsStr);
+        return new PrefixElem(identifier, accessorType, null, functionCallParamsStr);
     }
 }

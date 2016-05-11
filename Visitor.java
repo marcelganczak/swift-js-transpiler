@@ -41,7 +41,7 @@ public class Visitor extends TranspilerVisitor {
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
-        return jsChain(ctx).code();
+        return new Expression(ctx, this).code;
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
