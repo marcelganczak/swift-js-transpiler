@@ -1,8 +1,11 @@
 public class AssignmentUtil {
 
-    static public String augment(Expression expression) {
-        String augmented = expression.code;
-        if(expression.type instanceof FunctionType) augmented = augmented.trim() + FunctionUtil.nameAugment((FunctionType)expression.type);
+    static public String augment(PrefixOrExpression expression) {
+        String augmented = expression.code();
+        if(expression.type() instanceof FunctionType) augmented = augmented.trim() + FunctionUtil.nameAugment((FunctionType)expression.type());
+        else if((expression.type().swiftType().equals("Dictionary") || expression.type().swiftType().equals("Array") || expression.type().swiftType().equals("Set")) && !WalkerUtil.isDirectDescendant(SwiftParser.Literal_expressionContext.class, expression.originalCtx())) {
+            augmented = "_.clone(" + augmented + ")";
+        }
         return augmented;
     }
 

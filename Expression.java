@@ -7,11 +7,13 @@ public class Expression implements PrefixOrExpression {
 
     String code;
     AbstractType type;
+    ParserRuleContext originalCtx;
     public String code() {return code;}
     public AbstractType type() {return type;}
+    public ParserRuleContext originalCtx() {return originalCtx;}
 
     public Expression(SwiftParser.ExpressionContext ctx, Visitor visitor) {
-
+        originalCtx = ctx;
         List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions() != null ? ctx.binary_expressions().binary_expression() : new ArrayList<SwiftParser.Binary_expressionContext>();
         ArrayList<PrefixOrExpression> elems = new ArrayList<PrefixOrExpression>();
         ArrayList<ParserRuleContext> operators = new ArrayList<ParserRuleContext>();
@@ -48,5 +50,6 @@ public class Expression implements PrefixOrExpression {
     public Expression(String code, AbstractType type) {
         this.code = code;
         this.type = type;
+        this.originalCtx = null;
     }
 }

@@ -68,7 +68,7 @@ public class BinaryExpression {
             return new Expression(code, type);
         }
         if(isAssignment(alias) && L instanceof Prefix) {
-            String lCode = ((Prefix)L).code(isAssignment(alias)), rCode = R.code(), ifCode0 = null, ifCode1 = null, elseCode1 = null;
+            String lCode = ((Prefix)L).code(isAssignment(alias)), rCode = AssignmentUtil.augment(R), ifCode0 = null, ifCode1 = null, elseCode1 = null;
             if(((Prefix) L).isDictionaryIndex()) {
                 if(R.type().swiftType().equals("Void")) {lCode = "delete " + lCode; rCode = null;}
                 else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}

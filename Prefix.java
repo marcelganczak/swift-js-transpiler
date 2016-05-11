@@ -15,11 +15,14 @@ class Replacement {
     }
 }
 public class Prefix implements PrefixOrExpression {
+    ParserRuleContext originalCtx;
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
+    public ParserRuleContext originalCtx() {return originalCtx;}
 
     public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
-        
+        originalCtx = prefixCtx;
+
         AbstractType currType = null;
         
         for(int chainPos = 0; chainPos < chain.size(); chainPos++) {
