@@ -59,7 +59,7 @@ public class EntityCache {
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {
-        //System.out.println("Caching " + identifier + " as " + type);
+        System.out.println("Caching " + identifier + " as " + type);
 
         ParseTree nearestAncestorBlock = findNearestAncestorBlock(ctx);
 

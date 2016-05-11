@@ -42,7 +42,7 @@ public class BinaryExpression {
         return operator.getText();
     }
 
-    static public Expression compute(ParserRuleContext operator, PrefixOrExpression L, PrefixOrExpression R, TranspilerVisitor visitor) {
+    static public Expression compute(ParserRuleContext operator, PrefixOrExpression L, PrefixOrExpression R, Visitor visitor) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
             Expression passExpression = new Expression(conditionalOperator.expression(), visitor);
@@ -60,7 +60,7 @@ public class BinaryExpression {
         }
     }
 
-    static private Expression replacement(ParserRuleContext operator, PrefixOrExpression L, PrefixOrExpression R, TranspilerVisitor visitor) {
+    static private Expression replacement(ParserRuleContext operator, PrefixOrExpression L, PrefixOrExpression R, Visitor visitor) {
         String alias = BinaryExpression.operatorAlias(operator);
         if(alias.equals("??")) {
             String code = "(" + L.code() + " != null ? " + L.code() + " : " + R.code() + ")";

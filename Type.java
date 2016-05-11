@@ -153,7 +153,7 @@ public class Type {
         return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()), isOptional);
     }
 
-    public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, TranspilerVisitor visitor) {
+    public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {
         if(functionResult != null) return fromDefinition(functionResult.type());
         visitor.visitChildren(statements);
         for(int i = 0; i < statements.getChildCount(); i++) {
@@ -166,11 +166,11 @@ public class Type {
         return new BasicType("Void");
     }
 
-    public static AbstractType infer(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
+    public static AbstractType infer(SwiftParser.ExpressionContext ctx, Visitor visitor) {
         return new Expression(ctx, visitor).type;
     }
 
-    public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, TranspilerVisitor visitor) {
+    public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, Visitor visitor) {
         if(accessor == null) return null;
         if(lType == null) return visitor.cache.getType(accessor, ctx);
         return lType.resulting(accessor);

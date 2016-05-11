@@ -1,54 +1,82 @@
-public class Visitor extends TranspilerVisitor {
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
-    @Override public String visitStatement(SwiftParser.StatementContext ctx) {
-        return visitChildren(ctx) + "\n";
+import java.util.Arrays;
+import java.util.List;
+
+public class Visitor extends SwiftBaseVisitor<String> {
+
+    public EntityCache cache;
+
+    @Override protected String aggregateResult(String aggregate, String nextResult) {
+        return aggregate + nextResult;
     }
 
-    @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
-        return ControlFlow.forIn(ctx, this);
-    }
-
-    @Override public String visitWhile_statement(SwiftParser.While_statementContext ctx) {
-        return ControlFlow.whileRepeat(ctx, this);
-    }
-
-    @Override public String visitRepeat_while_statement(SwiftParser.Repeat_while_statementContext ctx) {
-        return ControlFlow.repeatWhile(ctx, this);
-    }
-
-    @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
-        return ControlFlow.ifThen(ctx, this);
-    }
-
-    @Override public String visitGuard_statement(SwiftParser.Guard_statementContext ctx) {
-        return ControlFlow.guard(ctx, this);
-    }
-
-    @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
-        return FunctionUtil.functionDeclaration(ctx, this);
-    }
-
-    @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
-        return FunctionUtil.closureExpression(ctx, this);
-    }
-
-    @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
+    @Override protected String defaultResult() {
         return "";
     }
 
-    @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
-        return new Expression(ctx, this).code;
+    @Override public String visitChildren(RuleNode node) { return visitChildren(node, null); }
+
+    public String visitChildren(RuleNode node, List<Integer> withoutNodes) {
+        if(node == null) return "";
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            if(withoutNodes != null && withoutNodes.contains(i)) continue;
+            ParseTree c = node.getChild(i);
+            String childResult = c instanceof TerminalNode ? printTerminalNode((TerminalNode) c) : c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
     }
 
-    @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return jsType(ctx);
+    public String visitWithoutTerminals(RuleNode node) {
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            ParseTree c = node.getChild(i);
+            if(c instanceof TerminalNode) continue;
+            String childResult = c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
     }
 
-    @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
-        return visit(ctx.expression());
+    public String visitWithoutStrings(RuleNode node, String string) {
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            ParseTree c = node.getChild(i);
+            if(string.contains(c.getText())) continue;
+            String childResult = c instanceof TerminalNode ? printTerminalNode((TerminalNode) c) : c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
     }
 
-    @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {
-        return "arguments[" + ctx.getText().substring(1) + "]";
+    protected String printTerminalNode(TerminalNode c) {
+        String text = c.getText();
+        if(text.equals("<EOF>")) {
+            return "";
+        }
+        else if(text.equals("let")) {
+            return "const ";
+        }
+        else if(text.equals("var")) {
+            return "let ";
+        }
+        else if(text.equals(".")) {
+            return ".";
+        }
+        return text + " ";
     }
-}
+};

@@ -25,13 +25,13 @@ public class Main {
         SwiftParser parser = new SwiftParser(tokens);
         SwiftParser.Top_levelContext tree = parser.top_level();
 
-        SwiftBaseVisitor visitor = new Visitor();
-        System.out.println(visitor.visit(tree));
+        EntityCache cache = new EntityCache();
 
-        //MyListener extractor = new MyListener();
-        //ParseTreeWalker.DEFAULT.walk(extractor, tree);
+        CacheVisitor cacheVisitor = new CacheVisitor(cache);
+        cacheVisitor.visit(tree);
 
-        //System.out.println(printTree(tree));
+        //TranspilerVisitor transpilerVisitor = new TranspilerVisitor(cache);
+        //System.out.println(transpilerVisitor.visit(tree));
     }
 
 

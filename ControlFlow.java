@@ -3,7 +3,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 class IfLet {
     public String varName;
     public String varVal;
-    public IfLet(ParserRuleContext ctx, TranspilerVisitor visitor) {
+    public IfLet(ParserRuleContext ctx, Visitor visitor) {
         SwiftParser.Condition_clauseContext conditionClause = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause();
         if(!(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, conditionClause))) return;
         SwiftParser.Optional_binding_headContext ifLet = conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_head();
@@ -17,7 +17,7 @@ class IfLet {
 
 public class ControlFlow {
 
-    static public String forIn(SwiftParser.For_in_statementContext ctx, TranspilerVisitor visitor) {
+    static public String forIn(SwiftParser.For_in_statementContext ctx, Visitor visitor) {
         SwiftParser.ExpressionContext expression = ctx.expression();
         if(expression != null && expression.binary_expressions() != null) {
             SwiftParser.Binary_expressionContext binary = expression.binary_expressions().binary_expression(0);
@@ -30,15 +30,15 @@ public class ControlFlow {
         return "_.each(" + visitor.visit(ctx.expression()) + ", " + visitor.visit(ctx.pattern()) + " => " + visitor.visit(ctx.code_block()) + ")";
     }
 
-    static public String whileRepeat(SwiftParser.While_statementContext ctx, TranspilerVisitor visitor) {
+    static public String whileRepeat(SwiftParser.While_statementContext ctx, Visitor visitor) {
         return "while(" + visitor.visit(ctx.condition_clause()) + ") " + visitor.visit(ctx.code_block());
     }
 
-    static public String repeatWhile(SwiftParser.Repeat_while_statementContext ctx, TranspilerVisitor visitor) {
+    static public String repeatWhile(SwiftParser.Repeat_while_statementContext ctx, Visitor visitor) {
         return "do " + visitor.visit(ctx.code_block()) + "while(" + visitor.visit(ctx.expression()) + ")";
     }
 
-    static public String ifThen(SwiftParser.If_statementContext ctx, TranspilerVisitor visitor) {
+    static public String ifThen(SwiftParser.If_statementContext ctx, Visitor visitor) {
         String condition = visitor.visitWithoutStrings(ctx.condition_clause(), "()");
         String beforeBlock = "";
         IfLet ifLet = new IfLet(ctx, visitor);
@@ -48,7 +48,7 @@ public class ControlFlow {
         }
         return "if(" + condition + ") {" + beforeBlock + visitor.visitWithoutStrings(ctx.code_block(), "{") + visitor.visitChildren(ctx.else_clause());
     }
-    static public String guard(SwiftParser.Guard_statementContext ctx, TranspilerVisitor visitor) {
+    static public String guard(SwiftParser.Guard_statementContext ctx, Visitor visitor) {
         String condition = visitor.visitWithoutStrings(ctx.condition_clause(), "()");
         String beforeBlock = "";
         IfLet ifLet = new IfLet(ctx, visitor);

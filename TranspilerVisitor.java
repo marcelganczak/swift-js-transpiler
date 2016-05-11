@@ -1,38 +1,59 @@
-import org.antlr.v4.runtime.ParserRuleContext;
+public class TranspilerVisitor extends Visitor {
 
-public class TranspilerVisitor extends NativeOverriddenVisitor {
-
-    protected EntityCache cache = new EntityCache();
-
-    public String getDeclaredEntityForType(SwiftParser.TypeContext ctx) {
-        SwiftParser.Pattern_initializerContext initializer = ctx.getParent().getParent().getParent() instanceof SwiftParser.Pattern_initializerContext ? (SwiftParser.Pattern_initializerContext) ctx.getParent().getParent().getParent() : null;
-        if(initializer != null) {
-            SwiftParser.IdentifierContext identifier = initializer.pattern().identifier_pattern().identifier();
-            if(identifier != null) return identifier.getText();
-        }
-        return null;
+    public TranspilerVisitor(EntityCache cache) {
+        super();
+        this.cache = cache;
     }
 
-    public String getDeclaredEntityForChain(ParserRuleContext/*expression or prefix_expression*/ ctx) {
-        ParserRuleContext baseParent = ctx instanceof SwiftParser.ExpressionContext ? ctx : ctx.getParent();
-        ParserRuleContext patternInitializer = baseParent.getParent().getParent();
-        if(patternInitializer instanceof SwiftParser.Pattern_initializerContext) {
-            SwiftParser.IdentifierContext identifier = ((SwiftParser.Pattern_initializerContext) patternInitializer).pattern().identifier_pattern().identifier();
-            if(identifier != null) return identifier.getText();
-        }
-        if(patternInitializer instanceof SwiftParser.ExpressionContext && baseParent.getChild(0).getText().equals("=")) {
-            SwiftParser.Postfix_expressionContext postfix = ((SwiftParser.ExpressionContext) patternInitializer).prefix_expression().postfix_expression();
-            if(postfix.primary_expression() != null) return postfix.primary_expression().getText();
-        }
-        return null;
+    @Override public String visitStatement(SwiftParser.StatementContext ctx) {
+        return visitChildren(ctx) + "\n";
     }
 
-    public String jsType(SwiftParser.TypeContext ctx) {
-        AbstractType type = Type.fromDefinition(ctx);
+    @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
+        return ControlFlow.forIn(ctx, this);
+    }
 
-        String declaredEntity = getDeclaredEntityForType(ctx);
-        if(declaredEntity != null) cache.cacheOne(declaredEntity, type, ctx);
+    @Override public String visitWhile_statement(SwiftParser.While_statementContext ctx) {
+        return ControlFlow.whileRepeat(ctx, this);
+    }
 
-        return type.jsType();
+    @Override public String visitRepeat_while_statement(SwiftParser.Repeat_while_statementContext ctx) {
+        return ControlFlow.repeatWhile(ctx, this);
+    }
+
+    @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
+        return ControlFlow.ifThen(ctx, this);
+    }
+
+    @Override public String visitGuard_statement(SwiftParser.Guard_statementContext ctx) {
+        return ControlFlow.guard(ctx, this);
+    }
+
+    @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
+        return FunctionUtil.functionDeclaration(ctx, this);
+    }
+
+    @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
+        return FunctionUtil.closureExpression(ctx, this);
+    }
+
+    @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
+        return "";
+    }
+
+    @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
+        return new Expression(ctx, this).code;
+    }
+
+    @Override public String visitType(SwiftParser.TypeContext ctx) {
+        return Type.fromDefinition(ctx).jsType();
+    }
+
+    @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
+        return visit(ctx.expression());
+    }
+
+    @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {
+        return "arguments[" + ctx.getText().substring(1) + "]";
     }
 }

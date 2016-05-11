@@ -10,7 +10,7 @@ public class Expression implements PrefixOrExpression {
     public String code() {return code;}
     public AbstractType type() {return type;}
 
-    public Expression(SwiftParser.ExpressionContext ctx, TranspilerVisitor visitor) {
+    public Expression(SwiftParser.ExpressionContext ctx, Visitor visitor) {
 
         List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions() != null ? ctx.binary_expressions().binary_expression() : new ArrayList<SwiftParser.Binary_expressionContext>();
         ArrayList<PrefixOrExpression> elems = new ArrayList<PrefixOrExpression>();

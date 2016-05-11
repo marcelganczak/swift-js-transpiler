@@ -17,7 +17,7 @@ class Replacement {
 public class Prefix implements PrefixOrExpression {
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
 
-    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, TranspilerVisitor visitor) {
+    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
         
         AbstractType currType = null;
@@ -82,7 +82,7 @@ public class Prefix implements PrefixOrExpression {
         return nextCode;
     }
 
-    static private Replacement replacement(boolean isStart, AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams, TranspilerVisitor visitor) {
+    static private Replacement replacement(boolean isStart, AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams, Visitor visitor) {
         if(R == null) return null;
         if(lType != null && lType.swiftType().equals("Dictionary")) {
             if(R.equals("count")) {
