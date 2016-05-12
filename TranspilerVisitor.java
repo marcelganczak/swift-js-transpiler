@@ -53,6 +53,11 @@ public class TranspilerVisitor extends Visitor {
         return visitChildren(ctx) + "\n";
     }
 
+    @Override public String visitParameter(SwiftParser.ParameterContext ctx) {
+        if(ctx.range_operator() == null) return visitChildren(ctx);
+        return visit(ctx.range_operator()) + visitWithoutClasses(ctx, SwiftParser.Range_operatorContext.class);
+    }
+
     @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
         return "";
     }

@@ -1,10 +1,6 @@
 import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.TerminalNode;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class EntityCache {
 
@@ -41,11 +37,19 @@ public class EntityCache {
         CacheObject cache = findCache(varName, node);
         if(cache == null) {
             Map<String, FunctionType> candidates = getFunctionTypesStartingWith(varName, node);
-            if(candidates.size() == 0) return null;
+            if(candidates.size() == 0) {
+                Expression variadicFunction = getFunctionTypeEndingWithVariadic(varName, node);
+                if(variadicFunction == null) return null;
+                return variadicFunction.type;
+            }
             if(candidates.size() > 1) System.out.println("//Found more than 1 candidate for " + varName);
             return candidates.get(candidates.keySet().toArray()[0]);
         }
         return cache.type;
+    }
+    public AbstractType getTypeStrict(String varName, ParseTree node) {
+        CacheObject cache = findCache(varName, node);
+        return cache != null ? cache.type : null;
     }
 
     public Map<String, FunctionType> getFunctionTypesStartingWith(String varName, ParseTree node) {
@@ -63,6 +67,28 @@ public class EntityCache {
             if(node instanceof SwiftParser.Top_levelContext) break;
         }
         return matches;
+    }
+
+    public Expression getFunctionTypeEndingWithVariadic(String varName, ParseTree node) {
+        String[] params = varName.split("\\$");
+        if(params.length < 2) return null;
+
+        for(int i = params.length - 1; i >= 1; i--) {
+
+            String param = params[i];
+            for(int j = i + 1; j < params.length; j++) if(!params[j].equals(param)) return null;
+
+            String subVarName = "";
+            for(int j = 0; j < i; j++) subVarName += (j > 0 ? "$" : "") + params[j];
+            subVarName += "$_Array";
+            CacheObject cache = findCache(subVarName, node);
+            if(cache != null && cache.type instanceof FunctionType) {
+                List<AbstractType> parameterTypes = ((FunctionType)cache.type).parameterTypes;
+                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(param.split("_")[1])) continue;
+                return new Expression(subVarName, cache.type);
+            }
+        }
+        return null;
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {

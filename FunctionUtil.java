@@ -97,7 +97,7 @@ public class FunctionUtil {
     static public String nameFromCall(String swiftFunctionName, List<SwiftParser.Expression_elementContext>parameters, ParserRuleContext ctx, Visitor visitor) {
         ArrayList<AbstractType> parameterTypes = parameterTypes(parameters, visitor);
         String defaultFunctionName = swiftFunctionName + nameAugment(parameters, parameterTypes);
-        if(visitor.cache.getType(defaultFunctionName, ctx) != null) return defaultFunctionName;
+        if(visitor.cache.getTypeStrict(defaultFunctionName, ctx) != null) return defaultFunctionName;
 
         Map<String, FunctionType> candidates = visitor.cache.getFunctionTypesStartingWith(defaultFunctionName, ctx);
         int numUsedParameters = parameters != null ? parameters.size() : 0;
@@ -105,6 +105,9 @@ public class FunctionUtil {
             FunctionType functionType = iterator.getValue();
             if(numUsedParameters >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey();
         }
+
+        Expression variadicFunction = visitor.cache.getFunctionTypeEndingWithVariadic(defaultFunctionName, ctx);
+        if(variadicFunction != null) return variadicFunction.code;
 
         return null;
     }

@@ -29,6 +29,8 @@ public class CacheVisitor extends Visitor {
             cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), ctx);
         }
 
+        visit(ctx.function_body());
+
         return null;
     }
 

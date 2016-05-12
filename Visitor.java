@@ -63,6 +63,20 @@ public class Visitor extends SwiftBaseVisitor<String> {
         return result;
     }
 
+    public String visitWithoutClasses(RuleNode node, Class nodeType) {
+        String result = this.defaultResult();
+        int n = node.getChildCount();
+
+        for(int i = 0; i < n && this.shouldVisitNextChild(node, result); ++i) {
+            ParseTree c = node.getChild(i);
+            if(c.getClass() == nodeType) continue;
+            String childResult = c instanceof TerminalNode ? printTerminalNode((TerminalNode) c) : c.accept(this);
+            result = this.aggregateResult(result, childResult);
+        }
+
+        return result;
+    }
+
     protected String printTerminalNode(TerminalNode c) {
         String text = c.getText();
         if(text.equals("<EOF>")) {
