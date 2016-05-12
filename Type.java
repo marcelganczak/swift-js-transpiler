@@ -60,8 +60,8 @@ class FunctionType extends AbstractType {
 }
 class NestedType extends AbstractType {
     private String wrapperType;//Dictionary/Array/Set
-    private AbstractType keyType;
-    private AbstractType valueType;
+    public AbstractType keyType;
+    public AbstractType valueType;
     public NestedType(String wrapperType, AbstractType keyType, AbstractType valueType, boolean isOptional) {
         this.wrapperType = wrapperType;
         this.keyType = keyType;

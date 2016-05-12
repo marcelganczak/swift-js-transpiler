@@ -1,4 +1,9 @@
-func arithmeticMean(numbers: Int...) -> Int {
-    return 1
+let names = ["Anna", "Alex", "Brian", "Jack"]
+for name in names {
+    print("Hello, " + name + "!")
 }
-print(arithmeticMean(1, 2, 3, 4, 5))
+let numberOfLegs = ["spider": 8, "ant": 6, "cat": 4]
+for (animalName, legCount) in numberOfLegs {
+    print(animalName)
+    print(legCount)
+}
