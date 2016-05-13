@@ -19,7 +19,7 @@ func sayHello(to person: String, and anotherPerson: String) -> String {
     return "Hello " + person + " and " + anotherPerson + "!"
 }
 print(sayHello(to: "Bill", and: "Ted"))
-func addition(firstParameterName: Int, _ secondParameterName: Int) {
+func addition(firstParameterName: Int, _ secondParameterName: Int) -> Int {
     return firstParameterName + secondParameterName
 }
 print(addition(1, 2))

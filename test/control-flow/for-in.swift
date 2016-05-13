@@ -15,8 +15,17 @@ let names = ["Anna", "Alex", "Brian", "Jack"]
 for name in names {
     print("Hello, " + name + "!")
 }
-let numberOfLegs = ["spider": 8, "ant": 6, "cat": 4]
+let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
 for (animalName, legCount) in numberOfLegs {
     print(animalName)
     print(legCount)
+}
+for number in 0...10 {
+    if number >= 6 {
+        break
+    }
+    if number % 2 > 0 {
+        continue
+    }
+    print(number)
 }

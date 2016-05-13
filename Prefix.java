@@ -42,7 +42,7 @@ public class Prefix implements PrefixOrExpression {
                 chainPos += replacement.skip;
             }
             else {
-                elem = PrefixElem.get(ctx, null/*declaredType*/, functionCall, functionCallParams, chain, chainPos, currType, visitor);
+                elem = PrefixElem.get(ctx, functionCall, functionCallParams, chain, chainPos, currType, visitor);
             }
 
             elem.isOptional = ctx.getChild(0).getText().equals("?");

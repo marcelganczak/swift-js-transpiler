@@ -58,6 +58,11 @@ public class TranspilerVisitor extends Visitor {
         return visit(ctx.range_operator()) + visitWithoutClasses(ctx, SwiftParser.Range_operatorContext.class);
     }
 
+    @Override public String visitDictionary_literal_item(SwiftParser.Dictionary_literal_itemContext ctx) {
+        boolean keyIsLiteral = WalkerUtil.isDirectDescendant(SwiftParser.LiteralContext.class, ctx.expression(0));
+        return (keyIsLiteral ? "" : "[") + visit(ctx.expression(0)) + (keyIsLiteral ? "" : "]") + ":" + visit(ctx.expression(1));
+    }
+
     @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
         return "";
     }

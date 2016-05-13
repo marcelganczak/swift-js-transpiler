@@ -1,7 +1,7 @@
 var str:String?;
 print(str?.characters.count)
 str = "Message"
-print(str?.characters.count)
+print((str?.characters.count)!)
 func returnString(shouldReturn: Bool) -> String? {
     return shouldReturn ? "string" : nil
 }

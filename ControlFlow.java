@@ -42,7 +42,7 @@ public class ControlFlow {
         }
         String iterator;
         if(iteratedType.swiftType().equals("Array")) {
-            if(indexVar == null) indexVar = "_i";
+            if(indexVar == null) indexVar = "$";
             iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
         }
         else {

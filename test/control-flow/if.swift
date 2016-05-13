@@ -8,6 +8,9 @@ var dict = ["key":"val"]
 if let dictVal = dict["key"] {
     print(dictVal);
 }
-guard a <= 3 else {
-    print("A greater than 3")
+for number in 0...10 {
+    guard number < 3 else {
+        break
+    }
+    print(number)
 }

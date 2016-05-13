@@ -60,7 +60,7 @@ public class EntityCache {
             Map<String, CacheObject> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             for(Map.Entry<String, CacheObject> iterator:blockTypeCache.entrySet()) {
-                if(iterator.getKey().startsWith(varName) && iterator.getValue().type instanceof FunctionType) {
+                if(iterator.getKey().startsWith(varName) && iterator.getValue().type instanceof FunctionType && (iterator.getKey().length() == varName.length() || iterator.getKey().startsWith(varName + "$"))) {
                     matches.put(iterator.getKey(), (FunctionType)iterator.getValue().type);
                 }
             }
@@ -92,7 +92,7 @@ public class EntityCache {
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {
-        System.out.println("Caching " + identifier + " as " + type);
+        //System.out.println("Caching " + identifier + " as " + type);
 
         ParseTree nearestAncestorBlock = findNearestAncestorBlock(ctx);
 

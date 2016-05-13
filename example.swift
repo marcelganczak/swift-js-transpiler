@@ -1,9 +1,7 @@
-let names = ["Anna", "Alex", "Brian", "Jack"]
-for name in names {
-    print("Hello, " + name + "!")
+func multiplyTwoInts(a: Int, b: Int) -> Int {
+    return a * b
 }
-let numberOfLegs = ["spider": 8, "ant": 6, "cat": 4]
-for (animalName, legCount) in numberOfLegs {
-    print(animalName)
-    print(legCount)
-}
+let mathFunction = multiplyTwoInts
+let mathFunction2: (Int, c: Int) -> Int = multiplyTwoInts
+print(mathFunction(2, b:3))
+print(mathFunction2(1, c:2))
