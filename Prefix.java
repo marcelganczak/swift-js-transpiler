@@ -1,20 +1,29 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.apache.commons.io.IOUtils;
+import org.json.*;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 class Replacement {
     public int skip = 0;
     public PrefixElem elem;
-    public Replacement(PrefixElem elem) {
-        this.elem = elem;
-    }
     public Replacement(PrefixElem elem, int skip) {
         this.elem = elem;
         this.skip = skip;
     }
 }
 public class Prefix implements PrefixOrExpression {
+    static private JSONObject definitions;
+    static {
+        InputStream is = BinaryExpression.class.getResourceAsStream("prefix-elems.json");
+        String jsonTxt = null;
+        try { jsonTxt = IOUtils.toString(is); } catch (IOException e) { }
+        definitions = new JSONObject(jsonTxt);
+    }
+
     ParserRuleContext originalCtx;
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
     public ParserRuleContext originalCtx() {return originalCtx;}
@@ -36,7 +45,7 @@ public class Prefix implements PrefixOrExpression {
             }
 
             PrefixElem elem;
-            Replacement replacement = Prefix.replacement(chainPos == 0, currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
+            Replacement replacement = Prefix.replacement(currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
             if(replacement != null) {
                 elem = replacement.elem;
                 chainPos += replacement.skip;
@@ -71,8 +80,8 @@ public class Prefix implements PrefixOrExpression {
     static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
         PrefixElem elem = elems.get(chainPos);
 
-        String LR = elem.accessorType.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
-                  : L + (L.length() == 0 ? elem.code : elem.accessorType.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
+        String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
+                  : L + (L.length() == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
         String nextCode =
                 chainPos + 1 < elems.size() ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
@@ -85,38 +94,14 @@ public class Prefix implements PrefixOrExpression {
         return nextCode;
     }
 
-    static private Replacement replacement(boolean isStart, AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams, Visitor visitor) {
+    static private Replacement replacement(AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams, Visitor visitor) {
         if(R == null) return null;
-        if(lType != null && lType.swiftType().equals("Dictionary")) {
-            if(R.equals("count")) {
-                return new Replacement(new PrefixElem("size", "_.()", new BasicType("Int"), null));
-            }
-            if(R.equals("updateValue")) {
-                return new Replacement(new PrefixElem("updateValue", "_.()", new BasicType("Void"), null/*TODO*/));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("Array")) {
-            if(R.equals("count")) {
-                return new Replacement(new PrefixElem("length", ".", new BasicType("Int"), null));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("Set")) {
-            if(R.equals("count")) {
-                return new Replacement(new PrefixElem("size", ".", new BasicType("Int"), null));
-            }
-            if(R.equals("insert")) {
-                return new Replacement(new PrefixElem("add", ".", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
-            }
-        }
-        if(lType != null && lType.swiftType().equals("String")) {
-            if(R.equals("characters")) {
-                return new Replacement(new PrefixElem("length", ".", new BasicType("Int"), null), 1);
-            }
-        }
-        if(isStart) {
-            if(R.equals("print")) return new Replacement(new PrefixElem("console.log", "", new BasicType("Void"), visitor.visit(functionCallParams.get(0))));
-        }
-        return null;
+        if(definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()) == null) return null;
+        JSONObject definition = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONObject(R);
+        if(definition == null) return null;
+
+        String strFunctionCallParams = functionCallParams == null ? null : visitor.visit(functionCallParams.get(0));
+        return new Replacement(new PrefixElem(definition.getString("code"), definition.getString("accessor"), new BasicType(definition.getString("type")), strFunctionCallParams), definition.optInt("skip"));
     }
 
     public AbstractType type() {
@@ -124,7 +109,7 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessorType.equals("[]");
+        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
     }
 
     public boolean hasOptionals() {

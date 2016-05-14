@@ -1,0 +1,166 @@
+{
+  "=": {
+    "priority": 9,
+    "compute": {
+      "default": {}
+    }
+  },
+  "?:": {
+    "priority": 8
+  },
+  "&&": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "||": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "??": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "code": "(L != null ? L : R)"
+      }
+    }
+  },
+  "===": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "==": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "!==": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "!=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  ">": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  ">=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "<": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "<=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "+": {
+    "priority": 5,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      },
+      "Array-Array": {
+        "code": "L.concat(R)"
+      }
+    }
+  },
+  "-": {
+    "priority": 5,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "*": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "/": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Int": {
+        "type": "Int",
+        "code": "((L / R)|0)"
+      },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "%": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  }
+}

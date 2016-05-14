@@ -1,0 +1,51 @@
+{
+  "String": {
+    "characters": {
+      "code": "length",
+      "accessor": ".",
+      "type": "Int",
+      "skip": 1
+    }
+  },
+  "Dictionary": {
+    "count": {
+      "code": "size",
+      "accessor": "_.()",
+      "type": "Int"
+    },
+    "updateValue": {
+      "code": "updateValue",
+      "accessor": "_.()",
+      "type": "Void",
+      "preserveParams": true
+    }
+  },
+  "Array": {
+    "count": {
+      "code": "length",
+      "accessor": ".",
+      "type": "Int"
+    }
+  },
+  "Set": {
+    "count": {
+      "code": "length",
+      "accessor": ".",
+      "type": "Int"
+    },
+    "insert": {
+      "code": "add",
+      "accessor": ".",
+      "type": "Void",
+      "preserveParams": true
+    }
+  },
+  "top-level": {
+    "print": {
+      "code": "console.log",
+      "accessor": "",
+      "type": "Void",
+      "preserveParams": true
+    }
+  }
+}

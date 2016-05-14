@@ -6,11 +6,11 @@ import java.util.List;
 
 public class PrefixElem {
     public String code;
-    public String accessorType;
+    public String accessor;
     public AbstractType type;
     public String functionCallParams;
     public boolean isOptional;
-    public PrefixElem(String code, String accessorType, AbstractType type, String functionCallParams) { this.code = code; this.accessorType = accessorType; this.type = type; this.functionCallParams = functionCallParams; this.isOptional = false; }
+    public PrefixElem(String code, String accessor, AbstractType type, String functionCallParams) { this.code = code; this.accessor = accessor; this.type = type; this.functionCallParams = functionCallParams; this.isOptional = false; }
 
     static public PrefixElem get(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, Visitor visitor) {
 
@@ -146,29 +146,29 @@ public class PrefixElem {
     }
 
     static private PrefixElem getBasic(ParserRuleContext rChild, SwiftParser.Function_call_expressionContext functionCall, List<SwiftParser.Expression_elementContext> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, Visitor visitor) {
-        String identifier = null, accessorType = ".", functionCallParamsStr = null;
+        String identifier = null, accessor = ".", functionCallParamsStr = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
             identifier = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
-            accessorType = ".";
+            accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Primary_expressionContext) {
             identifier = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visitor.visit(rChild);
-            accessorType = ".";
+            accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             identifier = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
-            accessorType = "[]";
+            accessor = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
             identifier = visitor.visitWithoutStrings(rChild, "?.");
-            accessorType = "[]";
+            accessor = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {
             String[] split = visitor.visit(rChild).split("\\.");
             int pos = 1, i = chainPos;
             while(i > 0 && chain.get(i - 1) instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {i--; pos = pos == 1 ? 2 : 1;}
             identifier = split[pos].replaceAll("\\?", "");
-            accessorType = "[]";
+            accessor = "[]";
         }
         else {
             identifier = visitor.visit(rChild);
@@ -179,6 +179,6 @@ public class PrefixElem {
             functionCallParamsStr = visitor.visitWithoutStrings(functionCall.parenthesized_expression(), "()");
         }
 
-        return new PrefixElem(identifier, accessorType, null, functionCallParamsStr);
+        return new PrefixElem(identifier, accessor, null, functionCallParamsStr);
     }
 }
