@@ -1,10 +1,11 @@
 {
   "String": {
     "characters": {
+      "skip": true
+    },
+    "count": {
       "code": "length",
-      "accessor": ".",
-      "type": "Int",
-      "skip": 1
+      "type": "Int"
     }
   },
   "Dictionary": {
@@ -17,27 +18,70 @@
       "code": "updateValue",
       "accessor": "_.()",
       "type": "Void",
-      "preserveParams": true
+      "params": [{
+        "type": "#valueType"
+      }, {
+        "type": "#keyType",
+        "externalName": "forKey"
+      }]
     }
   },
   "Array": {
     "count": {
       "code": "length",
-      "accessor": ".",
       "type": "Int"
+    },
+    "append": {
+      "code": "push",
+      "type": "Void",
+      "params": [{
+        "type": "#valueType"
+      }]
+    },
+    "filter": {
+      "type": "#L",
+      "params": [{
+        "type": "(#valueType)->Bool"
+      }]
+    },
+    "sortInPlace": {
+      "code": "sortBool",
+      "type": "#L",
+      "params": [{
+        "type": "(#valueType,#valueType)->Bool"
+      }]
+    },
+    "map": {
+      "type": "#L",
+      "params": [{
+        "type": "(#valueType)->#valueType"
+      }]
+    },
+    "reduce": {
+      "type": "#valueType",
+      "params": [{
+        "type": "#valueType",
+        "index": 1
+      }, {
+        "type": "(#valueType,#valueType)->#valueType",
+        "index": 0
+      }]
+    },
+    "enumerate": {
+      "skip": true
     }
   },
   "Set": {
     "count": {
       "code": "length",
-      "accessor": ".",
       "type": "Int"
     },
     "insert": {
       "code": "add",
-      "accessor": ".",
       "type": "Void",
-      "preserveParams": true
+      "params": [{
+        "type": "#valueType"
+      }]
     }
   },
   "top-level": {
@@ -45,7 +89,7 @@
       "code": "console.log",
       "accessor": "",
       "type": "Void",
-      "preserveParams": true
+      "params": [{ }]
     }
   }
 }

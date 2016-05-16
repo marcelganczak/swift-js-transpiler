@@ -5,7 +5,7 @@ var lowY = 1
 var highX = 3
 var highY = 3
 
-if x >= lowX &amp;&amp; y &gt;= lowY &amp;&amp; x <= highX &amp;&amp; y &lt;= highY {
+if x >= lowX && y >= lowY && x <= highX && y <= highY {
     print("inside")
 } else {
     print("not inside")

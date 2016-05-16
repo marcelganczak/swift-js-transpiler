@@ -698,7 +698,11 @@ superclass_initializer_expression : 'super' '.' 'init'  ;
 
 // GRAMMAR OF A CLOSURE EXPRESSION
 
-closure_expression : '{' closure_signature? statements? '}'  ;
+closure_expression
+ : explicit_closure_expression
+ | operator
+ ;
+explicit_closure_expression : '{' closure_signature? statements? '}'  ;
 closure_signature
  : parameter_clause function_result? 'in'
  | identifier_list function_result? 'in'
@@ -735,9 +739,8 @@ postfix_expression
  ;
 
 chain_postfix_expression
- : '?'? parenthesized_expression                     # function_call_expression
- | '?'? parenthesized_expression? trailing_closure   # function_call_with_closure_expression
- // | postfix_operator
+ : '?'? parenthesized_expression? trailing_closure   # function_call_with_closure_expression
+ | '?'? parenthesized_expression                     # function_call_expression
  | '?'? '.' 'init'                                   # initializer_expression
  | '?'? '.' 'init' '(' argument_names ')'            # initializer_expression_with_args
  | '?'? '.' identifier generic_argument_clause?      # explicit_member_expression
@@ -746,7 +749,8 @@ chain_postfix_expression
  | '?'? '.' 'self'                                   # postfix_self_expression
  | '?'? '.' 'dynamicType'                            # dynamic_type_expression
  | '?'? '[' expression_list ']'                      # subscript_expression
- | '!'                                               # forced_value_expression
+ | postfix_operator                                  # chain_postfix_operator
+// | '!'                                               # forced_value_expression
  ;
 
 /* This might be faster than above
@@ -771,7 +775,7 @@ argument_names : argument_name argument_names? ;
 
 argument_name : identifier ':' ;
 
-trailing_closure : closure_expression ;
+trailing_closure : explicit_closure_expression ;
 
 // GRAMMAR OF A TYPE
 

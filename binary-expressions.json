@@ -1,12 +1,14 @@
 {
   "=": {
-    "priority": 9,
+    "priority": 10,
     "compute": {
-      "default": {}
+      "default": {
+        "type": "Void"
+      }
     }
   },
   "?:": {
-    "priority": 8
+    "priority": 9
   },
   "&&": {
     "priority": 7,
@@ -162,5 +164,59 @@
         "type": "Double"
       }
     }
+  },
+  "+=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      },
+      "Array-Array": {
+        "code": "L = L.concat(R)",
+        "type": "Void"
+      }
+    }
+  },
+  "-=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "*=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "/=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      },
+      "Int-Int": {
+        "type": "Void",
+        "code": "L = ((L / R)|0)"
+      }
+    }
+  },
+  "%=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "as": {
+    "priority": 8
+  },
+  "is": {
+    "priority": 8
   }
 }

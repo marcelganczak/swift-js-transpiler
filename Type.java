@@ -57,6 +57,12 @@ class FunctionType extends AbstractType {
     public AbstractType copy() {
         return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType);
     }
+    public boolean sameAs(FunctionType otherType) {
+        if(parameterTypes.size() != otherType.parameterTypes.size()) return false;
+        if(!returnType.swiftType().equals(otherType.returnType.swiftType())) return false;
+        for(int i = 0; i < parameterTypes.size(); i++) if(!parameterTypes.get(i).swiftType().equals(otherType.parameterTypes.get(i).swiftType())) return false;
+        return true;
+    }
 }
 class NestedType extends AbstractType {
     private String wrapperType;//Dictionary/Array/Set
@@ -143,6 +149,24 @@ public class Type {
         return type;
     }
 
+    public static AbstractType fromDefinition(String description, AbstractType lType) {
+        if(description == null) return null;
+        if(description.equals("#valueType")) return ((NestedType)lType).valueType;
+        if(description.equals("#keyType")) return ((NestedType)lType).keyType;
+        if(description.contains("->")) {
+            String[] parts = description.split("\\->");
+            ArrayList<String> parameterExternalNames = new ArrayList<String>();
+            ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
+            String[] params = parts[0].substring(1, parts[0].length() - 1).split(",");
+            for(int i = 0; i < params.length; i++) {
+                parameterExternalNames.add("");
+                parameterTypes.add(fromDefinition(params[i], lType));
+            }
+            return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(parts[1], lType));
+        }
+        return new BasicType(description);
+    }
+
     private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional) {
         List<SwiftParser.TypeContext> types = ctx.type();
         return new NestedType("Dictionary", fromDefinition(types.get(0)), fromDefinition(types.get(1)), isOptional);
@@ -201,7 +225,7 @@ public class Type {
     }
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, Visitor visitor) {
-        return new Expression(ctx, visitor).type;
+        return new Expression(ctx, null, visitor).type;
     }
 
     public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, Visitor visitor) {

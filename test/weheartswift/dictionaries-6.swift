@@ -29,7 +29,7 @@ var people: [[String:Any]] = [
 func compareScores(first: [String:Any], second: [String:Any]) -> Bool {
     if let a = first["score"] as? Int {
         if let b = second["score"] as? Int {
-            return a &gt; b
+            return a > b
         }
     }
     return false

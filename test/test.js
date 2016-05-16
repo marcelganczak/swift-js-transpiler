@@ -2,25 +2,26 @@ var assert = require('assert'),
     exec = require('child_process').exec,
     fs = require('fs'),
     root = require('path').normalize(__dirname + '/../'),
-    underscore = fs.readFileSync(__dirname + '/underscore.js');
+    underscore = fs.readFileSync(__dirname + '/underscore.js'),
+    monkeyPatch = fs.readFileSync(__dirname + '/monkey-patch.js');
 
 fs.readdirSync(__dirname).forEach(function(dir) {
     if(dir === 'node_modules' || dir === '.' || dir === '..' || dir === '.idea') return;
     if(!fs.statSync(__dirname + '/' + dir).isDirectory()) return;
-    //if(dir !== 'functions') return;
+    if(dir !== 'weheartswift') return;
 
     describe(dir, function() {
         this.timeout(10 * 1000);
 
         fs.readdirSync(__dirname + '/' + dir).forEach(function(file) {
             if(!file.includes('.swift')) return;
-            //if(file !== 'functions-as-vars.swift') return;
+            //if(file !== 'dictionaries-7.swift') return;
 
             it(file.replace('.swift', ''), function (done) {
                 var tsResult, swiftResult;
 
-                exec('cd ' + root + 'out/production/antlr4example; export CLASSPATH=".:/usr/local/lib/antlr-4.5-complete.jar:$CLASSPATH"; /Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/bin/java Main /Users/bubulkowanorka/projects/antlr4-visitor/test/' + dir + '/' + file, function(err, stdout) {
-                    fs.writeFileSync(root + 'test.ts', underscore + stdout);
+                exec('cd ' + root + 'out/production/antlr4example; export CLASSPATH=".:/usr/local/lib/antlr-4.5-complete.jar:$CLASSPATH"; export CLASSPATH=".:/Users/bubulkowanorka/projects/antlr4-visitor/lib/*:$CLASSPATH"; /Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/bin/java Main /Users/bubulkowanorka/projects/antlr4-visitor/test/' + dir + '/' + file, function(err, stdout) {
+                    fs.writeFileSync(root + 'test.ts', underscore + monkeyPatch + stdout);
 
                     exec('ts-node --disableWarnings ' + root + 'test.ts', function(err, stdout) {
                         tsResult = stdout;

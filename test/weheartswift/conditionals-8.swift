@@ -9,11 +9,11 @@ if b < min {
     min = b
 }
 
-if c &lt; min {
+if c < min {
     min = c
 }
 
-if d &lt; min {
+if d < min {
     min = d
 }
 

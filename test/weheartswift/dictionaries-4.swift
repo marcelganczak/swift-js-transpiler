@@ -35,4 +35,6 @@ for person in people {
     fullNames += [fullName]
 }
 
-print(fullNames)
+for fullName in fullNames {
+    print(fullName)
+}

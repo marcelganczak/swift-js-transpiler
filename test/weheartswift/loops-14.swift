@@ -16,7 +16,7 @@ while cnt < N {
 
     // go to the next leap year
     leapYear += 4 
-    if leapYear % 100 == 0 &amp;&amp; leapYear % 400 != 0 {
+    if leapYear % 100 == 0 && leapYear % 400 != 0 {
         leapYear += 4
     }
 }

@@ -1452,6 +1452,13 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitExplicit_closure_expression(SwiftParser.Explicit_closure_expressionContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitClosure_signature(SwiftParser.Closure_signatureContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
@@ -1529,14 +1536,14 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitFunction_call_expression(SwiftParser.Function_call_expressionContext ctx) { return visitChildren(ctx); }
+	@Override public T visitFunction_call_with_closure_expression(SwiftParser.Function_call_with_closure_expressionContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitFunction_call_with_closure_expression(SwiftParser.Function_call_with_closure_expressionContext ctx) { return visitChildren(ctx); }
+	@Override public T visitFunction_call_expression(SwiftParser.Function_call_expressionContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *
@@ -1599,7 +1606,7 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitForced_value_expression(SwiftParser.Forced_value_expressionContext ctx) { return visitChildren(ctx); }
+	@Override public T visitChain_postfix_operator(SwiftParser.Chain_postfix_operatorContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}
 	 *

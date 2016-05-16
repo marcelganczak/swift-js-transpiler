@@ -14,7 +14,7 @@ for i in 1...N {
 if (N > 1) {
     for j in 2...N {
         var i = N - j + 1
-        for k in 0..&lt;(N-i) {
+        for k in 0..<(N-i) {
             print(" ", terminator: "")
         }
 

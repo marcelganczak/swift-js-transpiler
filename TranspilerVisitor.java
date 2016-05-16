@@ -29,16 +29,12 @@ public class TranspilerVisitor extends Visitor {
         return FunctionUtil.functionDeclaration(ctx, this);
     }
 
-    @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
-        return FunctionUtil.closureExpression(ctx, this);
-    }
-
     @Override public String visitType(SwiftParser.TypeContext ctx) {
         return Type.fromDefinition(ctx).jsType();
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
-        return new Expression(ctx, this).code;
+        return new Expression(ctx, null, this).code;
     }
 
     @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
@@ -65,9 +61,5 @@ public class TranspilerVisitor extends Visitor {
 
     @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
         return "";
-    }
-
-    @Override public String visitImplicit_parameter(SwiftParser.Implicit_parameterContext ctx) {
-        return "arguments[" + ctx.getText().substring(1) + "]";
     }
 }

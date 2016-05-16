@@ -1,6 +1,8 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.apache.commons.io.IOUtils;
-import org.json.*;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,9 +10,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 class Replacement {
-    public int skip = 0;
+    public boolean skip;
     public PrefixElem elem;
-    public Replacement(PrefixElem elem, int skip) {
+    public Replacement(PrefixElem elem, boolean skip) {
         this.elem = elem;
         this.skip = skip;
     }
@@ -18,17 +20,17 @@ class Replacement {
 public class Prefix implements PrefixOrExpression {
     static private JSONObject definitions;
     static {
-        InputStream is = BinaryExpression.class.getResourceAsStream("prefix-elems.json");
+        InputStream is = Prefix.class.getResourceAsStream("prefix-elems.json");
         String jsonTxt = null;
         try { jsonTxt = IOUtils.toString(is); } catch (IOException e) { }
-        definitions = new JSONObject(jsonTxt);
+        try { definitions = new JSONObject(jsonTxt); } catch (JSONException e) { }
     }
 
     ParserRuleContext originalCtx;
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
     public ParserRuleContext originalCtx() {return originalCtx;}
 
-    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Visitor visitor) {
+    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, AbstractType type, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
         originalCtx = prefixCtx;
 
@@ -37,34 +39,37 @@ public class Prefix implements PrefixOrExpression {
         for(int chainPos = 0; chainPos < chain.size(); chainPos++) {
             ParserRuleContext ctx = chain.get(chainPos);
 
-            SwiftParser.Function_call_expressionContext functionCall = null;
-            List<SwiftParser.Expression_elementContext> functionCallParams = null;
+            List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams = null;
             if(chainPos < chain.size() - 1 && chain.get(chainPos + 1) instanceof SwiftParser.Function_call_expressionContext) {
-                functionCall = (SwiftParser.Function_call_expressionContext) chain.get(chainPos + 1);
-                functionCallParams = functionCall.parenthesized_expression().expression_element_list() != null ? functionCall.parenthesized_expression().expression_element_list().expression_element() : null;
+                SwiftParser.Function_call_expressionContext functionCall = (SwiftParser.Function_call_expressionContext) chain.get(chainPos + 1);
+                functionCallParams = new ArrayList<ParserRuleContext>();
+                if(functionCall.parenthesized_expression().expression_element_list() != null) for(int i = 0; i < functionCall.parenthesized_expression().expression_element_list().expression_element().size(); i++) functionCallParams.add(functionCall.parenthesized_expression().expression_element_list().expression_element().get(i));
+            }
+            else if(chainPos < chain.size() - 1 && chain.get(chainPos + 1) instanceof SwiftParser.Function_call_with_closure_expressionContext) {
+                SwiftParser.Function_call_with_closure_expressionContext functionCall = (SwiftParser.Function_call_with_closure_expressionContext) chain.get(chainPos + 1);
+                functionCallParams = new ArrayList<ParserRuleContext>();
+                if(functionCall.parenthesized_expression() != null && functionCall.parenthesized_expression().expression_element_list() != null) for(int i = 0; i < functionCall.parenthesized_expression().expression_element_list().expression_element().size(); i++) functionCallParams.add(functionCall.parenthesized_expression().expression_element_list().expression_element().get(i));
+                functionCallParams.add(functionCall.trailing_closure().explicit_closure_expression());
             }
 
             PrefixElem elem;
+            boolean skip = false;
             Replacement replacement = Prefix.replacement(currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
             if(replacement != null) {
                 elem = replacement.elem;
-                chainPos += replacement.skip;
+                if(replacement.skip) skip = true;
             }
             else {
-                elem = PrefixElem.get(ctx, functionCall, functionCallParams, chain, chainPos, currType, visitor);
+                elem = PrefixElem.get(ctx, functionCallParams, chain, chainPos, currType, (chainPos + (functionCallParams != null ? 1 : 0) >= chain.size() - 1) ? type : null, visitor);
             }
 
-            elem.isOptional = ctx.getChild(0).getText().equals("?");
+            if(functionCallParams != null) chainPos++;
 
-            if(elem.type == null) {
-                elem.type = Type.resulting(currType, elem.code, chain.get(0), visitor);
-                if(functionCall != null && elem.type instanceof FunctionType) elem.type = elem.type.resulting("()");
+            if(!skip) {
+                elem.isOptional = ctx.getChild(0).getText().equals("?");
+                elems.add(elem);
+                currType = elem.type;
             }
-
-            if(functionCall != null) chainPos++;
-
-            elems.add(elem);
-            currType = elem.type;
         }
     }
 
@@ -94,14 +99,29 @@ public class Prefix implements PrefixOrExpression {
         return nextCode;
     }
 
-    static private Replacement replacement(AbstractType lType, String R, List<SwiftParser.Expression_elementContext> functionCallParams, Visitor visitor) {
+    static private Replacement replacement(AbstractType lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
         if(R == null) return null;
         if(definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()) == null) return null;
         JSONObject definition = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONObject(R);
         if(definition == null) return null;
 
-        String strFunctionCallParams = functionCallParams == null ? null : visitor.visit(functionCallParams.get(0));
-        return new Replacement(new PrefixElem(definition.getString("code"), definition.getString("accessor"), new BasicType(definition.getString("type")), strFunctionCallParams), definition.optInt("skip"));
+        if(definition.optBoolean("skip")) return new Replacement(null, true);
+
+        String strFunctionCallParams = null;
+        JSONArray definitionFunctionCallParams = definition.optJSONArray("params");
+        if(definitionFunctionCallParams != null) {
+            String[] strArrFunctionCallParams = new String[definitionFunctionCallParams.length()];
+            for(int i = 0; i < definitionFunctionCallParams.length(); i++) {
+                JSONObject definitionFunctionCallParam = definitionFunctionCallParams.optJSONObject(i);
+                AbstractType type = Type.fromDefinition(definitionFunctionCallParam.optString("type"), lType);
+                strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext)functionCallParams.get(i), (FunctionType)type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
+            }
+            strFunctionCallParams = "";
+            for(int i = 0; i < strArrFunctionCallParams.length; i++) strFunctionCallParams += (i > 0 ? ", " : "") + strArrFunctionCallParams[i];
+        }
+
+        AbstractType type = definition.optString("type").equals("#L") ? lType : definition.optString("type").equals("#valueType") ? ((NestedType)lType).valueType : definition.optString("type").equals("#keyType") ? ((NestedType)lType).keyType : new BasicType(definition.optString("type"));
+        return new Replacement(new PrefixElem(definition.optString("code", R), definition.optString("accessor", "."), type, strFunctionCallParams), false);
     }
 
     public AbstractType type() {
@@ -123,7 +143,7 @@ public class Prefix implements PrefixOrExpression {
         ArrayList<ParserRuleContext> flattened = new ArrayList<ParserRuleContext>();
         SwiftParser.Postfix_expressionContext postfix = ctx.postfix_expression();
         while(postfix.postfix_expression() != null) {
-            if(postfix.chain_postfix_expression() != null && !(postfix.chain_postfix_expression() instanceof SwiftParser.Forced_value_expressionContext)) {
+            if(postfix.chain_postfix_expression() != null && !(postfix.chain_postfix_expression() instanceof SwiftParser.Chain_postfix_operatorContext)) {
                 flattened.add(0, postfix.chain_postfix_expression());
                 if(postfix.chain_postfix_expression() instanceof SwiftParser.Explicit_member_expression_number_doubleContext) flattened.add(0, postfix.chain_postfix_expression());
             }

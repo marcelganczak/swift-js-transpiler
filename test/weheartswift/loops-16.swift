@@ -10,7 +10,7 @@ if b < maxDiv {
 var gcd = 1
 
 for i in 1...maxDiv {
-    if (a % i == 0) &amp;&amp; (b % i == 0){
+    if (a % i == 0) && (b % i == 0){
         gcd = i
     }
 }

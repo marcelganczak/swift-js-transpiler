@@ -6,7 +6,7 @@ while number > 0 {
 
     digits = [digit] + digits
 
-    number /= 10 // 12345 -&gt; 1234 -&gt; 123 -&gt; 12 -&gt; 1
+    number /= 10 // 12345 -> 1234 -> 123 -> 12 -> 1
 }
 
 for digit in digits {

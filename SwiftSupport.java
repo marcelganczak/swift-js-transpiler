@@ -136,7 +136,7 @@ public class SwiftSupport {
 			// dot-operator
 			i+=2; // point at token after ".."
 			lt = tokens.get(i);
-			while ( lt.getType()!=Token.EOF &&
+			while ( i + 1 < tokens.size() && lt.getType()!=Token.EOF &&
 				    (lt.getType()==SwiftParser.DOT || isOperatorChar(lt.getType())) )
 			{
 				i++;

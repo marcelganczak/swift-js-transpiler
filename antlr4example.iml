@@ -26,5 +26,8 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="commons-io-2.5-javadoc" level="project" />
+    <orderEntry type="library" name="java-json" level="project" />
+    <orderEntry type="library" name="commons-io-2.5" level="project" />
   </component>
 </module>

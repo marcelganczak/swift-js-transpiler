@@ -4,5 +4,5 @@ var i = listOfNumbers.count - 1
 
 while i >= 0 {
     print(listOfNumbers[i])
-    i--
+    i -= 1
 }
