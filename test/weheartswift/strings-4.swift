@@ -19,7 +19,7 @@ for character in problem.characters {
         length = 0
     } else {
         word += "\(character)"
-        length++
+        length += 1
     }
 }
 

@@ -15,7 +15,7 @@ fs.readdirSync(__dirname).forEach(function(dir) {
 
         fs.readdirSync(__dirname + '/' + dir).forEach(function(file) {
             if(!file.includes('.swift')) return;
-            //if(file !== 'dictionaries-7.swift') return;
+            if(file !== 'functions-8.swift') return;
 
             it(file.replace('.swift', ''), function (done) {
                 var tsResult, swiftResult;

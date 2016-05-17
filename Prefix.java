@@ -26,13 +26,15 @@ public class Prefix implements PrefixOrExpression {
         try { definitions = new JSONObject(jsonTxt); } catch (JSONException e) { }
     }
 
-    ParserRuleContext originalCtx;
+    private ParserRuleContext originalCtx;
+    private SwiftParser.Prefix_operatorContext prefixOperatorContext;
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
     public ParserRuleContext originalCtx() {return originalCtx;}
 
     public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, AbstractType type, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
         originalCtx = prefixCtx;
+        prefixOperatorContext = prefixCtx.prefix_operator();
 
         AbstractType currType = null;
         
@@ -74,19 +76,22 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public String code() {
-        return elemCode(elems, 0, "", false);
+        return elemCode(elems, 0, initString(), false);
     }
     public String code(boolean onAssignmentLeftHandSide) {
-        return elemCode(elems, 0, "", onAssignmentLeftHandSide);
+        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide);
     }
     public String code(boolean onAssignmentLeftHandSide, int limit) {
-        return elemCode(elems.subList(0, limit), 0, "", onAssignmentLeftHandSide);
+        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide);
+    }
+    private String initString() {
+        return prefixOperatorContext != null ? prefixOperatorContext.getText() : "";
     }
     static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
         PrefixElem elem = elems.get(chainPos);
 
         String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
-                  : L + (L.length() == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
+                  : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
         String nextCode =
                 chainPos + 1 < elems.size() ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
@@ -110,11 +115,17 @@ public class Prefix implements PrefixOrExpression {
         String strFunctionCallParams = null;
         JSONArray definitionFunctionCallParams = definition.optJSONArray("params");
         if(definitionFunctionCallParams != null) {
-            String[] strArrFunctionCallParams = new String[definitionFunctionCallParams.length()];
+            String[] strArrFunctionCallParams = new String[definition.optInt("numParams", definitionFunctionCallParams.length())];
             for(int i = 0; i < definitionFunctionCallParams.length(); i++) {
                 JSONObject definitionFunctionCallParam = definitionFunctionCallParams.optJSONObject(i);
                 AbstractType type = Type.fromDefinition(definitionFunctionCallParam.optString("type"), lType);
-                strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext)functionCallParams.get(i), (FunctionType)type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
+                strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionType) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
+            }
+            if(definition.optJSONArray("defaultParams") != null) {
+                for(int i = 0; i < definition.optJSONArray("defaultParams").length(); i++) {
+                    JSONObject definitionFunctionCallParam = definition.optJSONArray("defaultParams").optJSONObject(i);
+                    strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = definitionFunctionCallParam.optString("value");
+                }
             }
             strFunctionCallParams = "";
             for(int i = 0; i < strArrFunctionCallParams.length; i++) strFunctionCallParams += (i > 0 ? ", " : "") + strArrFunctionCallParams[i];

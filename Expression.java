@@ -34,6 +34,8 @@ public class Expression implements PrefixOrExpression {
             }
         }
 
+        ctx.binary_expressions();
+
         for(int priority = 4; priority <= 10; priority++) {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);

@@ -80,6 +80,7 @@ public class CacheVisitor extends Visitor {
 
     @Override public String visitIf_statement(SwiftParser.If_statementContext ctx) {
         cacheIfLet(ctx, ctx.code_block());
+        if(ctx.else_clause() != null) visit(ctx.else_clause());
         return null;
     }
 

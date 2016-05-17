@@ -85,7 +85,7 @@ public class BinaryExpression implements PrefixOrExpression {
             String definitionCode = definition.opt("code") != null ? definition.optString("code") : "L " + alias + " R";
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";
 
-            this.code = definitionCode.replaceAll("L", lCode).replaceAll("R", rCode);
+            this.code = definitionCode.replaceAll("L", lCode.replaceAll("\\$", "\\\\\\$")).replaceAll("R", rCode.replaceAll("\\$", "\\\\\\$"));
             this.type = definitionType.equals("L/R") ? Type.alternative(L, R) : new BasicType(definitionType);
             if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + " } else { " + elseCode1 + " }";
             if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + " }";

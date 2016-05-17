@@ -8,6 +8,6 @@ func reverse(numbers: [Int]) -> [Int] {
     return reversed
 }
 
-print(reversed([1, 2, 3])[0])
-print(reversed([1, 2, 3])[1])
-print(reversed([1, 2, 3])[2])
+print(reverse([1, 2, 3])[0])
+print(reverse([1, 2, 3])[1])
+print(reverse([1, 2, 3])[2])

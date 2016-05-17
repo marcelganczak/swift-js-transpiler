@@ -38,6 +38,23 @@
         "type": "#valueType"
       }]
     },
+    "insert": {
+      "code": "splice",
+      "type": "Void",
+      "params": [{
+        "type": "#valueType",
+        "index": 2
+      }, {
+        "type": "Int",
+        "externalName": "atIndex",
+        "index": 0
+      }],
+      "defaultParams": [{
+        "value": "0",
+        "index": 1
+      }],
+      "numParams": 3
+    },
     "filter": {
       "type": "#L",
       "params": [{
@@ -89,6 +106,18 @@
       "code": "console.log",
       "accessor": "",
       "type": "Void",
+      "params": [{ }]
+    },
+    "Int": {
+      "code": "parseInt",
+      "accessor": "",
+      "type": "Int",
+      "params": [{ }]
+    },
+    "Double": {
+      "code": "parseFloat",
+      "accessor": "",
+      "type": "Double",
       "params": [{ }]
     }
   }

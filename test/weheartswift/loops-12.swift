@@ -1,20 +1,20 @@
 let N = 8
 
 // prints the top border
-print("+", terminator: "")
+print("+")
 for _ in 1...N {
-    print("-", terminator: "")
+    print("-")
 }
 print("+")
 
 for i in 1...N {
     // prints the left border
-    print("|", terminator: "")
+    print("|")
     for j in 1...N {
         if i % 2 == j % 2 {
-            print("#", terminator: "")
+            print("#")
         } else {
-            print(" ", terminator: "")
+            print(" ")
         }
     }
     // prints the right border a a new line
@@ -22,8 +22,8 @@ for i in 1...N {
 }
 
 // prints the bottom border
-print("+", terminator: "")
+print("+")
 for _ in 1...N {
-    print("-", terminator: "")
+    print("-")
 }
 print("+")

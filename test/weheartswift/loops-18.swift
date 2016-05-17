@@ -1,5 +1,5 @@
 var number = 10
-print("\(number) = ", terminator: "")
+print("\(number) = ")
 
 var isFirst = true
 
@@ -11,10 +11,10 @@ for i in 2...number {
             if isFirst {
                 isFirst = false
             } else {
-                print(" * ", terminator: "")
+                print(" * ")
             }
 
-            print(i, terminator: "")
+            print(i)
         }
     }
 }

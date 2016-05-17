@@ -14,8 +14,5 @@ line += newLine
 var rectangle: String = line * N
 
 print(rectangle)
-// **********
-// **********
-// **********
-// **********
-// **********
+
+//TODO
