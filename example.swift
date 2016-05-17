@@ -1,13 +1,7 @@
-func reverse(numbers: [Int]) -> [Int] {
-    var reversed: [Int] = []
-
-    for number in numbers {
-        reversed.insert(number, atIndex: 0)
-    }
-
-    return reversed
+func multiplyTwoInts(a: Int, b: Int) -> Int {
+    return a * b
 }
-
-print(reverse([1, 2, 3])[0])
-print(reverse([1, 2, 3])[1])
-print(reverse([1, 2, 3])[2])
+let mathFunction = multiplyTwoInts
+let mathFunction2: (Int, c: Int) -> Int = multiplyTwoInts
+print(mathFunction(2, b:3))
+print(mathFunction2(1, c:2))

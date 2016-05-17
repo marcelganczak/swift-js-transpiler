@@ -84,6 +84,7 @@ public class ControlFlow {
         else {
             condition = visitor.visitWithoutStrings(ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause(), "()");
         }
+        if(ctx instanceof SwiftParser.Guard_statementContext) condition = "!(" + condition + ")";
         return "if(" + condition + ") {" + beforeBlock + visitor.visitWithoutStrings(ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).code_block() : ((SwiftParser.Guard_statementContext)ctx).code_block(), "{") + (ctx instanceof SwiftParser.If_statementContext ? visitor.visitChildren(((SwiftParser.If_statementContext)ctx).else_clause()) : "");
     }
 

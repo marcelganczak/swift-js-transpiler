@@ -24,16 +24,16 @@ public class PrefixElem {
             }
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {
-            return getArray(rChild, functionCallParams, visitor);
+            return getArray(rChild, rType, functionCallParams, visitor);
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_literalContext.class, rChild)) {
-            return getDictionary(rChild, functionCallParams, visitor);
+            return getDictionary(rChild, rType, functionCallParams, visitor);
         }
         if(chainPos == 0 && rChild instanceof SwiftParser.Primary_expressionContext && ((SwiftParser.Primary_expressionContext) rChild).generic_argument_clause() != null) {
-            return getTemplatedConstructor(rChild, functionCallParams, visitor);
+            return getTemplatedConstructor(rChild, rType, functionCallParams, visitor);
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.LiteralContext.class, rChild)) {
-            return getLiteral(rChild, visitor);
+            return getLiteral(rChild, rType, visitor);
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Closure_expressionContext.class, rChild)) {
             return getClosure(rChild, rType, visitor);
@@ -78,15 +78,14 @@ public class PrefixElem {
         return new PrefixElem(code, "", type == null ? new NestedByIndexType(types) : type, null);
     }
 
-    static private PrefixElem getArray(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+    static private PrefixElem getArray(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
 
         SwiftParser.Array_literalContext arrayLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().array_literal();
 
-        AbstractType type = null;
         if(arrayLiteral.array_literal_items() != null) {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
             AbstractType wrappedType = functionCallParams != null ? new BasicType(wrappedExpression.getText()) : Type.infer(wrappedExpression, visitor);
-            type = new NestedType("Array", new BasicType("Int"), wrappedType, false);
+            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false);
         }
 
         String code;
@@ -102,50 +101,55 @@ public class PrefixElem {
         }
         else {
             code = visitor.visit(rChild);
+            if(type != null && type.swiftType().equals("Set")) code = "new Set(" + code + ")";
         }
 
         return new PrefixElem(code, "", type, null);
     }
 
-    static private PrefixElem getDictionary(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+    static private PrefixElem getDictionary(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
 
         SwiftParser.Dictionary_literalContext dictionaryLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().dictionary_literal();
         String code;
 
-        AbstractType type = null;
         if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, dictionaryLiteral)) {
             code = "{}";
         }
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
-            type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
+            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
             code = '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
         }
 
         return new PrefixElem(code, "", type, null);
     }
 
-    static private PrefixElem getTemplatedConstructor(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+    static private PrefixElem getTemplatedConstructor(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
 
         SwiftParser.Generic_argument_clauseContext template = ((SwiftParser.Primary_expressionContext) rChild).generic_argument_clause();
         String typeStr = visitor.visit(rChild.getChild(0)).trim();
 
         if(typeStr.equals("Set")) {
-            AbstractType type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false);
+            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false);
             return new PrefixElem("new Set()", "", type, null);
         }
 
         return null;
     }
 
-    static private PrefixElem getLiteral(ParserRuleContext rChild, Visitor visitor) {
-        AbstractType type = null;
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new BasicType("Bool");
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, rChild)) return new PrefixElem("null ", "", new BasicType("Void"), null);
-        return new PrefixElem(visitor.visit(rChild), "", type, null);
+    static private PrefixElem getLiteral(ParserRuleContext rChild, AbstractType type, Visitor visitor) {
+        String code = visitor.visit(rChild);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, rChild)) {
+            type = new BasicType("Void");
+            code = "null ";
+        }
+        else if(type == null) {
+            if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new BasicType("Bool");
+        }
+        return new PrefixElem(code, "", type, null);
     }
 
     static private PrefixElem getClosure(ParserRuleContext rChild, AbstractType type, Visitor visitor) {

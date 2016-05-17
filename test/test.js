@@ -8,14 +8,14 @@ var assert = require('assert'),
 fs.readdirSync(__dirname).forEach(function(dir) {
     if(dir === 'node_modules' || dir === '.' || dir === '..' || dir === '.idea') return;
     if(!fs.statSync(__dirname + '/' + dir).isDirectory()) return;
-    if(dir !== 'weheartswift') return;
+    //if(dir === 'weheartswift') return;
 
     describe(dir, function() {
         this.timeout(10 * 1000);
 
         fs.readdirSync(__dirname + '/' + dir).forEach(function(file) {
             if(!file.includes('.swift')) return;
-            if(file !== 'functions-8.swift') return;
+            //if(file !== 'functions-8.swift') return;
 
             it(file.replace('.swift', ''), function (done) {
                 var tsResult, swiftResult;

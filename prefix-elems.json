@@ -90,7 +90,7 @@
   },
   "Set": {
     "count": {
-      "code": "length",
+      "code": "size",
       "type": "Int"
     },
     "insert": {

@@ -37,6 +37,7 @@ public class Prefix implements PrefixOrExpression {
         prefixOperatorContext = prefixCtx.prefix_operator();
 
         AbstractType currType = null;
+        boolean nextIsOptional = false;
         
         for(int chainPos = 0; chainPos < chain.size(); chainPos++) {
             ParserRuleContext ctx = chain.get(chainPos);
@@ -68,9 +69,17 @@ public class Prefix implements PrefixOrExpression {
             if(functionCallParams != null) chainPos++;
 
             if(!skip) {
-                elem.isOptional = ctx.getChild(0).getText().equals("?");
                 elems.add(elem);
                 currType = elem.type;
+            }
+
+            if(nextIsOptional) {
+                nextIsOptional = false;
+                elem.isOptional = true;
+            }
+            if(ctx.getChild(0).getText().equals("?")) {
+                if(!skip) elem.isOptional = true;
+                else nextIsOptional = true;
             }
         }
     }
