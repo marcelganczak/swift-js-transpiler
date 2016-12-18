@@ -2,6 +2,7 @@ Swift to JavaScript/TypeScript transpiler
 ==============
 
 This is an open source Swift to TypeScript transpiler (which can then be then transpiled further to JavaScript).
+It's written in Java using antlr4 parser generator.
 
 It has support for Swift:
 
