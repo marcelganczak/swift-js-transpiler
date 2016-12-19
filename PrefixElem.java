@@ -143,7 +143,7 @@ public class PrefixElem {
             type = new BasicType("Void");
             code = "null ";
         }
-        else if(type == null) {//FIXME why??
+        else {
             if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
             else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
             else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");
