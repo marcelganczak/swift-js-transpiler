@@ -22,6 +22,92 @@ The transpiler currently lacks support for:
 - inout params
 - switch
 
+Examples
+==============
+
+Arrays
+```Swift
+var arrayOfInts: [Int] = [1, 2, 3]
+print(arrayOfInts.count)
+
+let inferredArrayOfStrings = ["Swift", "is", "ace"]
+print(inferredArrayOfStrings.count)
+print(inferredArrayOfStrings[0].characters.count)
+```
+```Typescript
+let arrayOfInts:Array<number> = [ 1 , 2 , 3 ]
+console.log(arrayOfInts.length)
+
+const inferredArrayOfStrings:Array<string> = [ "Swift" , "is" , "ace" ]
+console.log(inferredArrayOfStrings.length)
+console.log(inferredArrayOfStrings[0 ].length)
+```
+
+Dictionaries
+```Swift
+var dictionary: [String:Int] = ["one" : 1]
+print(dictionary["one"]!)
+print(dictionary["two"] ?? 404)
+print(dictionary.count)
+
+if let dictVal = dictionary["one"] {
+    print(dictVal);
+}
+
+dictionary["one"] = nil
+print(dictionary.count)
+```
+```Typescript
+let dictionary:Object = {"one" :1 }
+console.log(dictionary["one" ])
+console.log((dictionary["two" ] != null ? dictionary["two" ] : 404 ))
+console.log(_.size(dictionary))
+
+if(dictionary["one" ] != null) {
+    const dictVal:number = dictionary["one" ];
+    console.log(dictVal);
+}
+
+delete dictionary["one" ]
+console.log(_.size(dictionary))
+```
+
+Strings
+```Swift
+var str:String?;
+print(str?.characters.count)
+
+str = "Message"
+print((str?.characters.count)!)
+```
+```Typescript
+let str:string;
+console.log((str!= null ? str.length : null ))
+
+str = "Message"
+console.log(((str!= null ? str.length : null )))
+```
+
+Tuples
+```Swift
+let unnamedUntypedTuple = (4, 25)
+print(unnamedUntypedTuple.0)
+print(unnamedUntypedTuple.1)
+
+let namedTypedTuple:(a:Int, count:Int) = (4, 25)
+print(namedTypedTuple.a)
+print(namedTypedTuple.count)
+```
+```Typescript
+const unnamedUntypedTuple:any = {'0':4 ,'1':25 }
+console.log(unnamedUntypedTuple[0 ])
+console.log(unnamedUntypedTuple[1 ])
+
+const namedTypedTuple:any = {'a':4 ,'count':25 }
+console.log(namedTypedTuple.a)
+console.log(namedTypedTuple.count)
+```
+
 Motivation & Development
 ==============
 
@@ -38,73 +124,6 @@ Back when I wrote this transpiler in May, it was more robust than any solution I
 Using antlr4 is a huge advantage over hand coding lexers & parsers -- it's more reliable and more maintainable.
 
 I welcome any contributions. Feel free to drop me a line at marcelganczak@gmail.com
-
-Examples
-==============
-
-```Swift
-var arrayOfInts: [Int] = [1, 2, 3]
-print(arrayOfInts.count)
-
-let inferredArrayOfStrings = ["Swift", "is", "ace"]
-print(inferredArrayOfStrings.count)
-print(inferredArrayOfStrings[0].characters.count)
-
-var dictionary: [String:Int] = ["one" : 1]
-print(dictionary["one"]!)
-print(dictionary["two"] ?? 404)
-print(dictionary.count)
-if let dictVal = dictionary["one"] {
-    print(dictVal);
-}
-dictionary["one"] = nil
-print(dictionary.count)
-
-var str:String?;
-print(str?.characters.count)
-str = "Message"
-print((str?.characters.count)!)
-
-let unnamedUntypedTuple = (4, 25)
-print(unnamedUntypedTuple.0)
-print(unnamedUntypedTuple.1)
-
-let namedTypedTuple:(a:Int, count:Int) = (4, 25)
-print(namedTypedTuple.a)
-print(namedTypedTuple.count)
-```
-
-Transpiled to:
-```Typescript
-let arrayOfInts:Array<number> = [ 1 , 2 , 3 ]
-console.log(arrayOfInts.length)
-
-const inferredArrayOfStrings:Array<string> = [ "Swift" , "is" , "ace" ]
-console.log(inferredArrayOfStrings.length)
-console.log(inferredArrayOfStrings[0 ].length)
-
-let dictionary:Object = {"one" :1 }
-console.log(dictionary["one" ])
-console.log((dictionary["two" ] != null ? dictionary["two" ] : 404 ))
-console.log(_.size(dictionary))
-if(dictionary["one" ] != null) {const dictVal:number = dictionary["one" ];console.log(dictVal);
-}
-delete dictionary["one" ] =
-console.log(_.size(dictionary))
-
-let str:string;
-console.log((str!= null ? str.length : null ))
-str = "Message"
-console.log(((str!= null ? str.length : null )))
-
-const unnamedUntypedTuple:any = {'0':4 ,'1':25 }
-console.log(unnamedUntypedTuple[0 ])
-console.log(unnamedUntypedTuple[1 ])
-
-const namedTypedTuple:any = {'a':4 ,'count':25 }
-console.log(namedTypedTuple.a)
-console.log(namedTypedTuple.count)
-```
 
 Usage
 ==============
