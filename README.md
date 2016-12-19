@@ -52,13 +52,26 @@ print(inferredArrayOfStrings[0].characters.count)
 
 var dictionary: [String:Int] = ["one" : 1]
 print(dictionary["one"]!)
-print(dict["two"] ?? "404")
+print(dictionary["two"] ?? 404)
+print(dictionary.count)
+if let dictVal = dictionary["one"] {
+    print(dictVal);
+}
+dictionary["one"] = nil
 print(dictionary.count)
 
 var str:String?;
 print(str?.characters.count)
 str = "Message"
 print((str?.characters.count)!)
+
+let unnamedUntypedTuple = (4, 25)
+print(unnamedUntypedTuple.0)
+print(unnamedUntypedTuple.1)
+
+let namedTypedTuple:(a:Int, count:Int) = (4, 25)
+print(namedTypedTuple.a)
+print(namedTypedTuple.count)
 ```
 
 Transpiled to:
@@ -72,13 +85,25 @@ console.log(inferredArrayOfStrings[0 ].length)
 
 let dictionary:Object = {"one" :1 }
 console.log(dictionary["one" ])
-console.log((dictionary["two" ] != null ? dictionary["two" ] : "404" ))
+console.log((dictionary["two" ] != null ? dictionary["two" ] : 404 ))
+console.log(_.size(dictionary))
+if(dictionary["one" ] != null) {const dictVal:number = dictionary["one" ];console.log(dictVal);
+}
+delete dictionary["one" ] =
 console.log(_.size(dictionary))
 
 let str:string;
 console.log((str!= null ? str.length : null ))
 str = "Message"
 console.log(((str!= null ? str.length : null )))
+
+const unnamedUntypedTuple:any = {'0':4 ,'1':25 }
+console.log(unnamedUntypedTuple[0 ])
+console.log(unnamedUntypedTuple[1 ])
+
+const namedTypedTuple:any = {'a':4 ,'count':25 }
+console.log(namedTypedTuple.a)
+console.log(namedTypedTuple.count)
 ```
 
 Usage
