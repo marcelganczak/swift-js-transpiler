@@ -1,15 +1,16 @@
-func push(number: Int, inout _ stack: [Int]) {
+print("TODO")
+/*func push(_ number: Int, inout _ stack: [Int]) {
     stack.append(number)
 }
 
-func top(stack: [Int]) -> Int? {
+func top(_ stack: [Int]) -> Int? {
     if stack.count == 0 {
         return nil
     }
     return stack[stack.count - 1]
 }
 
-func pop(inout stack: [Int]) -> Int? {
+func pop(_ inout stack: [Int]) -> Int? {
     var result = top(stack)
 
     if stack.count > 0 {
@@ -17,6 +18,4 @@ func pop(inout stack: [Int]) -> Int? {
     }
 
     return result
-}
-
-//TODO
+}*/

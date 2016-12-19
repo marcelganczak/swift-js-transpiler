@@ -122,13 +122,6 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
-	@Override public T visitOptional_binding_continuation(SwiftParser.Optional_binding_continuationContext ctx) { return visitChildren(ctx); }
-	/**
-	 * {@inheritDoc}
-	 *
-	 * <p>The default implementation returns the result of calling
-	 * {@link #visitChildren} on {@code ctx}.</p>
-	 */
 	@Override public T visitRepeat_while_statement(SwiftParser.Repeat_while_statementContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

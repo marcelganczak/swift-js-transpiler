@@ -1,4 +1,4 @@
-func first(N: Int) -> [Int] {
+func first(_ N: Int) -> [Int] {
     var numbers:[Int] = []
 
     for number in 1...N {

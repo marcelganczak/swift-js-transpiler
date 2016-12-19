@@ -92,9 +92,9 @@ public class PrefixElem {
         if(functionCallParams != null) {
             String arraySize = "", fill = "";
             if(functionCallParams != null) {
-                if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("count") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("repeatedValue")) {
-                    arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression());
-                    fill = ".fill(" + visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression()) + ")";
+                if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("repeating") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("count")) {
+                    arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression());
+                    fill = ".fill(" + visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression()) + ")";
                 }
             }
             code = "new Array(" + arraySize + ")" + fill;
@@ -143,7 +143,7 @@ public class PrefixElem {
             type = new BasicType("Void");
             code = "null ";
         }
-        else if(type == null) {
+        else if(type == null) {//FIXME why??
             if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
             else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
             else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");

@@ -6,7 +6,7 @@ print(returnTuple().1);
 func returnOptionalTuple(shouldReturn: Bool) -> (Int,String)? {
     return shouldReturn ? (0,"val") : nil
 }
-print(returnOptionalTuple(false)?.0);
-print(returnOptionalTuple(false)?.1);
-print((returnOptionalTuple(true)?.0)!);
-print((returnOptionalTuple(true)?.1)!);
+print(returnOptionalTuple(shouldReturn: false)?.0);
+print(returnOptionalTuple(shouldReturn: false)?.1);
+print((returnOptionalTuple(shouldReturn: true)?.0)!);
+print((returnOptionalTuple(shouldReturn: true)?.1)!);

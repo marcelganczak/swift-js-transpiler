@@ -1,4 +1,4 @@
-func lastDigit(number: Int) -> Int {
+func lastDigit(_ number: Int) -> Int {
     return number % 10
 }
 print(lastDigit(12345))

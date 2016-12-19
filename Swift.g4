@@ -104,11 +104,7 @@ optional_binding_condition
  ;
 optional_binding_head : 'let' pattern initializer | 'var' pattern initializer ;
 optional_binding_continuation_list
- : ',' optional_binding_continuation (',' optional_binding_continuation)*
- ;
-optional_binding_continuation
- : pattern initializer
- | optional_binding_head
+ : ',' optional_binding_head (',' optional_binding_head)*
  ;
 
 

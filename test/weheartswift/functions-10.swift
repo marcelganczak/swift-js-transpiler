@@ -1,4 +1,4 @@
-func parseDigit(digit: String) -> Int {
+func parseDigit(_ digit: String) -> Int {
     let digits = "0123456789"
 
     var result = 0

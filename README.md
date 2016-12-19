@@ -11,8 +11,8 @@ It has support for Swift:
 - data/collection types (primitives, tuples, arrays, dictionaries, sets)
 - optionals & chaining
 
-Have a look inside the test folder to check out Swift code snippets that demonstrate all supported features.
-I will try and set up an online playground whenever I get the chance.
+A look inside the test directory will reveal Swift code snippets that demonstrate all supported features in greater detail.
+Whenever I get the chance I will set up an online playground with live transpilation results.
 
 The transpiler currently lacks support for:
 
@@ -37,7 +37,7 @@ Ideally, this project would have complete Swift support and would transpile both
 Back when I wrote this transpiler in May, it was more robust than any solution I could find online.
 Using antlr4 is a huge advantage over hand coding lexers & parsers -- it's more reliable and more maintainable.
 
-I'd welcome any contributions. Feel free to drop me a line at marcelganczak@gmail.com
+I welcome any contributions. Feel free to drop me a line at marcelganczak@gmail.com
 
 Usage
 ==============
@@ -51,12 +51,15 @@ To find out how to then transpile TypeScript further to JavaScript, check https:
 Testing
 ==============
 
-In order to run the tests, you need xcode, node and typescript npm package (https://www.typescriptlang.org/).
+In order to run the tests, you need xcode and node as well as typescript and mocha npm packages installed globally.
 
-To run the tests, enter test folder and run test.js with node (node test.js).
+```
+cd test
+mocha
+```
 
 The test will iterate through all swift files within the test directory,
-run both the original Swift code and the transpiled TypeScript code and compare the console logs.
+run both the original Swift code and the transpiled TypeScript code and compare the console output.
 
 License
 ==============

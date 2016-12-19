@@ -1,4 +1,4 @@
-func timeDifference(firstHour firstHour: Int, 
+func timeDifference(firstHour: Int,
                     firstMinute: Int, 
                     secondHour: Int, 
                     secondMinute: Int) -> Int {

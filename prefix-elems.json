@@ -46,7 +46,7 @@
         "index": 2
       }, {
         "type": "Int",
-        "externalName": "atIndex",
+        "externalName": "at",
         "index": 0
       }],
       "defaultParams": [{
@@ -61,11 +61,12 @@
         "type": "(#valueType)->Bool"
       }]
     },
-    "sortInPlace": {
+    "sort": {
       "code": "sortBool",
       "type": "#L",
       "params": [{
-        "type": "(#valueType,#valueType)->Bool"
+        "type": "(#valueType,#valueType)->Bool",
+        "externalName": "by"
       }]
     },
     "map": {
@@ -84,7 +85,7 @@
         "index": 0
       }]
     },
-    "enumerate": {
+    "enumerated": {
       "skip": true
     }
   },

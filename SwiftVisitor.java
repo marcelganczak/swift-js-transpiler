@@ -101,12 +101,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitOptional_binding_continuation_list(SwiftParser.Optional_binding_continuation_listContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SwiftParser#optional_binding_continuation}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitOptional_binding_continuation(SwiftParser.Optional_binding_continuationContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link SwiftParser#repeat_while_statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

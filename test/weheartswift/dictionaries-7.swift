@@ -12,7 +12,7 @@ for number in numbers {
     }
 }
 
-uniqueNumbers.sortInPlace(<)
+uniqueNumbers.sort(by: <)
 
 for number in uniqueNumbers {
     print("\(number) \(frequency[number]!)")

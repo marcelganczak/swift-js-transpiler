@@ -1,6 +1,7 @@
-func *(string: String, scalar: Int) -> String {
-    let array = Array(count: scalar, repeatedValue: string)
-    return array.joinWithSeparator("")
+print("TODO")
+/*func *(string: String, scalar: Int) -> String {
+    let array = Array(repeating: string, count: scalar)
+    return array.joined(separator: "")
 }
 
 var newLine = "\n"
@@ -13,6 +14,4 @@ line += newLine
 
 var rectangle: String = line * N
 
-print(rectangle)
-
-//TODO
+print(rectangle)*/

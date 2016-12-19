@@ -31,14 +31,14 @@ var bestScore = topPerson["score"] as? Int
 
 for person in people {
     if let score = person["score"] as? Int {
-        if bestScore < score  {
+        if bestScore! < score  {
             bestScore = score
             topPerson = person
         }
     }
 }
 
-if let first = topPerson["firstName"] as? String, 
-       second = topPerson["lastName"] as? String  {
+if let first = topPerson["firstName"] as? String,
+   let second = topPerson["lastName"] as? String  {
     print("\(first) \(second)")
 }

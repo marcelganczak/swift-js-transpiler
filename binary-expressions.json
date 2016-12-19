@@ -110,6 +110,18 @@
       },
       "Array-Array": {
         "code": "L.concat(R)"
+      },
+      "Int-String": {
+        "type": "Double"
+      },
+      "String-Int": {
+        "type": "Double"
+      },
+      "Double-String": {
+        "type": "Double"
+      },
+      "String-Double": {
+        "type": "Double"
       }
     }
   },

@@ -1,8 +1,9 @@
-func push(number: Int, inout _ queue: [Int]) {
+print("TODO")
+/*func push(_ number: Int, _ inout queue: [Int]) {
     queue.append(number)
 }
 
-func pop(inout queue: [Int]) -> Int? {
+func pop(_ inout queue: [Int]) -> Int? {
     var result = queue.first
 
     if queue.count > 0 {
@@ -10,6 +11,4 @@ func pop(inout queue: [Int]) -> Int? {
     }
 
     return result
-}
-
-//TODO
+}*/

@@ -35,9 +35,9 @@ func compareScores(first: [String:Any], second: [String:Any]) -> Bool {
     return false
 }
 
-people.sortInPlace(compareScores)
+people.sort(by: compareScores)
 
-for (index, person) in people.enumerate() {
+for (index, person) in people.enumerated() {
     if let firstName = person["firstName"] as? String {
         if let lastName = person["lastName"] as? String  {
             if let score = person["score"] as? Int {

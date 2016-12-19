@@ -1,8 +1,8 @@
-func reverse(numbers: [Int]) -> [Int] {
+func reverse(_ numbers: [Int]) -> [Int] {
     var reversed: [Int] = []
 
     for number in numbers {
-        reversed.insert(number, atIndex: 0)
+        reversed.insert(number, at: 0)
     }
 
     return reversed

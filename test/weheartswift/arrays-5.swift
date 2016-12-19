@@ -1,5 +1,5 @@
 var listOfNumbers = [1, 2, 3, 10, 100]
 
-for var i = 1; i < listOfNumbers.count; i += 2 {
+for i in 0..<listOfNumbers.count {
     print(listOfNumbers[i])
 }

@@ -1,17 +1,18 @@
-enum CoinType: Int {
-    case Penny = 1
-    case Nickle = 5
-    case Dime = 10
-    case Quarter = 25
+print("TODO")
+/*enum CoinType: Int {
+    case penny = 1
+    case nickle = 5
+    case dime = 10
+    case quarter = 25
 }
 
 
-var moneyArray:[(Int,CoinType)] = [(10,.Penny),
-                                   (15,.Nickle),
-                                   (3,.Quarter),
-                                   (20,.Penny),
-                                   (3,.Dime),
-                                   (7,.Quarter)]
+var moneyArray:[(Int,CoinType)] = [(10,.penny),
+                                   (15,.nickle),
+                                   (3,.quarter),
+                                   (20,.penny),
+                                   (3,.dime),
+                                   (7,.quarter)]
 
 var totalMoney = 0
 
@@ -19,4 +20,4 @@ for (amount, coinType) in moneyArray {
     totalMoney += amount * coinType.rawValue
 }
 
-print(totalMoney)
+print(totalMoney)*/

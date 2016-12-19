@@ -1,27 +1,26 @@
-enum Direction {
-    case Up
-    case Down
-    case Left
-    case Right
+print("TODO")
+/*enum Direction {
+    case up
+    case down
+    case left
+    case right
 }
 
 var location = (x: 0, y: 0)
 
-var steps: [Direction] = [.Up, .Up, .Left, .Down, .Left]
+var steps: [Direction] = [.up, .up, .left, .down, .left]
 
 for step in steps {
     switch step {
-    case .Up:
+    case .up:
         location.y += 1
-    case .Down:
+    case .down:
         location.y -= 1
-    case .Right:
+    case .right:
         location.x += 1
-    case .Left:
+    case .left:
         location.x -= 1
-    default:
-        break
     }
 }
 
-print(location)
+print(location)*/

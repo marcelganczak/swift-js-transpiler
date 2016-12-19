@@ -6,7 +6,7 @@ print(returnArray()[0]);
 func returnOptionalArray(shouldReturn: Bool) -> [String]? {
     return shouldReturn ? ["val"] : nil
 }
-print(returnOptionalArray(false)?.count);
-print(returnOptionalArray(false)?[0]);
-print((returnOptionalArray(true)?.count)!);
-print((returnOptionalArray(true)?[0])!);
+print(returnOptionalArray(shouldReturn: false)?.count);
+print(returnOptionalArray(shouldReturn: false)?[0]);
+print((returnOptionalArray(shouldReturn: true)?.count)!);
+print((returnOptionalArray(shouldReturn: true)?[0])!);

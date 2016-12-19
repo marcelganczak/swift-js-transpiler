@@ -11,15 +11,15 @@ class IfLet {
         SwiftParser.Condition_clauseContext conditionClause = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause();
         if(!(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, conditionClause))) return;
 
-        ArrayList<ParserRuleContext> ifLets = new ArrayList<ParserRuleContext>();
+        ArrayList<SwiftParser.Optional_binding_headContext> ifLets = new ArrayList<SwiftParser.Optional_binding_headContext>();
         ifLets.add(conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_head());
         if(conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_continuation_list() != null) {
-            List<SwiftParser.Optional_binding_continuationContext> moreIfLets = conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_continuation_list().optional_binding_continuation();
+            List<SwiftParser.Optional_binding_headContext> moreIfLets = conditionClause.condition_list().condition(0).optional_binding_condition().optional_binding_continuation_list().optional_binding_head();
             for(int i = 0; i < moreIfLets.size(); i++) ifLets.add(moreIfLets.get(i));
         }
         for(int i = 0; i < ifLets.size(); i++) {
-            String varName = visitor.visitWithoutTerminals(ifLets.get(i) instanceof SwiftParser.Optional_binding_headContext ? ((SwiftParser.Optional_binding_headContext)ifLets.get(i)).pattern() : ((SwiftParser.Optional_binding_continuationContext)ifLets.get(i)).pattern()).trim();
-            Expression varVal = new Expression((ifLets.get(i) instanceof SwiftParser.Optional_binding_headContext ? ((SwiftParser.Optional_binding_headContext)ifLets.get(i)).initializer() : ((SwiftParser.Optional_binding_continuationContext)ifLets.get(i)).initializer()).expression(), null, visitor);
+            String varName = visitor.visitWithoutTerminals(ifLets.get(i).pattern()).trim();
+            Expression varVal = new Expression((ifLets.get(i).initializer()).expression(), null, visitor);
             varNames.add(varName);
             varVals.add(varVal.code);
             varTypes.add(varVal.type);

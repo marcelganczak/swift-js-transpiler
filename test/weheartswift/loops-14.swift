@@ -12,7 +12,7 @@ while cnt < N {
     print(leapYear)
 
     // increase the counter
-    ++cnt
+    cnt += 1
 
     // go to the next leap year
     leapYear += 4 

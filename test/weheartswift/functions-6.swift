@@ -1,22 +1,22 @@
-func divides(a: Int, _ b: Int) -> Bool {
+func divides(_ a: Int, _ b: Int) -> Bool {
     return a % b == 0
 }
 
-func countDivisors(number: Int) -> Int {
+func countDivisors(_ number: Int) -> Int {
     var cnt = 0
     for i in 1...number {
         if divides(number, i) {
-            ++cnt
+            cnt += 1
         }
     }
     return cnt
 }
 
-func isPrime(number: Int) -> Bool {
+func isPrime(_ number: Int) -> Bool {
     return countDivisors(number) == 2
 }
 
-func printFirstPrimes(count: Int) {
+func printFirstPrimes(_ count: Int) {
     var i = 2
     var printed = 0
     while printed < count {

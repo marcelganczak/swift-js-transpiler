@@ -1,5 +1,5 @@
 let N = 30
-var fib = [Int](count: N, repeatedValue: 1)
+var fib = [Int](repeating: 1, count: N)
 
 for i in 2..<30 {
     fib[i] = fib[i-1] + fib[i-2]

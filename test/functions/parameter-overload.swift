@@ -7,6 +7,6 @@ func justPrint(printed: Int) {
 func justPrint(printed: Double) {
     print("Double: \(printed)")
 }
-justPrint("message")
-justPrint(1)
-justPrint(2.1)
+justPrint(printed: "message")
+justPrint(printed: 1)
+justPrint(printed: 2.1)

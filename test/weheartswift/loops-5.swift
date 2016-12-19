@@ -6,8 +6,8 @@ var right = N
 while left < right {
     print(left)
     print(right)
-    ++left
-    --right
+    left += 1
+    right -= 1
 }
 
 if left == right {

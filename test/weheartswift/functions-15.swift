@@ -1,4 +1,4 @@
-func levelCost(heights heights: [Int], maxJump: Int) -> Int {
+func levelCost(heights: [Int], maxJump: Int) -> Int {
     var totalEnergy = 0
     var lastHeight = 0
 

@@ -22,7 +22,7 @@ public class FunctionUtil {
                 if(((SwiftParser.ParameterContext)parameter).external_parameter_name().getText().equals("_")) return "";
                 else return ((SwiftParser.ParameterContext)parameter).external_parameter_name().getText();
             }
-            if(parameterPos == 0) return "";
+            //if(parameterPos == 0) return "";//not anymore since swift3
         }
         return parameterLocalName(parameter);
     }
