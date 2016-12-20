@@ -74,7 +74,7 @@ console.log(_.size(dictionary))
 
 Strings
 ```Swift
-var str:String?;
+var str:String?
 print(str?.characters.count)
 
 str = "Message"

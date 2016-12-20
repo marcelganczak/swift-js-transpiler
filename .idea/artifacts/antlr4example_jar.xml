@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="antlr4example:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/antlr4example_jar</output-path>
+    <root id="archive" name="antlr4example.jar">
+      <element id="module-output" name="antlr4example" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/commons-io-2.5.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/antlr-runtime-4.5.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$USER_HOME$/Downloads/commons-io-2.5/commons-io-2.5.jar" path-in-jar="/" />
+      <element id="library" level="project" name="commons-io-2.5-javadoc" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/java-json.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>
