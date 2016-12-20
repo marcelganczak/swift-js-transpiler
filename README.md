@@ -11,8 +11,10 @@ It has support for Swift:
 - data/collection types (primitives, tuples, arrays, dictionaries, sets)
 - optionals & chaining
 
-A look inside the test directory will reveal Swift code snippets that demonstrate all supported features in greater detail.
-Whenever I get the chance I will set up an online playground with live transpilation results.
+Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com/ for live transpilation preview.
+
+To get a better sense of supported features, have a look inside the test directory.
+It contains Swift code snippets that demonstrate all supported features in greater detail.
 
 The transpiler currently lacks support for:
 
