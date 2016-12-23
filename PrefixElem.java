@@ -88,23 +88,46 @@ public class PrefixElem {
             if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false);
         }
 
-        String code;
-        if(functionCallParams != null) {
-            String arraySize = "", fill = "";
-            if(functionCallParams != null) {
-                if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("repeating") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("count")) {
-                    arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression());
-                    fill = ".fill(" + visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression()) + ")";
-                }
-            }
-            code = "new Array(" + arraySize + ")" + fill;
-        }
-        else {
-            code = visitor.visit(rChild);
-            if(type != null && type.swiftType().equals("Set")) code = "new Set(" + code + ")";
-        }
+        String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
 
         return new PrefixElem(code, "", type, null);
+    }
+
+    static private String getArrayCode(SwiftParser.Array_literalContext arrayLiteral, ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+        if(visitor.targetLanguage.equals("ts")) {
+            if(functionCallParams != null) {
+                String arraySize = "", fill = "";
+                if(functionCallParams != null) {
+                    if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("repeating") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("count")) {
+                        arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression());
+                        fill = ".fill(" + visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression()) + ")";
+                    }
+                }
+                return "new Array(" + arraySize + ")" + fill;
+            }
+            else {
+                String code = visitor.visit(rChild);
+                if(type != null && type.sourceType().equals("Set")) code = "new Set(" + code + ")";
+                return code;
+            }
+        }
+        else {
+            if(functionCallParams != null) {
+                //TODO
+                return "TODO";
+            }
+            else if(arrayLiteral.array_literal_items() != null) {
+                List<SwiftParser.Array_literal_itemContext> values = arrayLiteral.array_literal_items().array_literal_item();
+                String valuesList = "";
+                for(int i = 0; i < values.size(); i++) {
+                    valuesList += (i > 0 ? ", " : "") + values.get(i).getText();
+                }
+                return "new " + (type != null && type.sourceType().equals("Set") ? "HashSet" : "ArrayList") + "<>(Arrays.asList(" + valuesList + "))";
+            }
+            else {
+                return "new ArrayList<>()";
+            }
+        }
     }
 
     static private PrefixElem getDictionary(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
@@ -113,15 +136,30 @@ public class PrefixElem {
         String code;
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, dictionaryLiteral)) {
-            code = "{}";
+            code = visitor.targetLanguage.equals("ts") ? "{}" : "new HashMap<>()";
         }
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
             if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
-            code = '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
+            code = getDictionaryInitializerCode(dictionaryLiteral, visitor);
         }
 
         return new PrefixElem(code, "", type, null);
+    }
+
+    static private String getDictionaryInitializerCode(SwiftParser.Dictionary_literalContext dictionaryLiteral, Visitor visitor) {
+        if(visitor.targetLanguage.equals("ts")) {
+            return '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
+        }
+        else {
+            String code = "new HashMap<>(){{";
+            List<SwiftParser.Dictionary_literal_itemContext> items = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item();
+            for(int i = 0; i < items.size(); i++) {
+                code += "put(" + visitor.visitChildren(items.get(i).expression(0)) + ", " + visitor.visitChildren(items.get(i).expression(1)) + ");";
+            }
+            code += "}}";
+            return code;
+        }
     }
 
     static private PrefixElem getTemplatedConstructor(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
@@ -157,53 +195,59 @@ public class PrefixElem {
     }
 
     static private PrefixElem getBasic(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, AbstractType rType, Visitor visitor) {
-        String identifier = null, accessor = ".", functionCallParamsStr = null;
+        String code = null, accessor = ".", functionCallParamsStr = null;
         AbstractType type = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
-            identifier = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
+            code = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
             accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Primary_expressionContext) {
-            identifier = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visitor.visit(rChild);
+            code = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visitor.visit(rChild);
             accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
-            identifier = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
-            accessor = "[]";
+            code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
+            if(visitor.targetLanguage.equals("java") && (lType.sourceType().equals("Array") || lType.sourceType().equals("Dictionary"))) {
+                code = "get(" + code + ")";
+                accessor = ".";
+            }
+            else {
+                accessor = "[]";
+            }
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
-            identifier = visitor.visitWithoutStrings(rChild, "?.");
+            code = visitor.visitWithoutStrings(rChild, "?.");
             accessor = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {
             String[] split = visitor.visit(rChild).split("\\.");
             int pos = 1, i = chainPos;
             while(i > 0 && chain.get(i - 1) instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {i--; pos = pos == 1 ? 2 : 1;}
-            identifier = split[pos].replaceAll("\\?", "");
+            code = split[pos].replaceAll("\\?", "");
             accessor = "[]";
         }
         else {
-            identifier = visitor.visit(rChild);
+            code = visitor.visit(rChild);
         }
 
         if(functionCallParams != null) {
-            identifier = FunctionUtil.nameFromCall(identifier, functionCallParams, rChild, visitor);
+            code = FunctionUtil.nameFromCall(code, functionCallParams, rChild, visitor);
             functionCallParamsStr = "";
             for(int i = 0; i < functionCallParams.size(); i++) functionCallParamsStr += (i > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
         }
         else if(rType instanceof FunctionType) {
-            identifier = FunctionUtil.nameFromCall(identifier, (FunctionType)rType, rChild, visitor);
+            code = FunctionUtil.nameFromCall(code, (FunctionType)rType, rChild, visitor);
         }
 
         if(type == null) {
-            type = Type.resulting(lType, identifier, chain.get(0), visitor);
+            type = Type.resulting(lType, code, chain.get(0), visitor);
             if(functionCallParams != null && type instanceof FunctionType) type = type.resulting("()");
         }
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Implicit_parameterContext.class, rChild)) {
-            identifier = "arguments[" + identifier.substring(1) + "]";
+            code = "arguments[" + code.substring(1) + "]";
         }
 
-        return new PrefixElem(identifier, accessor, type, functionCallParamsStr);
+        return new PrefixElem(code, accessor, type, functionCallParamsStr);
     }
 }

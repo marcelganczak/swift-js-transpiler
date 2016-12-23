@@ -46,7 +46,7 @@ public class FunctionUtil {
     static public String nameAugment(FunctionType type) {
         String augment = "";
         for(int i = 0; i < type.parameterTypes.size(); i++) {
-            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).swiftType();
+            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).sourceType();
         }
         return augment;
     }
@@ -55,7 +55,7 @@ public class FunctionUtil {
         String augment = "";
         for(int i = 0; i < parameters.size(); i++) {
             ParserRuleContext parameter = parameters.get(i);
-            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).swiftType();
+            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).sourceType();
         }
         return augment;
     }
@@ -124,7 +124,7 @@ public class FunctionUtil {
     static public String functionDeclaration(SwiftParser.Function_declarationContext ctx, Visitor visitor) {
         FunctionType functionType = new FunctionType(ctx, visitor);
 
-        return "function " + FunctionUtil.functionName(ctx, functionType) + "(" + visitor.visitChildren(ctx.function_signature().parameter_clauses().parameter_clause().parameter_list()) + "):" + functionType.returnType.jsType() + visitor.visit(ctx.function_body().code_block());
+        return "function " + FunctionUtil.functionName(ctx, functionType) + "(" + visitor.visitChildren(ctx.function_signature().parameter_clauses().parameter_clause().parameter_list()) + "):" + functionType.returnType.targetType(visitor.targetLanguage) + visitor.visit(ctx.function_body().code_block());
     }
 
     static public String closureExpression(SwiftParser.Closure_expressionContext ctx, FunctionType type, Visitor visitor) {

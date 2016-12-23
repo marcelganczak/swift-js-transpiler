@@ -60,7 +60,7 @@ public class BinaryExpression implements PrefixOrExpression {
             }
             else {
                 this.type = new BasicType("Bool");
-                this.code = L.code() + " instanceof " + this.type.jsType();
+                this.code = L.code() + " instanceof " + this.type.targetType(visitor.targetLanguage);
             }
         }
         else {
@@ -69,7 +69,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             if(isAssignment(alias)) {
                 if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().swiftType().equals("Void")) {lCode = "delete " + lCode; rCode = "";}
+                    if(R.type().sourceType().equals("Void")) {lCode = "delete " + lCode; rCode = "";}
                     else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}
                 }
                 if(((Prefix) L).hasOptionals()) {
@@ -80,8 +80,8 @@ public class BinaryExpression implements PrefixOrExpression {
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }
 
-            JSONObject definition = definitions.optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().swiftType() + "-" + R.type().swiftType());
-            if(definition == null) definition = definitions.optJSONObject(alias).optJSONObject("compute").optJSONObject("default");
+            JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().sourceType() + "-" + R.type().sourceType());
+            if(definition == null) definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject("default");
             String definitionCode = definition.opt("code") != null ? definition.optString("code") : "L " + alias + " R";
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";
 
@@ -92,9 +92,9 @@ public class BinaryExpression implements PrefixOrExpression {
         }
     }
 
-    static public int priorityForOperator(ParserRuleContext operator) {
+    static public int priorityForOperator(ParserRuleContext operator, Visitor visitor) {
         String operatorAlias = BinaryExpression.operatorAlias(operator);
-        return definitions.optJSONObject(operatorAlias).optInt("priority");
+        return definitions.optJSONObject(visitor.targetLanguage).optJSONObject(operatorAlias).optInt("priority");
     }
     static public String operatorAlias(ParserRuleContext operator) {
         if(operator instanceof SwiftParser.Conditional_operatorContext) return "?:";

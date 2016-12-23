@@ -29,6 +29,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitStatements(SwiftParser.StatementsContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#semicolon}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSemicolon(SwiftParser.SemicolonContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#loop_statement}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

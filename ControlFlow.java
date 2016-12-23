@@ -51,7 +51,7 @@ public class ControlFlow {
             valueVar = ctx.pattern().identifier_pattern().getText();
         }
         String iterator;
-        if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("String")) {
+        if(iteratedType.sourceType().equals("Array") || iteratedType.sourceType().equals("String")) {
             if(indexVar == null) indexVar = "$";
             iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
         }
@@ -77,7 +77,7 @@ public class ControlFlow {
         if(ifLet.varNames.size() > 0) {
             for(int i = 0; i < ifLet.varNames.size(); i++) {
                 condition += (condition.length() > 0 ? " && " : "") + ifLet.varVals.get(i) + " != null";
-                beforeBlock += (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).jsType() + " = " + ifLet.varVals.get(i);
+                beforeBlock += (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " = " + ifLet.varVals.get(i);
             }
             beforeBlock = "const " + beforeBlock + ";";
         }

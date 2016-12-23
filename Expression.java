@@ -34,12 +34,10 @@ public class Expression implements PrefixOrExpression {
             }
         }
 
-        ctx.binary_expressions();
-
         for(int priority = 4; priority <= 10; priority++) {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);
-                if(BinaryExpression.priorityForOperator(operator) != priority) continue;
+                if(BinaryExpression.priorityForOperator(operator, visitor) != priority) continue;
                 Object L = ctxs.get(i);
                 Object R = ctxs.get(i + 1);
                 BinaryExpression LR = new BinaryExpression(L, R, operator);

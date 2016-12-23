@@ -4,14 +4,14 @@ Swift to JavaScript/TypeScript transpiler
 This is an open source Swift to TypeScript transpiler (which can then be then transpiled further to JavaScript).
 It's written in Java using antlr4 parser generator.
 
+Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com for live transpilation preview.
+
 It has support for Swift:
 
 - functions & closures
 - control flow (if, for-in, while)
 - data/collection types (primitives, tuples, arrays, dictionaries, sets)
 - optionals & chaining
-
-Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com/ for live transpilation preview.
 
 To get a better sense of supported features, have a look inside the test directory.
 It contains Swift code snippets that demonstrate all supported features in greater detail.

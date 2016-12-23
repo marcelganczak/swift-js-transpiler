@@ -1,8 +1,9 @@
 public class TranspilerVisitor extends Visitor {
 
-    public TranspilerVisitor(EntityCache cache) {
+    public TranspilerVisitor(EntityCache cache, String targetLanguage) {
         super();
         this.cache = cache;
+        this.targetLanguage = targetLanguage;
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
@@ -30,11 +31,23 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return Type.fromDefinition(ctx).jsType();
+        return Type.fromDefinition(ctx).targetType(targetLanguage);
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
         return new Expression(ctx, null, this).code;
+    }
+
+    @Override public String visitConstant_declaration(SwiftParser.Constant_declarationContext ctx) {
+        return AssignmentUtil.handleConstantDeclaration(ctx, this);
+    }
+
+    @Override public String visitVariable_declaration(SwiftParser.Variable_declarationContext ctx) {
+        return AssignmentUtil.handleVariableDeclaration(ctx, this);
+    }
+
+    @Override public String visitPattern_initializer_list(SwiftParser.Pattern_initializer_listContext ctx) {
+        return AssignmentUtil.handleInitializerList(ctx, this);
     }
 
     @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
@@ -46,7 +59,7 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
-        return visitChildren(ctx) + "\n";
+        return visitChildren(ctx) + (ctx.semicolon() == null ? ";" : "") + "\n";
     }
 
     @Override public String visitParameter(SwiftParser.ParameterContext ctx) {

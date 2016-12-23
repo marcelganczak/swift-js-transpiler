@@ -9,6 +9,7 @@ import java.util.List;
 public class Visitor extends SwiftBaseVisitor<String> {
 
     public EntityCache cache;
+    protected String targetLanguage;
 
     @Override protected String aggregateResult(String aggregate, String nextResult) {
         return aggregate + nextResult;
@@ -81,12 +82,6 @@ public class Visitor extends SwiftBaseVisitor<String> {
         String text = c.getText();
         if(text.equals("<EOF>")) {
             return "";
-        }
-        else if(text.equals("let")) {
-            return "const ";
-        }
-        else if(text.equals("var")) {
-            return "let ";
         }
         else if(text.equals(".")) {
             return ".";

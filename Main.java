@@ -1,6 +1,5 @@
 import org.antlr.v4.runtime.ANTLRFileStream;
 import org.antlr.v4.runtime.CommonTokenStream;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 
 import java.io.IOException;
 
@@ -9,6 +8,7 @@ public class Main {
     public static void main(String [] args) {
 
         String srcFile = args.length > 0 ? args[0] : "./example.swift";
+        String targetLanguage = args.length > 1 ? args[1] : "ts";//"java";
 
         StringInterpolation.breakUp(srcFile);
 
@@ -27,10 +27,10 @@ public class Main {
 
         EntityCache cache = new EntityCache();
 
-        CacheVisitor cacheVisitor = new CacheVisitor(cache);
+        CacheVisitor cacheVisitor = new CacheVisitor(cache, targetLanguage);
         cacheVisitor.visit(tree);
 
-        TranspilerVisitor transpilerVisitor = new TranspilerVisitor(cache);
+        TranspilerVisitor transpilerVisitor = new TranspilerVisitor(cache, targetLanguage);
         System.out.println(transpilerVisitor.visit(tree));
     }
 

@@ -3,26 +3,26 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.*;
 
 class BasicType extends AbstractType {
-    private String swiftType;
-    public BasicType(String swiftType) {
-        this.swiftType = swiftType;
+    private String sourceType;
+    public BasicType(String sourceType) {
+        this.sourceType = sourceType;
         this.isOptional = false;
     }
-    public BasicType(String swiftType, boolean isOptional) {
-        this.swiftType = swiftType;
+    public BasicType(String sourceType, boolean isOptional) {
+        this.sourceType = sourceType;
         this.isOptional = isOptional;
     }
-    public String swiftType() {
-        return swiftType;
+    public String sourceType() {
+        return sourceType;
     }
-    public String jsType() {
-        return Type.basicToJs(swiftType);
+    public String targetType(String language) {
+        return language.equals("ts") ? Type.basicToTs(sourceType) : Type.basicToJava(sourceType);
     }
     public AbstractType resulting(String accessor) {
         return null;
     }
     public AbstractType copy() {
-        return new BasicType(this.swiftType, this.isOptional);
+        return new BasicType(this.sourceType, this.isOptional);
     }
 }
 class FunctionType extends AbstractType {
@@ -45,11 +45,11 @@ class FunctionType extends AbstractType {
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
     }
-    public String swiftType() {
+    public String sourceType() {
         return "Function";
     }
-    public String jsType() {
-        return "Function";
+    public String targetType(String language) {
+        return language.equals("ts") ? "Function" : "TODO";
     }
     public AbstractType resulting(String accessor) {
         return returnType;
@@ -59,8 +59,8 @@ class FunctionType extends AbstractType {
     }
     public boolean sameAs(FunctionType otherType) {
         if(parameterTypes.size() != otherType.parameterTypes.size()) return false;
-        if(!returnType.swiftType().equals(otherType.returnType.swiftType())) return false;
-        for(int i = 0; i < parameterTypes.size(); i++) if(!parameterTypes.get(i).swiftType().equals(otherType.parameterTypes.get(i).swiftType())) return false;
+        if(!returnType.sourceType().equals(otherType.returnType.sourceType())) return false;
+        for(int i = 0; i < parameterTypes.size(); i++) if(!parameterTypes.get(i).sourceType().equals(otherType.parameterTypes.get(i).sourceType())) return false;
         return true;
     }
 }
@@ -74,11 +74,22 @@ class NestedType extends AbstractType {
         this.valueType = valueType;
         this.isOptional = isOptional;
     }
-    public String swiftType() {
+    public String sourceType() {
         return wrapperType;
     }
-    public String jsType() {
-        return wrapperType.equals("Dictionary") ? "Object" : wrapperType.equals("Array") ? "Array<" + valueType.jsType() + ">" : "Set<" + valueType.jsType() + ">";
+    public String targetType(String language) {
+        if(language.equals("ts")) {
+            return
+                wrapperType.equals("Dictionary") ? "Object" :
+                wrapperType.equals("Array") ? "Array<" + valueType.targetType("ts") + ">" :
+                "Set<" + valueType.targetType("ts") + ">";
+        }
+        else {
+            return
+                wrapperType.equals("Dictionary") ? "Map<" + keyType.targetType("java") + ", " + valueType.targetType("java") + ">" :
+                wrapperType.equals("Array") ? "List<" + valueType.targetType("java") + ">" :
+                "Set<" + valueType.targetType("java") + ">";
+        }
     }
     public AbstractType resulting(String accessor) {
         return valueType;
@@ -88,40 +99,62 @@ class NestedType extends AbstractType {
     }
 }
 class NestedByIndexType extends AbstractType {
-    private LinkedHashMap<String, AbstractType> swiftType;
-    public NestedByIndexType(LinkedHashMap<String, AbstractType> swiftType) {
-        this.swiftType = swiftType;
+    private LinkedHashMap<String, AbstractType> sourceType;
+    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType) {
+        this.sourceType = sourceType;
     }
     public ArrayList<String> keys() {
-        return new ArrayList<String>(swiftType.keySet());
+        return new ArrayList<String>(sourceType.keySet());
     }
-    public String swiftType() {
+    public String sourceType() {
         return "Tuple";
     }
-    public String jsType() {
-        return "any";
+    public String targetType(String language) {
+        return language.equals("ts") ? "any" : "TODO";
     }
     public AbstractType resulting(String accessor) {
-        return swiftType.get(accessor);
+        return sourceType.get(accessor);
     }
     public AbstractType copy() {
-        return new NestedByIndexType(this.swiftType);
+        return new NestedByIndexType(this.sourceType);
     }
 }
 
 public class Type {
 
-    public static String basicToJs(String swiftType) {
-        if (swiftType.equals("String")) {
+    public static String basicToTs(String sourceType) {
+        if (sourceType.equals("String")) {
             return "string";
         }
-        else if(swiftType.equals("Int") || swiftType.equals("Float") || swiftType.equals("Double")) {
+        else if(sourceType.equals("Int") || sourceType.equals("Float") || sourceType.equals("Double")) {
             return "number";
         }
-        else if(swiftType.equals("Bool")) {
+        else if(sourceType.equals("Bool")) {
             return "boolean";
         }
-        else if(swiftType.equals("Void")) {
+        else if(sourceType.equals("Void")) {
+            return "void";
+        }
+        return null;
+    }
+
+    public static String basicToJava(String sourceType) {
+        if (sourceType.equals("String")) {
+            return "String";
+        }
+        else if(sourceType.equals("Int")) {
+            return "Integer";
+        }
+        else if(sourceType.equals("Float")) {
+            return "Float";
+        }
+        else if(sourceType.equals("Double")) {
+            return "Double";
+        }
+        else if(sourceType.equals("Bool")) {
+            return "Boolean";
+        }
+        else if(sourceType.equals("Void")) {
             return "void";
         }
         return null;
@@ -235,18 +268,18 @@ public class Type {
     }
 
     public static AbstractType alternative(PrefixOrExpression L, PrefixOrExpression R) {
-        if(L.type().swiftType().equals(R.type().swiftType())) return L.type();
-        if(L.type().swiftType().equals("Void")) {
+        if(L.type().sourceType().equals(R.type().sourceType())) return L.type();
+        if(L.type().sourceType().equals("Void")) {
             AbstractType rClone = R.type().copy();
             rClone.isOptional = true;
             return rClone;
         }
-        if(R.type().swiftType().equals("Void")) {
+        if(R.type().sourceType().equals("Void")) {
             AbstractType lClone = L.type().copy();
             lClone.isOptional = true;
             return lClone;
         }
-        System.out.println("//Ambiguous return type: " + L.type().swiftType() + " || " + R.type().swiftType());
+        System.out.println("//Ambiguous return type: " + L.type().sourceType() + " || " + R.type().sourceType());
         return L.type();
     }
 }

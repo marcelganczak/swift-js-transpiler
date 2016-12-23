@@ -84,7 +84,7 @@ public class EntityCache {
             CacheObject cache = findCache(subVarName, node);
             if(cache != null && cache.type instanceof FunctionType) {
                 List<AbstractType> parameterTypes = ((FunctionType)cache.type).parameterTypes;
-                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(param.split("_")[1])) continue;
+                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).sourceType().equals(param.split("_")[1])) continue;
                 return new Expression(subVarName, cache.type);
             }
         }
@@ -92,7 +92,7 @@ public class EntityCache {
     }
 
     public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {
-        //System.out.println("Caching " + identifier + " as " + type.swiftType());
+        //System.out.println("Caching " + identifier + " as " + type.sourceType());
 
         ParseTree nearestAncestorBlock = findNearestAncestorBlock(ctx);
 

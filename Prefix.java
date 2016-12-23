@@ -115,8 +115,8 @@ public class Prefix implements PrefixOrExpression {
 
     static private Replacement replacement(AbstractType lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
         if(R == null) return null;
-        if(definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()) == null) return null;
-        JSONObject definition = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONObject(R);
+        if(definitions.optJSONObject(visitor.targetLanguage).optJSONObject(lType == null ? "top-level" : lType.sourceType()) == null) return null;
+        JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(lType == null ? "top-level" : lType.sourceType()).optJSONObject(R);
         if(definition == null) return null;
 
         if(definition.optBoolean("skip")) return new Replacement(null, true);
@@ -149,7 +149,7 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
+        return elems.size() >= 2 && elems.get(elems.size() - 2).type.sourceType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
     }
 
     public boolean hasOptionals() {

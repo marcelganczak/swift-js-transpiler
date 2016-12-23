@@ -1,125 +1,245 @@
 {
-  "String": {
-    "characters": {
-      "skip": true
+  "ts": {
+    "String": {
+      "characters": {
+        "skip": true
+      },
+      "count": {
+        "code": "length",
+        "type": "Int"
+      }
     },
-    "count": {
-      "code": "length",
-      "type": "Int"
-    }
-  },
-  "Dictionary": {
-    "count": {
-      "code": "size",
-      "accessor": "_.()",
-      "type": "Int"
+    "Dictionary": {
+      "count": {
+        "code": "size",
+        "accessor": "_.()",
+        "type": "Int"
+      },
+      "updateValue": {
+        "code": "updateValue",
+        "accessor": "_.()",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }, {
+          "type": "#keyType",
+          "externalName": "forKey"
+        }]
+      }
     },
-    "updateValue": {
-      "code": "updateValue",
-      "accessor": "_.()",
-      "type": "Void",
-      "params": [{
-        "type": "#valueType"
-      }, {
-        "type": "#keyType",
-        "externalName": "forKey"
-      }]
-    }
-  },
-  "Array": {
-    "count": {
-      "code": "length",
-      "type": "Int"
-    },
-    "append": {
-      "code": "push",
-      "type": "Void",
-      "params": [{
-        "type": "#valueType"
-      }]
-    },
-    "insert": {
-      "code": "splice",
-      "type": "Void",
-      "params": [{
+    "Array": {
+      "count": {
+        "code": "length",
+        "type": "Int"
+      },
+      "append": {
+        "code": "push",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }]
+      },
+      "insert": {
+        "code": "splice",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType",
+          "index": 2
+        }, {
+          "type": "Int",
+          "externalName": "at",
+          "index": 0
+        }],
+        "defaultParams": [{
+          "value": "0",
+          "index": 1
+        }],
+        "numParams": 3
+      },
+      "filter": {
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType)->Bool"
+        }]
+      },
+      "sort": {
+        "code": "sortBool",
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType,#valueType)->Bool",
+          "externalName": "by"
+        }]
+      },
+      "map": {
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType)->#valueType"
+        }]
+      },
+      "reduce": {
         "type": "#valueType",
-        "index": 2
-      }, {
+        "params": [{
+          "type": "#valueType",
+          "index": 1
+        }, {
+          "type": "(#valueType,#valueType)->#valueType",
+          "index": 0
+        }]
+      },
+      "enumerated": {
+        "skip": true
+      }
+    },
+    "Set": {
+      "count": {
+        "code": "size",
+        "type": "Int"
+      },
+      "insert": {
+        "code": "add",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }]
+      }
+    },
+    "top-level": {
+      "print": {
+        "code": "console.log",
+        "accessor": "",
+        "type": "Void",
+        "params": [{ }]
+      },
+      "Int": {
+        "code": "parseInt",
+        "accessor": "",
         "type": "Int",
-        "externalName": "at",
-        "index": 0
-      }],
-      "defaultParams": [{
-        "value": "0",
-        "index": 1
-      }],
-      "numParams": 3
+        "params": [{ }]
+      },
+      "Double": {
+        "code": "parseFloat",
+        "accessor": "",
+        "type": "Double",
+        "params": [{ }]
+      }
+    }
+  },
+  "java": {
+    "String": {
+      "characters": {
+        "skip": true
+      },
+      "count": {
+        "code": "length",
+        "type": "Int"
+      }
     },
-    "filter": {
-      "type": "#L",
-      "params": [{
-        "type": "(#valueType)->Bool"
-      }]
+    "Dictionary": {
+      "count": {
+        "code": "size()",
+        "type": "Int"
+      },
+      "updateValue": {
+        "code": "put",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }, {
+          "type": "#keyType",
+          "externalName": "forKey"
+        }]
+      }
     },
-    "sort": {
-      "code": "sortBool",
-      "type": "#L",
-      "params": [{
-        "type": "(#valueType,#valueType)->Bool",
-        "externalName": "by"
-      }]
-    },
-    "map": {
-      "type": "#L",
-      "params": [{
-        "type": "(#valueType)->#valueType"
-      }]
-    },
-    "reduce": {
-      "type": "#valueType",
-      "params": [{
+    "Array": {
+      "count": {
+        "code": "size()",
+        "type": "Int"
+      },
+      "append": {
+        "code": "add",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }]
+      },
+      "insert": {
+        "code": "add",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType",
+          "index": 1
+        }, {
+          "type": "Int",
+          "externalName": "at",
+          "index": 0
+        }]
+      },
+      "filter": {
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType)->Bool"
+        }]
+      },
+      "sort": {
+        "code": "sortBool",
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType,#valueType)->Bool",
+          "externalName": "by"
+        }]
+      },
+      "map": {
+        "type": "#L",
+        "params": [{
+          "type": "(#valueType)->#valueType"
+        }]
+      },
+      "reduce": {
         "type": "#valueType",
-        "index": 1
-      }, {
-        "type": "(#valueType,#valueType)->#valueType",
-        "index": 0
-      }]
+        "params": [{
+          "type": "#valueType",
+          "index": 1
+        }, {
+          "type": "(#valueType,#valueType)->#valueType",
+          "index": 0
+        }]
+      },
+      "enumerated": {
+        "skip": true
+      }
     },
-    "enumerated": {
-      "skip": true
-    }
-  },
-  "Set": {
-    "count": {
-      "code": "size",
-      "type": "Int"
+    "Set": {
+      "count": {
+        "code": "size()",
+        "type": "Int"
+      },
+      "insert": {
+        "code": "add",
+        "type": "Void",
+        "params": [{
+          "type": "#valueType"
+        }]
+      }
     },
-    "insert": {
-      "code": "add",
-      "type": "Void",
-      "params": [{
-        "type": "#valueType"
-      }]
-    }
-  },
-  "top-level": {
-    "print": {
-      "code": "console.log",
-      "accessor": "",
-      "type": "Void",
-      "params": [{ }]
-    },
-    "Int": {
-      "code": "parseInt",
-      "accessor": "",
-      "type": "Int",
-      "params": [{ }]
-    },
-    "Double": {
-      "code": "parseFloat",
-      "accessor": "",
-      "type": "Double",
-      "params": [{ }]
+    "top-level": {
+      "print": {
+        "code": "System.out.println",
+        "accessor": "",
+        "type": "Void",
+        "params": [{ }]
+      },
+      "Int": {
+        "code": "parseInt",
+        "accessor": "",
+        "type": "Int",
+        "params": [{ }]
+      },
+      "Double": {
+        "code": "parseFloat",
+        "accessor": "",
+        "type": "Double",
+        "params": [{ }]
+      }
     }
   }
 }

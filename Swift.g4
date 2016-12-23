@@ -39,18 +39,20 @@ top_level : statement* EOF ;
 
 statement
 // : assignment_statement ';'?
- : expression ';'?
- | declaration ';'?
- | loop_statement ';'?
- | branch_statement ';'?
- | labeled_statement ';'?
- | control_transfer_statement ';'?
- | defer_statement ';'?
- | do_statement ';'?
+ : expression semicolon?
+ | declaration semicolon?
+ | loop_statement semicolon?
+ | branch_statement semicolon?
+ | labeled_statement semicolon?
+ | control_transfer_statement semicolon?
+ | defer_statement semicolon?
+ | do_statement semicolon?
  | compiler_control_statement
  ;
 
 statements : statement+ ;
+
+semicolon: ';';
 
 /** A naked '=' op is not part of a valid expression so I'm making it a statement;
  *  see comment on binary_expression.  It also resolves ambiguity between
