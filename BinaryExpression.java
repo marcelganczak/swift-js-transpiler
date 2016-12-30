@@ -32,6 +32,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
     public void compute(AbstractType type, Visitor visitor) {
         String alias = BinaryExpression.operatorAlias(operator);
+        String definitionCode = null;
 
         PrefixOrExpression L, R;
         if(this.L instanceof SwiftParser.Prefix_expressionContext) {
@@ -69,7 +70,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             if(isAssignment(alias)) {
                 if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().sourceType().equals("Void")) {lCode = "delete " + lCode; rCode = "";}
+                    if(R.type().sourceType().equals("Void")) {lCode = "delete " + lCode; rCode = ""; definitionCode = "L";}
                     else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}
                 }
                 if(((Prefix) L).hasOptionals()) {
@@ -82,7 +83,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().sourceType() + "-" + R.type().sourceType());
             if(definition == null) definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject("default");
-            String definitionCode = definition.opt("code") != null ? definition.optString("code") : "L " + alias + " R";
+            if(definitionCode == null) definitionCode = definition.opt("code") != null ? definition.optString("code") : "L " + alias + " R";
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";
 
             this.code = definitionCode.replaceAll("L", lCode.replaceAll("\\$", "\\\\\\$")).replaceAll("R", rCode.replaceAll("\\$", "\\\\\\$"));
