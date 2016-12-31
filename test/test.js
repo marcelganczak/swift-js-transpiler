@@ -7,7 +7,8 @@ var assert = require('assert'),
     javaHeader = fs.readFileSync(__dirname + '/java-header.txt'),
     javaFooter = fs.readFileSync(__dirname + '/java-footer.txt'),
     todo = ['functions-as-vars', 'tuple-enums-1',  'tuple-enums-2', 'strings-5', 'functions-16', 'functions-17'],
-    languages = ['ts', 'java'];
+    only = '',//'array',
+    languages = ['ts'/*, 'java'*/];
 
 languages.forEach(language => {
     describe(language, () => {
@@ -20,12 +21,13 @@ languages.forEach(language => {
 
                 fs.readdirSync(__dirname + '/' + dir).forEach(file => {
                     if(!file.includes('.swift')) return;
-                    if(todo.some(todo => file.startsWith(todo))) return;
+                    if(only ? file !== only + '.swift' : todo.some(todo => file === todo + '.swift')) return;
 
                     it(file.replace('.swift', ''), done => {
                         var transpiledLog, expectedLog;
 
-                        exec('cd ' + root + 'out/production/antlr4example; export CLASSPATH=".:/usr/local/lib/antlr-4.5-complete.jar:$CLASSPATH"; export CLASSPATH=".:/Users/bubulkowanorka/projects/antlr4-visitor/lib/*:$CLASSPATH"; /Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/bin/java Main /Users/bubulkowanorka/projects/antlr4-visitor/test/' + dir + '/' + file + ' ' + language, (err, stdout) => {
+                        exec('cd ' + root + 'out/production/antlr4example; export CLASSPATH=".:/usr/local/lib/antlr-4.5-complete.jar:$CLASSPATH"; export CLASSPATH=".:' + root + '/lib/*:$CLASSPATH"; java Main ' + root + 'test/' + dir + '/' + file + ' ' + language, (err, stdout, stderr) => {
+                            if(stderr) console.log(stderr);
                             var transpiledAmmended = language === 'ts' ? underscore + monkeyPatch + stdout : javaHeader + stdout + javaFooter;
                             fs.writeFileSync(root + 'test/test.' + language, transpiledAmmended);
 
@@ -38,6 +40,9 @@ languages.forEach(language => {
 
                                 exec('swift ' + __dirname + '/' + dir + '/' + file, (err, stdout) => {
                                     expectedLog = stdout;
+                                    //console.log(expectedLog);
+                                    //console.log('vs');
+                                    //console.log(transpiledLog);
                                     assert(expectedLog.length > 1);
                                     assert(transpiledLog.length > 1);
                                     var tsLines = transpiledLog.split('\n'), swiftLines = expectedLog.split('\n');
@@ -55,6 +60,9 @@ languages.forEach(language => {
                     });
                 });
             });
+        });
+        after(function() {
+            fs.unlinkSync(root + 'test/test.' + language);
         });
     });
 });

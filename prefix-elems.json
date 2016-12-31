@@ -1,245 +1,118 @@
 {
-  "ts": {
-    "String": {
-      "characters": {
-        "skip": true
-      },
-      "count": {
-        "code": "length",
-        "type": "Int"
-      }
+  "String": {
+    "characters": {
+      "tsSkip": true,
+      "javaSkip": true
     },
-    "Dictionary": {
-      "count": {
-        "code": "size",
-        "accessor": "_.()",
-        "type": "Int"
-      },
-      "updateValue": {
-        "code": "updateValue",
-        "accessor": "_.()",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }, {
-          "type": "#keyType",
-          "externalName": "forKey"
-        }]
-      }
-    },
-    "Array": {
-      "count": {
-        "code": "length",
-        "type": "Int"
-      },
-      "append": {
-        "code": "push",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }]
-      },
-      "insert": {
-        "code": "splice",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType",
-          "index": 2
-        }, {
-          "type": "Int",
-          "externalName": "at",
-          "index": 0
-        }],
-        "defaultParams": [{
-          "value": "0",
-          "index": 1
-        }],
-        "numParams": 3
-      },
-      "filter": {
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType)->Bool"
-        }]
-      },
-      "sort": {
-        "code": "sortBool",
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType,#valueType)->Bool",
-          "externalName": "by"
-        }]
-      },
-      "map": {
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType)->#valueType"
-        }]
-      },
-      "reduce": {
-        "type": "#valueType",
-        "params": [{
-          "type": "#valueType",
-          "index": 1
-        }, {
-          "type": "(#valueType,#valueType)->#valueType",
-          "index": 0
-        }]
-      },
-      "enumerated": {
-        "skip": true
-      }
-    },
-    "Set": {
-      "count": {
-        "code": "size",
-        "type": "Int"
-      },
-      "insert": {
-        "code": "add",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }]
-      }
-    },
-    "top-level": {
-      "print": {
-        "code": "console.log",
-        "accessor": "",
-        "type": "Void",
-        "params": [{ }]
-      },
-      "Int": {
-        "code": "parseInt",
-        "accessor": "",
-        "type": "Int",
-        "params": [{ }]
-      },
-      "Double": {
-        "code": "parseFloat",
-        "accessor": "",
-        "type": "Double",
-        "params": [{ }]
-      }
+    "count": {
+      "returnType": "Int",
+      "tsCode": "length",
+      "javaCode": "length"
     }
   },
-  "java": {
-    "String": {
-      "characters": {
-        "skip": true
-      },
-      "count": {
-        "code": "length",
-        "type": "Int"
-      }
+  "Dictionary": {
+    "count": {
+      "returnType": "Int",
+      "tsCode": "_.size()",
+      "javaCode": "size()"
     },
-    "Dictionary": {
-      "count": {
-        "code": "size()",
-        "type": "Int"
-      },
-      "updateValue": {
-        "code": "put",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }, {
-          "type": "#keyType",
-          "externalName": "forKey"
-        }]
-      }
+    "updateValue": {
+      "signature": [{"type": "#valueType"}, {"type": "#keyType", "externalName": "forKey"}],
+      "returnType": "Void",
+      "tsCode": "_.updateValue()",
+      "javaCode": "put"
+    }
+  },
+  "Array": {
+    "count": {
+      "returnType": "Int",
+      "tsCode": "length",
+      "javaCode": "size()"
     },
-    "Array": {
-      "count": {
-        "code": "size()",
-        "type": "Int"
-      },
-      "append": {
-        "code": "add",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }]
-      },
-      "insert": {
-        "code": "add",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType",
-          "index": 1
-        }, {
-          "type": "Int",
-          "externalName": "at",
-          "index": 0
-        }]
-      },
-      "filter": {
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType)->Bool"
-        }]
-      },
-      "sort": {
-        "code": "sortBool",
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType,#valueType)->Bool",
-          "externalName": "by"
-        }]
-      },
-      "map": {
-        "type": "#L",
-        "params": [{
-          "type": "(#valueType)->#valueType"
-        }]
-      },
-      "reduce": {
-        "type": "#valueType",
-        "params": [{
-          "type": "#valueType",
-          "index": 1
-        }, {
-          "type": "(#valueType,#valueType)->#valueType",
-          "index": 0
-        }]
-      },
-      "enumerated": {
-        "skip": true
-      }
+    "enumerated": {
+      "tsSkip": true,
+      "javaSkip": true
     },
-    "Set": {
-      "count": {
-        "code": "size()",
-        "type": "Int"
-      },
-      "insert": {
-        "code": "add",
-        "type": "Void",
-        "params": [{
-          "type": "#valueType"
-        }]
-      }
+    "append": [{
+      "signature": [{"type": "#valueType"}],
+      "returnType": "Void",
+      "tsCode": "push",
+      "javaCode": "add"
+    }, {
+      "signature": [{"type": "#L", "externalName": "contentsOf"}],
+      "returnType": "Void",
+      "tsCode": "pushMany",
+      "javaCode": "add"
+    }],
+    "insert": [{
+      "signature": [{"type": "#valueType"}, {"type": "Int", "externalName": "at"}],
+      "returnType": "Void",
+      "tsCode": "splice",
+      "tsParamsOrder": [2, 0],
+      "tsDefaultParams": [{"value": "0", "index": 1}],
+      "javaCode": "add",
+      "javaParamsOrder": [1, 0]
+    }, {
+      "signature": [{"type": "#L", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
+      "returnType": "Void",
+      "tsCode": "pushManyAt",
+      "javaCode": "add",
+      "javaParamsOrder": [1, 0]
+    }],
+    "remove": {
+      "signature": [{"type": "Int"}],
+      "returnType": "Void",
+      "tsCode": "splice",
+      "javaCode": "remove",
+      "tsDefaultParams": [{"value": "1", "index": 1}]
     },
-    "top-level": {
-      "print": {
-        "code": "System.out.println",
-        "accessor": "",
-        "type": "Void",
-        "params": [{ }]
-      },
-      "Int": {
-        "code": "parseInt",
-        "accessor": "",
-        "type": "Int",
-        "params": [{ }]
-      },
-      "Double": {
-        "code": "parseFloat",
-        "accessor": "",
-        "type": "Double",
-        "params": [{ }]
-      }
+    "filter": {
+      "signature": [{"type": "(#valueType)->Bool"}],
+      "returnType": "#L"
+    },
+    "sort": {
+      "signature": [{"type": "(#valueType,#valueType)->Bool", "externalName": "by"}],
+      "returnType": "#L",
+      "tsCode": "sortBool"
+    },
+    "map": {
+      "signature": [{"type": "(#valueType)->#valueType"}],
+      "returnType": "#L"
+    },
+    "reduce": {
+      "signature": [{"type": "#valueType"}, {"type": "(#valueType,#valueType)->#valueType"}],
+      "returnType": "#valueType",
+      "tsParamsOrder": [1, 0]
+    }
+  },
+  "Set": {
+    "count": {
+      "returnType": "Int",
+      "tsCode": "size",
+      "javaCode": "size()"
+    },
+    "insert": {
+      "signature": [{"type": "#valueType"}],
+      "returnType": "Void",
+      "tsCode": "add",
+      "javaCode": "add"
+    }
+  },
+  "top-level": {
+    "print": {
+      "returnType": "Void",
+      "tsCode": "console.log",
+      "javaCode": "System.out.println"
+    },
+    "Int": {
+      "returnType": "Int",
+      "tsCode": "parseInt",
+      "javaCode": "Integer.parseInt"
+    },
+    "Double": {
+      "returnType": "Double",
+      "tsCode": "parseFloat",
+      "javaCode": "Double.parseDouble"
     }
   }
 }

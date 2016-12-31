@@ -59,7 +59,8 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
-        return visitChildren(ctx) + (ctx.semicolon() == null ? ";" : "") + "\n";
+        boolean shouldHaveSemicolon = !(ctx.parent.parent instanceof SwiftParser.Explicit_closure_expressionContext) && !(ctx.getChild(ctx.children.size() - 1) instanceof SwiftParser.Code_blockContext);
+        return visitChildren(ctx) + (shouldHaveSemicolon && ctx.semicolon() == null ? ";" : "") + "\n";
     }
 
     @Override public String visitParameter(SwiftParser.ParameterContext ctx) {

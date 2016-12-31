@@ -94,27 +94,29 @@ public class PrefixElem {
     }
 
     static private String getArrayCode(SwiftParser.Array_literalContext arrayLiteral, ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+
+        String repeatedElement = null, arraySize = "";
+        if(functionCallParams != null) {
+            if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("repeating") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("count")) {
+                arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression());
+                repeatedElement = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression());
+            }
+        }
+
         if(visitor.targetLanguage.equals("ts")) {
             if(functionCallParams != null) {
-                String arraySize = "", fill = "";
-                if(functionCallParams != null) {
-                    if(functionCallParams.size() == 2 && functionCallParams.get(0) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(0)).identifier().getText().equals("repeating") && functionCallParams.get(1) instanceof SwiftParser.Expression_elementContext && ((SwiftParser.Expression_elementContext) functionCallParams.get(1)).identifier().getText().equals("count")) {
-                        arraySize = visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(1)).expression());
-                        fill = ".fill(" + visitor.visit(((SwiftParser.Expression_elementContext) functionCallParams.get(0)).expression()) + ")";
-                    }
-                }
-                return "new Array(" + arraySize + ")" + fill;
+                return "new Array(" + arraySize + ")" + (repeatedElement != null ? ".fill(" + repeatedElement + ")" : "");
             }
             else {
                 String code = visitor.visit(rChild);
-                if(type != null && type.sourceType().equals("Set")) code = "new Set(" + code + ")";
+                if(type != null && type.swiftType().equals("Set")) code = "new Set(" + code + ")";
                 return code;
             }
         }
         else {
             if(functionCallParams != null) {
-                //TODO
-                return "TODO";
+                String repeatList = "Collections.nCopies(" + arraySize + ", " + repeatedElement + ")";
+                return "new ArrayList<>(" + repeatList + ")";
             }
             else if(arrayLiteral.array_literal_items() != null) {
                 List<SwiftParser.Array_literal_itemContext> values = arrayLiteral.array_literal_items().array_literal_item();
@@ -122,7 +124,7 @@ public class PrefixElem {
                 for(int i = 0; i < values.size(); i++) {
                     valuesList += (i > 0 ? ", " : "") + values.get(i).getText();
                 }
-                return "new " + (type != null && type.sourceType().equals("Set") ? "HashSet" : "ArrayList") + "<>(Arrays.asList(" + valuesList + "))";
+                return "new " + (type != null && type.swiftType().equals("Set") ? "HashSet" : "ArrayList") + "<>(Arrays.asList(" + valuesList + "))";
             }
             else {
                 return "new ArrayList<>()";
@@ -207,7 +209,7 @@ public class PrefixElem {
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
-            if(visitor.targetLanguage.equals("java") && (lType.sourceType().equals("Array") || lType.sourceType().equals("Dictionary"))) {
+            if(visitor.targetLanguage.equals("java") && (lType.swiftType().equals("Array") || lType.swiftType().equals("Dictionary"))) {
                 code = "get(" + code + ")";
                 accessor = ".";
             }

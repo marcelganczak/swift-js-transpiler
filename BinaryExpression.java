@@ -70,7 +70,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             if(isAssignment(alias)) {
                 if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().sourceType().equals("Void")) {lCode = "delete " + lCode; rCode = ""; definitionCode = "L";}
+                    if(R.type().swiftType().equals("Void")) {lCode = "delete " + lCode; rCode = ""; definitionCode = "L";}
                     else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}
                 }
                 if(((Prefix) L).hasOptionals()) {
@@ -81,7 +81,7 @@ public class BinaryExpression implements PrefixOrExpression {
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }
 
-            JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().sourceType() + "-" + R.type().sourceType());
+            JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().swiftType() + "-" + R.type().swiftType());
             if(definition == null) definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(alias).optJSONObject("compute").optJSONObject("default");
             if(definitionCode == null) definitionCode = definition.opt("code") != null ? definition.optString("code") : "L " + alias + " R";
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";

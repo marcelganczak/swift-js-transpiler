@@ -62,8 +62,8 @@ public class CacheVisitor extends Visitor {
             else {
                 valueVar = ctx.pattern().identifier_pattern().getText();
             }
-            cache.cacheOne(indexVar, iteratedType.sourceType().equals("String") ? new BasicType("Int"): ((NestedType)iteratedType).keyType, ctx.code_block());
-            cache.cacheOne(valueVar, iteratedType.sourceType().equals("String") ? new BasicType("String"): ((NestedType)iteratedType).valueType, ctx.code_block());
+            cache.cacheOne(indexVar, iteratedType.swiftType().equals("String") ? new BasicType("Int"): ((NestedType)iteratedType).keyType, ctx.code_block());
+            cache.cacheOne(valueVar, iteratedType.swiftType().equals("String") ? new BasicType("String"): ((NestedType)iteratedType).valueType, ctx.code_block());
         }
 
         visit(ctx.code_block());

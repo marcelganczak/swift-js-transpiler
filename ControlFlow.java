@@ -51,7 +51,7 @@ public class ControlFlow {
             valueVar = ctx.pattern().identifier_pattern().getText();
         }
         String iterator;
-        if(iteratedType.sourceType().equals("Array") || iteratedType.sourceType().equals("String")) {
+        if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("String")) {
             if(indexVar == null) indexVar = "$";
             iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
         }

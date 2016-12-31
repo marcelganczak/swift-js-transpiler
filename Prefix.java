@@ -115,33 +115,67 @@ public class Prefix implements PrefixOrExpression {
 
     static private Replacement replacement(AbstractType lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
         if(R == null) return null;
-        if(definitions.optJSONObject(visitor.targetLanguage).optJSONObject(lType == null ? "top-level" : lType.sourceType()) == null) return null;
-        JSONObject definition = definitions.optJSONObject(visitor.targetLanguage).optJSONObject(lType == null ? "top-level" : lType.sourceType()).optJSONObject(R);
+        if(definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()) == null) return null;
+
+        JSONObject definition = null;
+        JSONArray possibleDefinitions = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONArray(R);
+        if(possibleDefinitions != null) {
+            ArrayList<String> parameterExternalNames = FunctionUtil.parameterExternalNames(functionCallParams);
+            ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(functionCallParams, visitor);
+            for(int i = 0; i < possibleDefinitions.length(); i++) {
+                JSONArray signature = possibleDefinitions.optJSONObject(i).optJSONArray("signature");
+                if(functionCallParams.size() != signature.length()) continue;
+                boolean signatureConforms = true;
+                for(int j = 0; j < signature.length(); j++) {
+                    JSONObject param = signature.optJSONObject(j);
+                    String expectedExternalName = param.optString("externalName") == null ? "" : param.optString("externalName");
+                    if(!parameterExternalNames.get(j).equals(expectedExternalName)) { signatureConforms = false; break; }
+                    AbstractType expectedType = Type.fromDefinition(param.optString("type"), lType);
+                    if(!parameterTypes.get(j).swiftType().equals(expectedType.swiftType())) { signatureConforms = false; break; }
+                }
+                if(signatureConforms) {
+                    definition = possibleDefinitions.optJSONObject(i);
+                    break;
+                }
+            }
+        }
+        else {
+            definition = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONObject(R);
+        }
         if(definition == null) return null;
 
-        if(definition.optBoolean("skip")) return new Replacement(null, true);
+        if(definition.optBoolean(visitor.targetLanguage + "Skip")) return new Replacement(null, true);
 
         String strFunctionCallParams = null;
-        JSONArray definitionFunctionCallParams = definition.optJSONArray("params");
-        if(definitionFunctionCallParams != null) {
-            String[] strArrFunctionCallParams = new String[definition.optInt("numParams", definitionFunctionCallParams.length())];
-            for(int i = 0; i < definitionFunctionCallParams.length(); i++) {
-                JSONObject definitionFunctionCallParam = definitionFunctionCallParams.optJSONObject(i);
-                AbstractType type = Type.fromDefinition(definitionFunctionCallParam.optString("type"), lType);
-                strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionType) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
+        if(functionCallParams != null) {
+            JSONArray signature = definition.optJSONArray("signature");
+            JSONArray defaultParams = definition.optJSONArray(visitor.targetLanguage + "DefaultParams");
+            String[] strArrFunctionCallParams = new String[functionCallParams.size() + (defaultParams != null ? defaultParams.length() : 0)];
+            for(int i = 0; i < functionCallParams.size(); i++) {
+                int paramOutputIndex = definition.optJSONArray(visitor.targetLanguage + "ParamsOrder") != null ? definition.optJSONArray(visitor.targetLanguage + "ParamsOrder").optInt(i, i) : i;
+                AbstractType type = Type.fromDefinition(signature != null ? signature.optJSONObject(i).optString("type") : null, lType);
+                strArrFunctionCallParams[paramOutputIndex] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionType) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
             }
-            if(definition.optJSONArray("defaultParams") != null) {
-                for(int i = 0; i < definition.optJSONArray("defaultParams").length(); i++) {
-                    JSONObject definitionFunctionCallParam = definition.optJSONArray("defaultParams").optJSONObject(i);
-                    strArrFunctionCallParams[definitionFunctionCallParam.optInt("index", i)] = definitionFunctionCallParam.optString("value");
+            if(defaultParams != null) {
+                for(int i = 0; i < defaultParams.length(); i++) {
+                    strArrFunctionCallParams[defaultParams.optJSONObject(i).optInt("index", i)] = defaultParams.optJSONObject(i).optString("value");
                 }
             }
             strFunctionCallParams = "";
             for(int i = 0; i < strArrFunctionCallParams.length; i++) strFunctionCallParams += (i > 0 ? ", " : "") + strArrFunctionCallParams[i];
         }
 
-        AbstractType type = definition.optString("type").equals("#L") ? lType : definition.optString("type").equals("#valueType") ? ((NestedType)lType).valueType : definition.optString("type").equals("#keyType") ? ((NestedType)lType).keyType : new BasicType(definition.optString("type"));
-        return new Replacement(new PrefixElem(definition.optString("code", R), definition.optString("accessor", "."), type, strFunctionCallParams), false);
+        String definitionCode = definition.optString(visitor.targetLanguage + "Code", R), code, accessor;
+        if(definitionCode.startsWith("_.")) {
+            code = definitionCode.substring(2, definitionCode.length() - 2);
+            accessor = "_.()";
+        }
+        else {
+            code = definitionCode;
+            accessor = lType == null ? "" : ".";
+        }
+        AbstractType type = Type.fromDefinition(definition.optString("returnType"), lType);
+        return new Replacement(new PrefixElem(code, accessor, type, strFunctionCallParams), false);
     }
 
     public AbstractType type() {
@@ -149,7 +183,7 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.sourceType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
+        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
     }
 
     public boolean hasOptionals() {

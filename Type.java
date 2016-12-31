@@ -12,7 +12,7 @@ class BasicType extends AbstractType {
         this.sourceType = sourceType;
         this.isOptional = isOptional;
     }
-    public String sourceType() {
+    public String swiftType() {
         return sourceType;
     }
     public String targetType(String language) {
@@ -45,7 +45,7 @@ class FunctionType extends AbstractType {
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
     }
-    public String sourceType() {
+    public String swiftType() {
         return "Function";
     }
     public String targetType(String language) {
@@ -59,8 +59,8 @@ class FunctionType extends AbstractType {
     }
     public boolean sameAs(FunctionType otherType) {
         if(parameterTypes.size() != otherType.parameterTypes.size()) return false;
-        if(!returnType.sourceType().equals(otherType.returnType.sourceType())) return false;
-        for(int i = 0; i < parameterTypes.size(); i++) if(!parameterTypes.get(i).sourceType().equals(otherType.parameterTypes.get(i).sourceType())) return false;
+        if(!returnType.swiftType().equals(otherType.returnType.swiftType())) return false;
+        for(int i = 0; i < parameterTypes.size(); i++) if(!parameterTypes.get(i).swiftType().equals(otherType.parameterTypes.get(i).swiftType())) return false;
         return true;
     }
 }
@@ -74,7 +74,7 @@ class NestedType extends AbstractType {
         this.valueType = valueType;
         this.isOptional = isOptional;
     }
-    public String sourceType() {
+    public String swiftType() {
         return wrapperType;
     }
     public String targetType(String language) {
@@ -106,7 +106,7 @@ class NestedByIndexType extends AbstractType {
     public ArrayList<String> keys() {
         return new ArrayList<String>(sourceType.keySet());
     }
-    public String sourceType() {
+    public String swiftType() {
         return "Tuple";
     }
     public String targetType(String language) {
@@ -184,6 +184,7 @@ public class Type {
 
     public static AbstractType fromDefinition(String description, AbstractType lType) {
         if(description == null) return null;
+        if(description.equals("#L")) return lType;
         if(description.equals("#valueType")) return ((NestedType)lType).valueType;
         if(description.equals("#keyType")) return ((NestedType)lType).keyType;
         if(description.contains("->")) {
@@ -268,18 +269,18 @@ public class Type {
     }
 
     public static AbstractType alternative(PrefixOrExpression L, PrefixOrExpression R) {
-        if(L.type().sourceType().equals(R.type().sourceType())) return L.type();
-        if(L.type().sourceType().equals("Void")) {
+        if(L.type().swiftType().equals(R.type().swiftType())) return L.type();
+        if(L.type().swiftType().equals("Void")) {
             AbstractType rClone = R.type().copy();
             rClone.isOptional = true;
             return rClone;
         }
-        if(R.type().sourceType().equals("Void")) {
+        if(R.type().swiftType().equals("Void")) {
             AbstractType lClone = L.type().copy();
             lClone.isOptional = true;
             return lClone;
         }
-        System.out.println("//Ambiguous return type: " + L.type().sourceType() + " || " + R.type().sourceType());
+        System.out.println("//Ambiguous return type: " + L.type().swiftType() + " || " + R.type().swiftType());
         return L.type();
     }
 }

@@ -11,7 +11,7 @@ public class FunctionUtil {
         return parameterList != null ? parameterList.parameter() : new ArrayList<SwiftParser.ParameterContext>();
     }
 
-    static public ArrayList<String> parameterExternalNames(List<SwiftParser.ParameterContext> parameters) {
+    static public ArrayList<String> parameterExternalNames(List<?extends ParserRuleContext> parameters) {
         ArrayList<String> names = new ArrayList<String>();
         for(int i = 0; parameters != null && i < parameters.size(); i++) names.add(parameterExternalName(parameters.get(i), i));
         return names;
@@ -24,7 +24,7 @@ public class FunctionUtil {
             }
             //if(parameterPos == 0) return "";//not anymore since swift3
         }
-        return parameterLocalName(parameter);
+        return parameterLocalName(parameter);//shouldn't be ""?
     }
 
     static public ArrayList<String> parameterLocalNames(List<SwiftParser.ParameterContext> parameters) {
@@ -46,7 +46,7 @@ public class FunctionUtil {
     static public String nameAugment(FunctionType type) {
         String augment = "";
         for(int i = 0; i < type.parameterTypes.size(); i++) {
-            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).sourceType();
+            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).swiftType();
         }
         return augment;
     }
@@ -55,7 +55,7 @@ public class FunctionUtil {
         String augment = "";
         for(int i = 0; i < parameters.size(); i++) {
             ParserRuleContext parameter = parameters.get(i);
-            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).sourceType();
+            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).swiftType();
         }
         return augment;
     }
