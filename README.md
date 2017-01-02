@@ -1,20 +1,21 @@
-Swift to JavaScript/TypeScript transpiler
+Swift to JavaScript/TypeScript and Java transpiler
 ==============
 
-This is an open source Swift to TypeScript transpiler (which can then be then transpiled further to JavaScript).
-It's written in Java using antlr4 parser generator.
+This is an open source Swift3 to TypeScript/Java transpiler.
+TypeScript can then be transpiled further to JavaScript.
+The project is written in Java using antlr4 parser generator.
 
 Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com for live transpilation preview.
 
 It has support for Swift:
 
-- functions & closures
+- data types (primitives, tuples, arrays, dictionaries, sets)
 - control flow (if, for-in, while)
-- data/collection types (primitives, tuples, arrays, dictionaries, sets)
 - optionals & chaining
+- functions & closures (no Java support yet)
 
-To get a better sense of supported features, have a look inside the test directory.
-It contains Swift code snippets that demonstrate all supported features in greater detail.
+To get a better sense of supported features, have a look inside the test directory,
+which contains Swift code snippets that demonstrate supported features in greater detail.
 
 The transpiler currently lacks support for:
 
@@ -43,6 +44,9 @@ console.log(arrayOfInts.length)
 const inferredArrayOfStrings:Array<string> = [ "Swift" , "is" , "ace" ]
 console.log(inferredArrayOfStrings.length)
 console.log(inferredArrayOfStrings[0 ].length)
+```
+```Java
+TODO
 ```
 
 Dictionaries
@@ -73,6 +77,9 @@ if(dictionary["one" ] != null) {
 delete dictionary["one" ]
 console.log(_.size(dictionary))
 ```
+```Java
+TODO
+```
 
 Strings
 ```Swift
@@ -88,6 +95,9 @@ console.log((str!= null ? str.length : null ))
 
 str = "Message"
 console.log(((str!= null ? str.length : null )))
+```
+```Java
+TODO
 ```
 
 Tuples
@@ -109,22 +119,24 @@ const namedTypedTuple:any = {'a':4 ,'count':25 }
 console.log(namedTypedTuple.a)
 console.log(namedTypedTuple.count)
 ```
+```Java
+TODO
+```
 
 Motivation & Development
 ==============
 
-Swift is the new language behind iOS apps.
-Its ease of use coupled with great performance make it a strong contender for a back-end language in the future
+Swift is the official new language behind iOS apps.
+On top of that, its ease of use coupled with great performance make it a strong contender for a future back-end language
 (a compiler has already been released for linux).
 
-Wouldn't it be great to be able to share business logic written in Swift with JavaScript?
-No need to maintain three different code bases (back-end, iOS and browser)!
+Wouldn't it be great to be able to share business logic across the whole mobile environment?
+No need to maintain four different code bases (back-end, iOS, Android and browser)!
 
-Ideally, this project would have complete Swift support and would transpile both to TypeScript and Java.
-
-Back when I wrote this transpiler in May, it was more robust than any solution I could find online.
+This transpiler is more robust than any solution I could find online.
 Using antlr4 is a huge advantage over hand coding lexers & parsers -- it's more reliable and more maintainable.
 
+The project is undergoing rapid development and ideally it would have complete Swift support.
 I welcome any contributions. Feel free to drop me a line at marcelganczak@gmail.com
 
 Usage
@@ -147,7 +159,7 @@ mocha
 ```
 
 The test will iterate through all swift files within the test directory,
-run both the original Swift code and the transpiled TypeScript code and compare the console output.
+run both the original Swift code and the transpiled TypeScript/Java code and compare the console output.
 
 License
 ==============

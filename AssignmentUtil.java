@@ -6,7 +6,7 @@ public class AssignmentUtil {
 
     static public String augment(String code, AbstractType type, ParserRuleContext originalCtx, Visitor visitor) {
         if((type.swiftType().equals("Dictionary") || type.swiftType().equals("Array") || type.swiftType().equals("Set")) && !WalkerUtil.isDirectDescendant(SwiftParser.Literal_expressionContext.class, originalCtx) && !code.startsWith("new ")) {
-            code = "_.clone(" + code + ")";
+            code = visitor.targetLanguage.equals("ts") ? "_.clone(" + code + ")" : "new " + type.targetType(visitor.targetLanguage, true) + "(" + code + ")";
         }
         return code;
     }

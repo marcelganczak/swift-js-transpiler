@@ -1,5 +1,35 @@
 import java.util.*;
 
+class Pair<A, B> {
+    public final A a;
+    public final B b;
+    public Pair(A a, B b) {
+        this.a = a;
+        this.b = b;
+    }
+}
+
+class InitializableHashMap<K, V> extends HashMap<K, V> {
+    public InitializableHashMap() {
+        super();
+    }
+    public InitializableHashMap(int var1) {
+        super(var1);
+    }
+    public InitializableHashMap(int var1, float var2) {
+        super(var1, var2);
+    }
+    public InitializableHashMap(Map<? extends K, ? extends V> var1) {
+        super(var1);
+    }
+    public InitializableHashMap(Pair<?extends K, ?extends V>... initValues) {
+        super();
+        for(int i = 0; i < initValues.length; i++) {
+            put(initValues[i].a, initValues[i].b);
+        }
+    }
+}
+
 public class test {
 
     public static void main(String [] args) {

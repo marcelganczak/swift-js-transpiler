@@ -15,7 +15,8 @@ class BasicType extends AbstractType {
     public String swiftType() {
         return sourceType;
     }
-    public String targetType(String language) {
+    public String targetType(String language) { return targetType(language, false); }
+    public String targetType(String language, boolean notGeneric) {
         return language.equals("ts") ? Type.basicToTs(sourceType) : Type.basicToJava(sourceType);
     }
     public AbstractType resulting(String accessor) {
@@ -48,7 +49,8 @@ class FunctionType extends AbstractType {
     public String swiftType() {
         return "Function";
     }
-    public String targetType(String language) {
+    public String targetType(String language) { return targetType(language, false); }
+    public String targetType(String language, boolean notGeneric) {
         return language.equals("ts") ? "Function" : "TODO";
     }
     public AbstractType resulting(String accessor) {
@@ -77,7 +79,8 @@ class NestedType extends AbstractType {
     public String swiftType() {
         return wrapperType;
     }
-    public String targetType(String language) {
+    public String targetType(String language) { return targetType(language, false); }
+    public String targetType(String language, boolean notGeneric) {
         if(language.equals("ts")) {
             return
                 wrapperType.equals("Dictionary") ? "Object" :
@@ -86,9 +89,9 @@ class NestedType extends AbstractType {
         }
         else {
             return
-                wrapperType.equals("Dictionary") ? "Map<" + keyType.targetType("java") + ", " + valueType.targetType("java") + ">" :
-                wrapperType.equals("Array") ? "List<" + valueType.targetType("java") + ">" :
-                "Set<" + valueType.targetType("java") + ">";
+                wrapperType.equals("Dictionary") ? (notGeneric ? "InitializableHashMap" : "Map") + "<" + keyType.targetType("java") + ", " + valueType.targetType("java") + ">" :
+                wrapperType.equals("Array") ? (notGeneric ? "ArrayList" : "List") + "<" + valueType.targetType("java") + ">" :
+                (notGeneric ? "HashSet" : "Set") + "<" + valueType.targetType("java") + ">";
         }
     }
     public AbstractType resulting(String accessor) {
@@ -109,8 +112,9 @@ class NestedByIndexType extends AbstractType {
     public String swiftType() {
         return "Tuple";
     }
-    public String targetType(String language) {
-        return language.equals("ts") ? "any" : "TODO";
+    public String targetType(String language) { return targetType(language, false); }
+    public String targetType(String language, boolean notGeneric) {
+        return language.equals("ts") ? "Object" : (notGeneric ? "InitializableHashMap" : "Map") + "<String, ?>";
     }
     public AbstractType resulting(String accessor) {
         return sourceType.get(accessor);

@@ -1,470 +1,237 @@
 {
-  "ts": {
-    "=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
+  "=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
       }
-    },
-    "?:": {
-      "priority": 9
-    },
-    "&&": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "||": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "??": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "code": "(L != null ? L : R)"
-        }
-      }
-    },
-    "===": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "==": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "!==": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "!=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    ">": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    ">=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "<": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "<=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "+": {
-      "priority": 5,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        },
-        "Array-Array": {
-          "code": "L.concat(R)"
-        },
-        "Int-String": {
-          "type": "Double"
-        },
-        "String-Int": {
-          "type": "Double"
-        },
-        "Double-String": {
-          "type": "Double"
-        },
-        "String-Double": {
-          "type": "Double"
-        }
-      }
-    },
-    "-": {
-      "priority": 5,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "*": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "/": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Int": {
-          "type": "Int",
-          "code": "((L / R)|0)"
-        },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "%": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "+=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        },
-        "Array-Array": {
-          "code": "L = L.concat(R)",
-          "type": "Void"
-        }
-      }
-    },
-    "-=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "*=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "/=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        },
-        "Int-Int": {
-          "type": "Void",
-          "code": "L = ((L / R)|0)"
-        }
-      }
-    },
-    "%=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "as": {
-      "priority": 8
-    },
-    "is": {
-      "priority": 8
     }
   },
-  "java": {
-    "=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
+  "?:": {
+    "priority": 9
+  },
+  "&&": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "type": "Bool"
       }
-    },
-    "?:": {
-      "priority": 9
-    },
-    "&&": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "||": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "??": {
-      "priority": 7,
-      "compute": {
-        "default": {
-          "code": "(L != null ? L : R)"
-        }
-      }
-    },
-    "===": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "==": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "!==": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "!=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    ">": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    ">=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "<": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "<=": {
-      "priority": 6,
-      "compute": {
-        "default": {
-          "type": "Bool"
-        }
-      }
-    },
-    "+": {
-      "priority": 5,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        },
-        "Array-Array": {
-          "code": "L.concat(R)"
-        },
-        "Int-String": {
-          "type": "Double"
-        },
-        "String-Int": {
-          "type": "Double"
-        },
-        "Double-String": {
-          "type": "Double"
-        },
-        "String-Double": {
-          "type": "Double"
-        }
-      }
-    },
-    "-": {
-      "priority": 5,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "*": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "/": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Int": {
-          "type": "Int",
-          "code": "((L / R)|0)"
-        },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "%": {
-      "priority": 4,
-      "compute": {
-        "default": { },
-        "Int-Double": {
-          "type": "Double"
-        },
-        "Double-Int": {
-          "type": "Double"
-        }
-      }
-    },
-    "+=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        },
-        "Array-Array": {
-          "code": "L = L.concat(R)",
-          "type": "Void"
-        }
-      }
-    },
-    "-=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "*=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "/=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        },
-        "Int-Int": {
-          "type": "Void",
-          "code": "L = ((L / R)|0)"
-        }
-      }
-    },
-    "%=": {
-      "priority": 10,
-      "compute": {
-        "default": {
-          "type": "Void"
-        }
-      }
-    },
-    "as": {
-      "priority": 8
-    },
-    "is": {
-      "priority": 8
     }
+  },
+  "||": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "??": {
+    "priority": 7,
+    "compute": {
+      "default": {
+        "tsCode": "(#L != null ? #L : #R)",
+        "javaCode": "(#L != null ? #L : #R)"
+      }
+    }
+  },
+  "===": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "==": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "!==": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "!=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  ">": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  ">=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "<": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "<=": {
+    "priority": 6,
+    "compute": {
+      "default": {
+        "type": "Bool"
+      }
+    }
+  },
+  "+": {
+    "priority": 5,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      },
+      "Array-Array": {
+        "tsCode": "#L.concat(#R)",
+        "javaCode": "new ArrayList<String>() { { addAll(#L); addAll(#R); } }"
+      },
+      "Int-String": {
+        "type": "Double"
+      },
+      "String-Int": {
+        "type": "Double"
+      },
+      "Double-String": {
+        "type": "Double"
+      },
+      "String-Double": {
+        "type": "Double"
+      }
+    }
+  },
+  "-": {
+    "priority": 5,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "*": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "/": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Int": {
+        "type": "Int",
+        "tsCode": "((#L / #R)|0)"
+      },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "%": {
+    "priority": 4,
+    "compute": {
+      "default": { },
+      "Int-Double": {
+        "type": "Double"
+      },
+      "Double-Int": {
+        "type": "Double"
+      }
+    }
+  },
+  "+=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      },
+      "Array-Array": {
+        "tsCode": "#L.pushMany(#R)",
+        "javaCode": "#L.addAll(#R)",
+        "type": "Void"
+      }
+    }
+  },
+  "-=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "*=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "/=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      },
+      "Int-Int": {
+        "type": "Void",
+        "tsCode": "#L = ((#L / #R)|0)"
+      }
+    }
+  },
+  "%=": {
+    "priority": 10,
+    "compute": {
+      "default": {
+        "type": "Void"
+      }
+    }
+  },
+  "as": {
+    "priority": 8
+  },
+  "is": {
+    "priority": 8
   }
 }

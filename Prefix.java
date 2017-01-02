@@ -98,12 +98,15 @@ public class Prefix implements PrefixOrExpression {
     }
     static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
         PrefixElem elem = elems.get(chainPos);
+        boolean isLast = chainPos + 1 >= elems.size();
 
         String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
-                  : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
+                  : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? L + ".put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + elem.code + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
+                  : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + L + ".get(\"" + elem.code.trim() + "\"))"
+                  : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : elem.accessor.equals(".get()") ? ".get(" + elem.code + ")" : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
         String nextCode =
-                chainPos + 1 < elems.size() ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
+                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
                 : LR;
 
         if(elem.isOptional && !onAssignmentLeftHandSide) {
@@ -191,6 +194,16 @@ public class Prefix implements PrefixOrExpression {
             if(elems.get(i).isOptional) return true;
         }
         return false;
+    }
+
+    static private boolean isCastGetAccessor(String accessor) {
+        return accessor.startsWith("((") && accessor.endsWith(")).get(\"\")");
+    }
+    static private boolean isGetAccessor(String accessor) {
+        return accessor.equals(".get()") || isCastGetAccessor(accessor);
+    }
+    public boolean endsWithGetAccessor() {
+        return isGetAccessor(this.elems.get(this.elems.size() - 1).accessor);
     }
 
     static private ArrayList<ParserRuleContext> flattenChain(SwiftParser.Prefix_expressionContext ctx) {

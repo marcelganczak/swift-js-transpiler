@@ -42,7 +42,7 @@
       "signature": [{"type": "#L", "externalName": "contentsOf"}],
       "returnType": "Void",
       "tsCode": "pushMany",
-      "javaCode": "add"
+      "javaCode": "addAll"
     }],
     "insert": [{
       "signature": [{"type": "#valueType"}, {"type": "Int", "externalName": "at"}],
@@ -56,7 +56,7 @@
       "signature": [{"type": "#L", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
       "returnType": "Void",
       "tsCode": "pushManyAt",
-      "javaCode": "add",
+      "javaCode": "addAll",
       "javaParamsOrder": [1, 0]
     }],
     "remove": {

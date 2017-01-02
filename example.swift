@@ -1,10 +1,14 @@
-let N = 30
-var fib = [Int](repeating: 1, count: N)
+var number = 12345
+var digits: [Int] = []
 
-for i in 2..<30 {
-    fib[i] = fib[i-1] + fib[i-2]
+while number > 0 {
+    var digit = number % 10
+
+    digits = [digit] + digits
+
+    number /= 10 // 12345 -> 1234 -> 123 -> 12 -> 1
 }
 
-for number in fib {
-    print(number)
+for digit in digits {
+    print(digit)
 }

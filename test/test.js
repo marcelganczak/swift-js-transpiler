@@ -6,22 +6,29 @@ var assert = require('assert'),
     monkeyPatch = fs.readFileSync(__dirname + '/monkey-patch.js'),
     javaHeader = fs.readFileSync(__dirname + '/java-header.txt'),
     javaFooter = fs.readFileSync(__dirname + '/java-footer.txt'),
-    todo = ['functions-as-vars', 'tuple-enums-1',  'tuple-enums-2', 'strings-5', 'functions-16', 'functions-17'],
-    only = '',//'array',
-    languages = ['ts'/*, 'java'*/];
+    todo = {
+        ts: {dirs: [], files: ['functions-as-vars', 'tuple-enums-1',  'tuple-enums-2', 'strings-5', 'functions-16', 'functions-17']},
+        java: {dirs: ['binary-expression', 'chaining', 'control-flow', 'functions', 'weheartswift'], files: []}
+    },
+    only = {
+        ts: {dir: null, file: null},
+        java: {dir: null, file: null}
+    },
+    languages = ['ts', 'java'];
 
 languages.forEach(language => {
     describe(language, () => {
         fs.readdirSync(__dirname).forEach(dir => {
             if(dir === 'node_modules' || dir === '.' || dir === '..' || dir === '.idea') return;
             if(!fs.statSync(__dirname + '/' + dir).isDirectory()) return;
+            if(only[language].dir ? dir !== only[language].dir : todo[language].dirs.some(todo => dir === todo)) return;
 
             describe(dir, function() {
                 this.timeout(10 * 1000);
 
                 fs.readdirSync(__dirname + '/' + dir).forEach(file => {
                     if(!file.includes('.swift')) return;
-                    if(only ? file !== only + '.swift' : todo.some(todo => file === todo + '.swift')) return;
+                    if(only[language].file ? file !== only[language].file + '.swift' : todo[language].files.some(todo => file === todo + '.swift')) return;
 
                     it(file.replace('.swift', ''), done => {
                         var transpiledLog, expectedLog;
