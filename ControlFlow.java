@@ -37,7 +37,7 @@ public class ControlFlow {
                    to = new Expression(expression, null, true, visitor).code,
                    varName = ctx.pattern().getText().equals("_") ? "$" : ctx.pattern().getText(),
                    operator = BinaryExpression.operatorAlias(binary.binary_operator());
-            return "for(let " + varName + " = " + from + "; " + varName + " " + (operator.equals("...") ? "<=" : "<") + " " + to + "; " + varName + "++) " + visitor.visit(ctx.code_block());
+            return "for(" + (visitor.targetLanguage.equals("ts") ? "let" : "int") + " " + varName + " = " + from + "; " + varName + " " + (operator.equals("...") ? "<=" : "<") + " " + to + "; " + varName + "++) " + visitor.visit(ctx.code_block());
         }
 
         Expression iteratedObject = new Expression(expression, null, visitor);
@@ -50,14 +50,29 @@ public class ControlFlow {
         else {
             valueVar = ctx.pattern().identifier_pattern().getText();
         }
+
         String iterator;
-        if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("String")) {
-            if(indexVar == null) indexVar = "$";
-            iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
+        if(visitor.targetLanguage.equals("ts")) {
+            if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("Set") || iteratedType.swiftType().equals("String")) {
+                if(indexVar == null) indexVar = "$";
+                iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
+            }
+            else {
+                if(indexVar == null) iterator = "for(let " + valueVar + " of " + iteratedObject.code + ") {";
+                else iterator = "for(let " + indexVar + " in " + iteratedObject.code + ") { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
+            }
         }
         else {
-            if(indexVar == null) iterator = "for(let " + valueVar + " of " + iteratedObject.code + ") {";
-            else iterator = "for(let " + indexVar + " in " + iteratedObject.code + ") { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
+            if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("Set") || iteratedType.swiftType().equals("String")) {
+                if(indexVar == null) indexVar = "$";
+                iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + ((NestedType) iteratedType).valueType.targetType("java") + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
+            }
+            else {
+                String[] iteratedTypeChunks = iteratedType.targetType("java").split("<");
+                iterator = "for(" + iteratedTypeChunks[0] + ".Entry<" + iteratedTypeChunks[1] + " $ : (" + iteratedObject.code + ").entrySet()) {";
+                if(indexVar != null) iterator += ((NestedType) iteratedType).keyType.targetType("java") + " " + indexVar + " = $.getKey();";
+                iterator += ((NestedType) iteratedType).valueType.targetType("java") + " " + valueVar + " = $.getValue();";
+            }
         }
 
         return iterator + visitor.visitWithoutStrings(ctx.code_block(), "{");
@@ -77,9 +92,11 @@ public class ControlFlow {
         if(ifLet.varNames.size() > 0) {
             for(int i = 0; i < ifLet.varNames.size(); i++) {
                 condition += (condition.length() > 0 ? " && " : "") + ifLet.varVals.get(i) + " != null";
-                beforeBlock += (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " = " + ifLet.varVals.get(i);
+                beforeBlock +=
+                    visitor.targetLanguage.equals("ts") ? (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " = " + ifLet.varVals.get(i)
+                    : ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " " + ifLet.varNames.get(i) + " = " + ifLet.varVals.get(i) + ";";
             }
-            beforeBlock = "const " + beforeBlock + ";";
+            if(visitor.targetLanguage.equals("ts")) beforeBlock = "const " + beforeBlock + ";";
         }
         else {
             condition = visitor.visitWithoutStrings(ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause(), "()");

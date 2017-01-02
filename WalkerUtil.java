@@ -9,6 +9,12 @@ public class WalkerUtil {
         return isDirectDescendant(nodeType, node.getChild(0));
     }
 
+    public static boolean isRightMostDescendant(Class nodeType, ParseTree node) {
+        if(node == null) return false;
+        if(node.getClass() == nodeType) return true;
+        return isRightMostDescendant(nodeType, node.getChild(node.getChildCount() - 1));
+    }
+
     public static boolean has(Class nodeType, ParseTree node) {
         if(node == null) return false;
         if(node.getClass() == nodeType) return true;
