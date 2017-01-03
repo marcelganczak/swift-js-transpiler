@@ -48,8 +48,10 @@ public class BinaryExpression implements PrefixOrExpression {
         R = (PrefixOrExpression)this.R;
 
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
+            //TODO should be grouping conditionals from right to left, e.g. true ? 1 : true ? 2 : 3 to true ? 1 : (true ? 2 : 3), currently that would be evaluated as 'true ? 1 : true'
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
-            Expression passExpression = new Expression(conditionalOperator.expression(), R.type(), visitor);
+            AbstractType passType = Type.infer(conditionalOperator.expression(), visitor);
+            Expression passExpression = new Expression(conditionalOperator.expression(), passType, visitor);
             this.type = Type.alternative(passExpression, R);
             this.code = L.code() + " ? " + passExpression.code + " : " + R.code();
         }
@@ -69,15 +71,29 @@ public class BinaryExpression implements PrefixOrExpression {
                    ifCode0 = null, ifCode1 = null, elseCode1 = null;
 
             if(isAssignment(alias)) {
-                if(((Prefix) L).endsWithGetAccessor()) {
-                    definitionCode = "#L #R)";
-                }
                 if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().swiftType().equals("Void")) {lCode = "delete " + lCode; rCode = ""; definitionCode = "#L";}
-                    else if(R.type().isOptional) {ifCode1 = "(" + rCode + ") != null"; elseCode1 = "delete " + lCode;}
+                    if(R.type().swiftType().equals("Void")) {
+                        if(visitor.targetLanguage.equals("ts")) {
+                            lCode = "delete " + lCode; rCode = ""; definitionCode = "#L";
+                        }
+                        else {
+                            lCode = ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")"; rCode = ""; definitionCode = "#L";
+                        }
+                    }
+                    else if(R.type().isOptional) {
+                        ifCode1 = "(" + rCode + ") != null";
+                        if(((Prefix) L).endsWithGetAccessor()) definitionCode = "#L #R)";
+                        elseCode1 = visitor.targetLanguage.equals("ts") ? "delete " + lCode : ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")";
+                    }
+                    else if(((Prefix) L).endsWithGetAccessor()) {
+                        definitionCode = "#L #R)";
+                    }
                 }
                 if(((Prefix) L).hasOptionals()) {
                     ifCode0 = optionalsGuardingIf(((Prefix) L));
+                }
+                if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).endsWithGetAccessor()) {
+                    definitionCode = "#L #R)";
                 }
 
                 if(type instanceof FunctionType && R.type() != null) type = R.type();
@@ -91,8 +107,8 @@ public class BinaryExpression implements PrefixOrExpression {
 
             this.code = definitionCode.replaceAll("#L", lCode.replaceAll("\\$", "\\\\\\$")).replaceAll("#R", rCode.replaceAll("\\$", "\\\\\\$"));
             this.type = definitionType.equals("L/R") ? Type.alternative(L, R) : new BasicType(definitionType);
-            if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + " } else { " + elseCode1 + " }";
-            if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + " }";
+            if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + "; } else { " + elseCode1 + "; }";
+            if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + "; }";
         }
     }
 

@@ -64,7 +64,7 @@ public class PrefixElem {
         }
 
         if(type == null) type = new NestedByIndexType(types);
-        String code = getTupleCode(keys, elementList, type instanceof NestedByIndexType ? (NestedByIndexType) type : null, visitor);
+        String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
 
         return new PrefixElem(code, "", type, null);
     }
@@ -160,7 +160,7 @@ public class PrefixElem {
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
             if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
-            code = getDictionaryInitializerCode(dictionaryLiteral, type instanceof NestedType ? (NestedType)type : null, visitor);
+            code = getDictionaryInitializerCode(dictionaryLiteral, (NestedType)type, visitor);
         }
 
         return new PrefixElem(code, "", type, null);

@@ -7,7 +7,7 @@
     "count": {
       "returnType": "Int",
       "tsCode": "length",
-      "javaCode": "length"
+      "javaCode": "length()"
     }
   },
   "Dictionary": {

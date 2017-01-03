@@ -186,7 +186,7 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && elems.get(elems.size() - 1).accessor.equals("[]");
+        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && (elems.get(elems.size() - 1).accessor.equals("[]") || isGetAccessor(elems.get(elems.size() - 1).accessor));
     }
 
     public boolean hasOptionals() {

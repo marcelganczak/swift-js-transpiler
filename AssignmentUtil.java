@@ -22,6 +22,9 @@ public class AssignmentUtil {
         if(ctx.initializer() != null && ctx.initializer().expression() != null) {
             transpiled += " = " + augment(new Expression(ctx.initializer().expression(), varType, visitor).code, varType, ctx.initializer().expression(), visitor);
         }
+        else if(visitor.targetLanguage.equals("java")) {
+            transpiled += " = null";
+        }
         return transpiled;
     }
 
