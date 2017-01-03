@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Swift to JavaScript/TypeScript transpiler</title>
+    <title>Swift to JavaScript/TypeScript/Java transpiler</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <link href="https://fonts.googleapis.com/css?family=Raleway" rel="stylesheet">
@@ -73,7 +73,7 @@
         border-radius: 12px;
         position: absolute;
         top: 0;
-        width: calc(50% - 68px);
+        width: calc(50% - 83px);
         height: calc(100% - 20px);
         font-size: 15px;
         line-height: 1.42857;
@@ -85,17 +85,22 @@
         right: 0;
         transition: color 0.3s linear;
     }
-    #transpile-btn {
+    .transpile-btn {
         position: absolute;
-        top: calc(50% - 40px);
-        left: calc(50% - 40px);
-        width: 80px;
+        left: calc(50% - 55px);
+        width: 110px;
         text-align: center;
         color: #28eb80;
         cursor: pointer;
         transition: color 0.2s linear;
     }
-    #transpile-btn::before {
+    .transpile-btn[data-language=ts] {
+        top: calc(50% - 94px);
+    }
+    .transpile-btn[data-language=java] {
+        top: calc(50% + 20px);
+    }
+    .transpile-btn::before {
         content: '';
         display: inline-block;
         width: 0;
@@ -106,10 +111,10 @@
         border-left: 27px solid #28eb80;
         transition: border-left-color 0.2s linear;
     }
-    #transpile-btn:hover {
+    .transpile-btn:hover {
         color: #13ce66;
     }
-    #transpile-btn:hover::before {
+    .transpile-btn:hover::before {
         border-left-color: #13ce66;
     }
 
@@ -177,9 +182,9 @@
 <body>
     <div id="wrapper">
         <div id="info">
-            <h1>Swift to JavaScript/TypeScript transpiler</h1>
+            <h1>Swift to JavaScript/TypeScript/Java transpiler</h1>
             <p>
-                This is an open source Swift to TypeScript transpiler (which can then be then transpiled further to JavaScript).
+                This is an open source Swift3 to JavaScript/TypeScript and Java transpiler.
                 It's written in Java using antlr4 parser generator.
             </p>
             <!--<p>
@@ -193,7 +198,8 @@ print(arrayOfInts.count)</textarea>
             <textarea id="target-code" spellcheck="false" readonly>
 let arrayOfInts:Array&lt;number&gt; = [ 1 , 2 , 3 ]
 console.log(arrayOfInts.length)</textarea>
-            <button id="transpile-btn" type="button">Click to transpile</button>
+            <button class="transpile-btn" data-language="ts"   type="button">Transpile to TypeScript</button>
+            <button class="transpile-btn" data-language="java" type="button">Transpile to Java</button>
             <svg id="target-code-spinner" class="spinner" width="50" height="50"><circle cx="25" cy="25" r="20"/></svg>
         </div>
     </div>
@@ -202,42 +208,47 @@ console.log(arrayOfInts.length)</textarea>
         (function(){
             var sourceCodeEl = document.getElementById("source-code"),
                 targetCodeEl = document.getElementById("target-code"),
-                transpileBtn = document.getElementById("transpile-btn"),
+                transpileBtns = document.getElementsByClassName("transpile-btn"),
                 spinner = document.getElementById("target-code-spinner"),
                 lastSourceCode = sourceCodeEl.value,
+                lastLanguage = "ts",
                 isWaitingForTranspilation = false;
 
-            transpileBtn.onclick = function() {
-                if(isWaitingForTranspilation) return;
-                if(!sourceCodeEl.value || sourceCodeEl.value === lastSourceCode) return;
+            Array.prototype.forEach.call(transpileBtns, function(transpileBtn) {
+                transpileBtn.onclick = function() {
+                    if(isWaitingForTranspilation) return;
+                    var language = transpileBtn.getAttribute("data-language");
+                    if(!sourceCodeEl.value || (sourceCodeEl.value === lastSourceCode && language === lastLanguage)) return;
 
-                isWaitingForTranspilation = true;
-                spinner.style.display = 'block';
-                targetCodeEl.style.color = '#aaa';
-                lastSourceCode = sourceCodeEl.value;
+                    isWaitingForTranspilation = true;
+                    spinner.style.display = 'block';
+                    targetCodeEl.style.color = '#aaa';
+                    lastSourceCode = sourceCodeEl.value;
+                    lastLanguage = language;
 
-                var xhr = new XMLHttpRequest();
-                xhr.open("POST", "/api/transpile");
-                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+                    var xhr = new XMLHttpRequest();
+                    xhr.open("POST", "/api/transpile");
+                    xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
-                xhr.onreadystatechange = function () {
-                    if(xhr.readyState !== 4) return;
+                    xhr.onreadystatechange = function () {
+                        if(xhr.readyState !== 4) return;
 
-                    isWaitingForTranspilation = false;
-                    spinner.style.display = 'none';
+                        isWaitingForTranspilation = false;
+                        spinner.style.display = 'none';
 
-                    if(xhr.status === 200) {
-                        targetCodeEl.value = xhr.responseText;
-                        targetCodeEl.style.color = '';
-                    }
-                    else {
-                        targetCodeEl.value = 'Transpilation failed:(';
-                        targetCodeEl.style.color = '#fc605e';
-                    }
-                };
+                        if(xhr.status === 200) {
+                            targetCodeEl.value = xhr.responseText;
+                            targetCodeEl.style.color = '';
+                        }
+                        else {
+                            targetCodeEl.value = 'Transpilation failed :(';
+                            targetCodeEl.style.color = '#fc605e';
+                        }
+                    };
 
-                xhr.send(JSON.stringify({code: sourceCodeEl.value}));
-            }
+                    xhr.send(JSON.stringify({code: sourceCodeEl.value, language: language}));
+                }
+            });
         })();
     </script>
 </body>

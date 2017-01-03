@@ -20,7 +20,7 @@ router.post('*', function(req, res, next) {
     async.waterfall([
         callback => fs.writeFile(tmpFileName, req.body.code, callback),
         callback => {delete req.body.code; callback();},
-        callback => exec(`java -jar ${JAR_PATH} ${tmpFileName}`, callback),
+        callback => exec(`java -jar ${JAR_PATH} ${tmpFileName} ${req.body.language || 'ts'}`, callback),
         (stdout, stderr, callback) => {
             console.log('!!!!!!!!!!stdout');
             console.log(stdout);

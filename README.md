@@ -27,8 +27,8 @@ The transpiler currently lacks support for:
 Examples
 ==============
 
-### Data types
-#### Arrays
+#### Data types
+Arrays
 ```Swift
 let array = ["Swift", "is", "ace"]
 print(array.count)
@@ -45,7 +45,7 @@ System.out.println(array.size());
 System.out.println(array.get(0 ).length());
 ```
 
-#### Dictionaries
+Dictionaries
 ```Swift
 var dictionary: [String:Int] = ["key" : "val"]
 print(dictionary.count)
@@ -62,7 +62,7 @@ System.out.println(dictionary.size());
 dictionary.remove("key" );
 ```
 
-#### Tuples
+Tuples
 ```Swift
 let tuple: (a:String, count:Int) = ("str", 3)
 print(tuple.a)
@@ -79,8 +79,8 @@ System.out.println(((String)tuple.get("a")));
 System.out.println(((Integer)tuple.get("count")));
 ```
 
-### Control flow
-#### For in range
+#### Control flow
+For in range
 ```Swift
 for number in 0...10 {
     guard number < 3 else {
@@ -106,7 +106,7 @@ for(int number = 0 ; number <= 10 ; number++) {
 }
 ```
 
-#### For in collection
+For in collection
 ```Swift
 let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
 for (animalName, legCount) in numberOfLegs {
@@ -132,7 +132,7 @@ for(Map.Entry<String, Integer> $ : (numberOfLegs).entrySet()) {
 }
 ```
 
-#### If let
+If let
 ```Swift
 let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
 if let catLegs = numberOfLegs["cat"] {
@@ -154,7 +154,7 @@ if(numberOfLegs.get("cat" ) != null) {
 }
 ```
 
-### Optionals & chaining
+#### Optionals & chaining
 ```Swift
 var dictionary = ["key" : "val"]
 print(dictionary["non-existent"]?.characters.count)
@@ -174,8 +174,8 @@ System.out.println((dictionary.get("non-existent" ) != null ? dictionary.get("no
 if(dictionary != null) { dictionary.put("key2" , "val2" ); };
 ```
 
-### Functions
-#### Overloading
+#### Functions
+Overloading
 ```Swift
 func justPrint(_ printed: String) {
     print("String: \(printed)")
@@ -208,7 +208,7 @@ justPrint$_Double(2.1 );
 No support in Java yet.
 ```
 
-#### Non-primitive return types
+Non-primitive return types
 ```Swift
 func returnOptionalTuple(shouldReturn: Bool) -> (Int,String)? {
     return shouldReturn ? (0, "val") : nil
@@ -226,8 +226,8 @@ console.log(returnTuple()[0 ]);
 No support in Java yet.
 ```
 
-### Closures
-#### Operator methods
+#### Closures
+Operator methods
 ```Swift
 var numbers = [5, 2, 3, 1, 4]
 numbers.sort(by: <)
