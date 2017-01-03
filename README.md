@@ -1,9 +1,8 @@
 Swift to JavaScript/TypeScript and Java transpiler
 ==============
 
-This is an open source Swift3 to TypeScript/Java transpiler.
-TypeScript can then be transpiled further to JavaScript.
-The project is written in Java using antlr4 parser generator.
+This is an open source Swift3 to JavaScript/TypeScript and Java transpiler.
+It's written in Java using antlr4 parser generator.
 
 Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com for live transpilation preview.
 
@@ -28,63 +27,66 @@ The transpiler currently lacks support for:
 Examples
 ==============
 
-Data types
+### Data types
+#### Arrays
 ```Swift
 let array = ["Swift", "is", "ace"]
 print(array.count)
 print(array[0].characters.count)
-
-var dictionary: [String:Int] = ["key" : "val"]
-print(dictionary.count)
-dictionary["key"] = nil
-
-let tuple: (a:String, count:Int) = ("str", 3)
-print(tuple.a)
-print(tuple.count)
 ```
 ```Typescript
 const array:Array<string> = [ "Swift" , "is" , "ace" ] ;
 console.log(array.length);
 console.log(array[0 ].length);
-
-let dictionary:Object = {"key" :"val" };
-console.log(_.size(dictionary));
-delete dictionary["key" ];
-
-const tuple:Object = {'a':"str" ,'count':3 };
-console.log(tuple.a);
-console.log(tuple.count);
 ```
 ```Java
 List<String> array = new ArrayList<String>(Arrays.asList("Swift", "is", "ace"));
 System.out.println(array.size());
 System.out.println(array.get(0 ).length());
+```
 
+#### Dictionaries
+```Swift
+var dictionary: [String:Int] = ["key" : "val"]
+print(dictionary.count)
+dictionary["key"] = nil
+```
+```Typescript
+let dictionary:Object = {"key" :"val" };
+console.log(_.size(dictionary));
+delete dictionary["key" ];
+```
+```Java
 Map<String, Integer> dictionary = new InitializableHashMap<String, Integer>(new Pair<String, Integer>("key" , "val" ));
 System.out.println(dictionary.size());
 dictionary.remove("key" );
+```
 
+#### Tuples
+```Swift
+let tuple: (a:String, count:Int) = ("str", 3)
+print(tuple.a)
+print(tuple.count)
+```
+```Typescript
+const tuple:Object = {'a':"str" ,'count':3 };
+console.log(tuple.a);
+console.log(tuple.count);
+```
+```Java
 Map<String, ?> tuple = new InitializableHashMap<String, Object>(new Pair<String, String>("a", "str" ),new Pair<String, Integer>("count", 3 ));
 System.out.println(((String)tuple.get("a")));
 System.out.println(((Integer)tuple.get("count")));
 ```
 
-Control flow
+### Control flow
+#### For in range
 ```Swift
 for number in 0...10 {
     guard number < 3 else {
         break
     }
     print(number)
-}
-
-let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
-if let catLegs = numberOfLegs["cat"] {
-    print(catLegs);
-}
-for (animalName, legCount) in numberOfLegs {
-    print(animalName)
-    print(legCount)
 }
 ```
 ```Typescript
@@ -94,17 +96,6 @@ for(let number = 0 ; number <= 10 ; number++) {
     }
     console.log(number);
 }
-
-const numberOfLegs:Object = {"ant" :6 , "cat" :4 , "spider" :8 };
-if(numberOfLegs["cat" ] != null) {
-    const catLegs:number = numberOfLegs["cat" ];
-    console.log(catLegs);
-}
-for(let animalName in numberOfLegs) {
-    let legCount = (numberOfLegs)[animalName];
-    console.log(animalName);
-    console.log(legCount);
-}
 ```
 ```Java
 for(int number = 0 ; number <= 10 ; number++) {
@@ -113,12 +104,26 @@ for(int number = 0 ; number <= 10 ; number++) {
     }
     System.out.println(number);
 }
+```
 
-Map<String, Integer> numberOfLegs = new InitializableHashMap<String, Integer>(new Pair<String, Integer>("ant" , 6 ), new Pair<String, Integer>("cat" , 4 ), new Pair<String, Integer>("spider" , 8 ));
-if(numberOfLegs.get("cat" ) != null) {
-    Integer catLegs = numberOfLegs.get("cat" );
-    System.out.println(catLegs);
+#### For in collection
+```Swift
+let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
+for (animalName, legCount) in numberOfLegs {
+    print(animalName)
+    print(legCount)
 }
+```
+```Typescript
+const numberOfLegs:Object = {"ant" :6 , "cat" :4 , "spider" :8 };
+for(let animalName in numberOfLegs) {
+    let legCount = (numberOfLegs)[animalName];
+    console.log(animalName);
+    console.log(legCount);
+}
+```
+```Java
+Map<String, Integer> numberOfLegs = new InitializableHashMap<String, Integer>(new Pair<String, Integer>("ant" , 6 ), new Pair<String, Integer>("cat" , 4 ), new Pair<String, Integer>("spider" , 8 ));
 for(Map.Entry<String, Integer> $ : (numberOfLegs).entrySet()) {
     String animalName = $.getKey();
     Integer legCount = $.getValue();
@@ -127,7 +132,29 @@ for(Map.Entry<String, Integer> $ : (numberOfLegs).entrySet()) {
 }
 ```
 
-Optionals & chaining
+#### If let
+```Swift
+let numberOfLegs = ["ant": 6, "cat": 4, "spider": 8]
+if let catLegs = numberOfLegs["cat"] {
+    print(catLegs);
+}
+```
+```Typescript
+const numberOfLegs:Object = {"ant" :6 , "cat" :4 , "spider" :8 };
+if(numberOfLegs["cat" ] != null) {
+    const catLegs:number = numberOfLegs["cat" ];
+    console.log(catLegs);
+}
+```
+```Java
+Map<String, Integer> numberOfLegs = new InitializableHashMap<String, Integer>(new Pair<String, Integer>("ant" , 6 ), new Pair<String, Integer>("cat" , 4 ), new Pair<String, Integer>("spider" , 8 ));
+if(numberOfLegs.get("cat" ) != null) {
+    Integer catLegs = numberOfLegs.get("cat" );
+    System.out.println(catLegs);
+}
+```
+
+### Optionals & chaining
 ```Swift
 var dictionary = ["key" : "val"]
 print(dictionary["non-existent"]?.characters.count)
@@ -147,7 +174,8 @@ System.out.println((dictionary.get("non-existent" ) != null ? dictionary.get("no
 if(dictionary != null) { dictionary.put("key2" , "val2" ); };
 ```
 
-Functions
+### Functions
+#### Overloading
 ```Swift
 func justPrint(_ printed: String) {
     print("String: \(printed)")
@@ -161,12 +189,6 @@ func justPrint(_ printed: Double) {
 justPrint("message")
 justPrint(1)
 justPrint(2.1)
-
-func returnOptionalTuple(shouldReturn: Bool) -> (Int,String)? {
-    return shouldReturn ? (0, "val") : nil
-}
-print(returnOptionalTuple(shouldReturn: false)?.0)
-print((returnOptionalTuple(shouldReturn: true)?.0)!)
 ```
 ```Typescript
 function justPrint$_String(printed : string):void{
@@ -181,7 +203,20 @@ function justPrint$_Double(printed : number):void{
 justPrint$_String("message" );
 justPrint$_Int(1 );
 justPrint$_Double(2.1 );
+```
+```Java
+No support in Java yet.
+```
 
+#### Non-primitive return types
+```Swift
+func returnOptionalTuple(shouldReturn: Bool) -> (Int,String)? {
+    return shouldReturn ? (0, "val") : nil
+}
+print(returnOptionalTuple(shouldReturn: false)?.0)
+print((returnOptionalTuple(shouldReturn: true)?.0)!)
+```
+```Typescript
 function returnTuple():Object{
     return {'0':0 ,'1':"val" };
 }
@@ -191,11 +226,22 @@ console.log(returnTuple()[0 ]);
 No support in Java yet.
 ```
 
-Closures
+### Closures
+#### Operator methods
 ```Swift
 var numbers = [5, 2, 3, 1, 4]
 numbers.sort(by: <)
+```
+```Typescript
+let numbers:Array<number> = [ 5 , 2 , 3 , 1 , 4 ] ;
+numbers.sortBool((a, b) => a < b);
+```
+```Java
+No support in Java yet.
+```
 
+```Swift
+var numbers = [5, 2, 3, 1, 4]
 let sum = numbers.filter {
         $0 % 2 == 1 //select all the odd numbers
     }.map {
@@ -206,7 +252,6 @@ let sum = numbers.filter {
 ```
 ```Typescript
 let numbers:Array<number> = [ 5 , 2 , 3 , 1 , 4 ] ;
-numbers.sortBool((a, b) => a < b);
 const sum:number = numbers.filter(
         () => arguments[0] % 2  == 1
     ).map(
