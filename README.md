@@ -240,6 +240,7 @@ numbers.sortBool((a, b) => a < b);
 No support in Java yet.
 ```
 
+Shorthand Argument Names
 ```Swift
 var numbers = [5, 2, 3, 1, 4]
 let sum = numbers.filter {
