@@ -34,7 +34,7 @@ public class Expression implements PrefixOrExpression {
             }
         }
 
-        for(int priority = 4; priority <= 10; priority++) {
+        for(int priority = BinaryExpression.minOperatorPriority; priority <= BinaryExpression.maxOperatorPriority; priority++) {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);
                 if(BinaryExpression.priorityForOperator(operator, visitor) != priority) continue;

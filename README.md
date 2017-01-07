@@ -24,6 +24,8 @@ The transpiler currently lacks support for:
 - inout params
 - switch
 
+Also, check out my reverse project (TypeScript to Swift transpiler): https://github.com/marcelganczak/ts-swift-transpiler
+
 Examples
 ==============
 

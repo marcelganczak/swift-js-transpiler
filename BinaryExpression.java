@@ -15,6 +15,8 @@ public class BinaryExpression implements PrefixOrExpression {
         try { jsonTxt = IOUtils.toString(is); } catch (IOException e) { }
         try { definitions = new JSONObject(jsonTxt); } catch (JSONException e) { }
     }
+    static public int minOperatorPriority = 4;
+    static public int maxOperatorPriority = 10;
 
     AbstractType type;
     String code;
