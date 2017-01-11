@@ -4,7 +4,7 @@ Swift to JavaScript/TypeScript and Java transpiler
 This is an open source Swift3 to JavaScript/TypeScript and Java transpiler.
 It's written in Java using antlr4 parser generator.
 
-Visit http://ec2-52-213-137-101.eu-west-1.compute.amazonaws.com for live transpilation preview.
+Visit http://typeswift.com for live transpilation preview.
 
 It has support for Swift:
 
