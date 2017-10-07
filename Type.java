@@ -1,5 +1,3 @@
-import org.antlr.v4.runtime.tree.ParseTree;
-
 import java.util.*;
 
 class BasicType extends AbstractType {
@@ -7,23 +5,24 @@ class BasicType extends AbstractType {
     public BasicType(String sourceType) {
         this.sourceType = sourceType;
         this.isOptional = false;
+        this.isGetterSetter = false;
     }
-    public BasicType(String sourceType, boolean isOptional) {
+    public BasicType(String sourceType, boolean isOptional, boolean isGetterSetter) {
         this.sourceType = sourceType;
         this.isOptional = isOptional;
+        this.isGetterSetter = isGetterSetter;
     }
     public String swiftType() {
         return sourceType;
     }
-    public String targetType(String language) { return targetType(language, false); }
-    public String targetType(String language, boolean notGeneric) {
+    protected String targetType(String language, boolean notGeneric) {
         return language.equals("ts") ? Type.basicToTs(sourceType) : Type.basicToJava(sourceType);
     }
     public AbstractType resulting(String accessor) {
         return null;
     }
     public AbstractType copy() {
-        return new BasicType(this.sourceType, this.isOptional);
+        return new BasicType(this.sourceType, this.isOptional, this.isGetterSetter);
     }
 }
 class FunctionType extends AbstractType {
@@ -49,8 +48,7 @@ class FunctionType extends AbstractType {
     public String swiftType() {
         return "Function";
     }
-    public String targetType(String language) { return targetType(language, false); }
-    public String targetType(String language, boolean notGeneric) {
+    protected String targetType(String language, boolean notGeneric) {
         return language.equals("ts") ? "Function" : "TODO";
     }
     public AbstractType resulting(String accessor) {
@@ -70,17 +68,17 @@ class NestedType extends AbstractType {
     private String wrapperType;//Dictionary/Array/Set
     public AbstractType keyType;
     public AbstractType valueType;
-    public NestedType(String wrapperType, AbstractType keyType, AbstractType valueType, boolean isOptional) {
+    public NestedType(String wrapperType, AbstractType keyType, AbstractType valueType, boolean isOptional, boolean isGetterSetter) {
         this.wrapperType = wrapperType;
         this.keyType = keyType;
         this.valueType = valueType;
         this.isOptional = isOptional;
+        this.isGetterSetter = isGetterSetter;
     }
     public String swiftType() {
         return wrapperType;
     }
-    public String targetType(String language) { return targetType(language, false); }
-    public String targetType(String language, boolean notGeneric) {
+    protected String targetType(String language, boolean notGeneric) {
         if(language.equals("ts")) {
             return
                 wrapperType.equals("Dictionary") ? "Object" :
@@ -98,13 +96,28 @@ class NestedType extends AbstractType {
         return valueType;
     }
     public AbstractType copy() {
-        return new NestedType(this.wrapperType, this.keyType, this.valueType, this.isOptional);
+        return new NestedType(this.wrapperType, this.keyType, this.valueType, this.isOptional, this.isGetterSetter);
+    }
+    @Override public boolean copiedOnAssignment() {
+        return true;
     }
 }
 class NestedByIndexType extends AbstractType {
     private LinkedHashMap<String, AbstractType> sourceType;
-    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType) {
+    private String structureType;
+    private String definitionName;
+    private boolean isInstance;
+    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType, String structureType, String definitionName, boolean isInstance) {
         this.sourceType = sourceType;
+        this.structureType = structureType;
+        this.definitionName = definitionName;
+        this.isInstance = isInstance;
+    }
+    public void put(String key, AbstractType type) {
+        sourceType.put(key, type);
+    }
+    public boolean isInitialization() {
+        return structureType.equals("class") || structureType.equals("struct");
     }
     public ArrayList<String> keys() {
         return new ArrayList<String>(sourceType.keySet());
@@ -112,15 +125,19 @@ class NestedByIndexType extends AbstractType {
     public String swiftType() {
         return "Tuple";
     }
-    public String targetType(String language) { return targetType(language, false); }
-    public String targetType(String language, boolean notGeneric) {
+    protected String targetType(String language, boolean notGeneric) {
+        if(structureType.equals("class") || structureType.equals("struct")) return definitionName;
         return language.equals("ts") ? "Object" : (notGeneric ? "InitializableHashMap" : "Map") + "<String, ?>";
     }
     public AbstractType resulting(String accessor) {
+        if(accessor.equals("()")) return new NestedByIndexType(sourceType, structureType, definitionName, true);
         return sourceType.get(accessor);
     }
     public AbstractType copy() {
-        return new NestedByIndexType(this.sourceType);
+        return new NestedByIndexType(sourceType, structureType, definitionName, isInstance);
+    }
+    @Override public boolean copiedOnAssignment() {
+        return structureType.equals("struct");
     }
 }
 
@@ -171,16 +188,20 @@ public class Type {
             ctx = ctx.type(0);
         }
 
+        boolean isGetterSetter =
+                (ctx.parent != null && ctx.parent.parent instanceof SwiftParser.Property_declarationContext) ||
+                (ctx.parent instanceof SwiftParser.Type_annotationContext && ((SwiftParser.Type_annotationContext)ctx.parent).inout() != null);
+
         AbstractType type;
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional);
-        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional);
-        else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), isOptional);
-        else type = new BasicType(ctx.getText(), isOptional);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter);
+        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter);
+        else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), isOptional, isGetterSetter);
+        else type = new BasicType(ctx.getText(), isOptional, isGetterSetter);
 
         if(ctx.getParent().getParent() instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)ctx.getParent().getParent()).range_operator() != null) {
-            type = new NestedType("Array", new BasicType("Int"), type, false);
+            type = new NestedType("Array", new BasicType("Int"), type, false, false);
         }
 
         return type;
@@ -205,13 +226,13 @@ public class Type {
         return new BasicType(description);
     }
 
-    private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional) {
+    private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter) {
         List<SwiftParser.TypeContext> types = ctx.type();
-        return new NestedType("Dictionary", fromDefinition(types.get(0)), fromDefinition(types.get(1)), isOptional);
+        return new NestedType("Dictionary", fromDefinition(types.get(0)), fromDefinition(types.get(1)), isOptional, isGetterSetter);
     }
 
-    private static AbstractType fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional) {
-        return new NestedType("Array", new BasicType("Int"), fromDefinition(ctx.type()), isOptional);
+    private static AbstractType fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter) {
+        return new NestedType("Array", new BasicType("Int"), fromDefinition(ctx.type()), isOptional, isGetterSetter);
     }
 
     private static LinkedHashMap<String, AbstractType> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx) {
@@ -228,16 +249,16 @@ public class Type {
         }
         return flattened;
     }
-    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional) {
+    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter) {
         LinkedHashMap<String, AbstractType> elems = flattenTupleDefinition(ctx);
-        return new NestedByIndexType(elems);
+        return new NestedByIndexType(elems, "tuple", null, false);
     }
 
-    private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional) {
-        return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()), isOptional);
+    private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter) {
+        return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()), isOptional, isGetterSetter);
     }
 
-    private static AbstractType fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, boolean isOptional) {
+    private static AbstractType fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, boolean isOptional, boolean isGetterSetter) {
         LinkedHashMap<String, AbstractType> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list());
         ArrayList<String> parameterExternalNames = new ArrayList<String>();
         ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
@@ -264,12 +285,6 @@ public class Type {
 
     public static AbstractType infer(SwiftParser.ExpressionContext ctx, Visitor visitor) {
         return new Expression(ctx, null, visitor).type;
-    }
-
-    public static AbstractType resulting(AbstractType lType, String accessor, ParseTree ctx, Visitor visitor) {
-        if(accessor == null) return null;
-        if(lType == null) return visitor.cache.getType(accessor, ctx);
-        return lType.resulting(accessor);
     }
 
     public static AbstractType alternative(PrefixOrExpression L, PrefixOrExpression R) {

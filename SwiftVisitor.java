@@ -503,6 +503,52 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVariable_declaration_head(SwiftParser.Variable_declaration_headContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#variable_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVariable_declaration_body(SwiftParser.Variable_declaration_bodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#regular_variable_declaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRegular_variable_declaration(SwiftParser.Regular_variable_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#property_declaration}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitProperty_declaration(SwiftParser.Property_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code computed_property_declaration}
+	 * labeled alternative in {@link SwiftParser#property_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitComputed_property_declaration(SwiftParser.Computed_property_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code computed_keyword_property_declaration}
+	 * labeled alternative in {@link SwiftParser#property_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitComputed_keyword_property_declaration(SwiftParser.Computed_keyword_property_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code willSet_didSet_property_declaration}
+	 * labeled alternative in {@link SwiftParser#property_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitWillSet_didSet_property_declaration(SwiftParser.WillSet_didSet_property_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by the {@code read_only_computed_property_declaration}
+	 * labeled alternative in {@link SwiftParser#property_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitRead_only_computed_property_declaration(SwiftParser.Read_only_computed_property_declarationContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#variable_name}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -790,6 +836,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitStruct_body(SwiftParser.Struct_bodyContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#struct_keyword}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitStruct_keyword(SwiftParser.Struct_keywordContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SwiftParser#class_declaration}.
 	 * @param ctx the parse tree
@@ -1437,6 +1489,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitType_annotation(SwiftParser.Type_annotationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#inout}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitInout(SwiftParser.InoutContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SwiftParser#type_identifier}.
 	 * @param ctx the parse tree

@@ -331,16 +331,22 @@ initializer : assignment_operator expression  ;
 
 // GRAMMAR OF A VARIABLE DECLARATION
 
-variable_declaration
- : variable_declaration_head pattern_initializer_list
- | variable_declaration_head variable_name type_annotation code_block
- | variable_declaration_head variable_name type_annotation getter_setter_block
- | variable_declaration_head variable_name type_annotation getter_setter_keyword_block
- | variable_declaration_head variable_name type_annotation initializer? willSet_didSet_block
- | variable_declaration_head variable_name type_annotation type_annotation initializer? willSet_didSet_block
+variable_declaration : variable_declaration_head variable_declaration_body;
+variable_declaration_head : attributes? declaration_modifiers? 'var'  ;
+variable_declaration_body : property_declaration | regular_variable_declaration;
+
+regular_variable_declaration : pattern_initializer_list ;
+
+property_declaration : variable_name type_annotation property_declaration_body;
+property_declaration_body
+ : getter_setter_block               # computed_property_declaration
+ | getter_setter_keyword_block       # computed_keyword_property_declaration
+ | initializer? willSet_didSet_block # willSet_didSet_property_declaration
+// not sure what that one does? double type_annotation?
+// | type_annotation initializer? willSet_didSet_block
+ | code_block                        # read_only_computed_property_declaration
  ;
 
-variable_declaration_head : attributes? declaration_modifiers? 'var'  ;
 variable_name : identifier  ;
 
 getter_setter_block : '{' getter_clause setter_clause?'}'  | '{' setter_clause getter_clause '}'  ;
@@ -383,7 +389,6 @@ parameter_list : parameter (',' parameter)*  ;
 parameter
  : 'let'?  external_parameter_name? local_parameter_name type_annotation? default_argument_clause?
  | 'var'   external_parameter_name? local_parameter_name type_annotation? default_argument_clause?
- | 'inout' external_parameter_name? local_parameter_name type_annotation
  |         external_parameter_name? local_parameter_name type_annotation range_operator
  ;
 external_parameter_name : identifier | '_'  ;
@@ -413,9 +418,10 @@ raw_value_literal : numeric_literal | Static_string_literal | boolean_literal ;
 
 // GRAMMAR OF A STRUCTURE DECLARATION TODO did not update
 
-struct_declaration : attributes? access_level_modifier? 'struct' struct_name generic_parameter_clause? type_inheritance_clause? struct_body  ;
+struct_declaration : attributes? access_level_modifier? struct_keyword struct_name generic_parameter_clause? type_inheritance_clause? struct_body  ;
 struct_name : identifier  ;
 struct_body : '{' declarations?'}'  ;
+struct_keyword : 'struct' ;
 
 // GRAMMAR OF A CLASS DECLARATION
 
@@ -797,7 +803,8 @@ dictionary_definition : '[' type ':' type ']';
 
 // GRAMMAR OF A TYPE ANNOTATION
 
-type_annotation : ':' attributes? type  ;
+type_annotation : ':' attributes? inout? type  ;
+inout : 'inout';
 
 // GRAMMAR OF A TYPE IDENTIFIER
 

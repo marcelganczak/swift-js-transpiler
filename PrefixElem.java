@@ -63,7 +63,7 @@ public class PrefixElem {
             elementI++;
         }
 
-        if(type == null) type = new NestedByIndexType(types);
+        if(type == null) type = new NestedByIndexType(types, "tuple", null, false);
         String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
 
         return new PrefixElem(code, "", type, null);
@@ -100,7 +100,7 @@ public class PrefixElem {
         if(arrayLiteral.array_literal_items() != null) {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
             AbstractType wrappedType = functionCallParams != null ? new BasicType(wrappedExpression.getText()) : Type.infer(wrappedExpression, visitor);
-            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false);
+            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false, false);
         }
 
         String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
@@ -131,9 +131,9 @@ public class PrefixElem {
         else {
             if(functionCallParams != null) {
                 if(repeatedElement != null) {
-                    return "new " + type.targetType(visitor.targetLanguage, true) + "(Collections.nCopies(" + arraySize + ", " + repeatedElement + "))";
+                    return "new " + type.targetType(visitor.targetLanguage, true, false) + "(Collections.nCopies(" + arraySize + ", " + repeatedElement + "))";
                 }
-                return "new " + type.targetType(visitor.targetLanguage, true) + "(" + arraySize + ")";
+                return "new " + type.targetType(visitor.targetLanguage, true, false) + "(" + arraySize + ")";
             }
             else if(arrayLiteral.array_literal_items() != null) {
                 List<SwiftParser.Array_literal_itemContext> values = arrayLiteral.array_literal_items().array_literal_item();
@@ -141,10 +141,10 @@ public class PrefixElem {
                 for(int i = 0; i < values.size(); i++) {
                     valuesList += (i > 0 ? ", " : "") + values.get(i).getText();
                 }
-                return "new " + type.targetType(visitor.targetLanguage, true) + "(Arrays.asList(" + valuesList + "))";
+                return "new " + type.targetType(visitor.targetLanguage, true, false) + "(Arrays.asList(" + valuesList + "))";
             }
             else {
-                return "new " + type.targetType(visitor.targetLanguage, true) + "()";
+                return "new " + type.targetType(visitor.targetLanguage, true, false) + "()";
             }
         }
     }
@@ -155,11 +155,11 @@ public class PrefixElem {
         String code;
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Empty_dictionary_literalContext.class, dictionaryLiteral)) {
-            code = visitor.targetLanguage.equals("ts") ? "{}" : "new " + type.targetType(visitor.targetLanguage, true) + "()";
+            code = visitor.targetLanguage.equals("ts") ? "{}" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()";
         }
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
-            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false);
+            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false, false);
             code = getDictionaryInitializerCode(dictionaryLiteral, (NestedType)type, visitor);
         }
 
@@ -172,7 +172,7 @@ public class PrefixElem {
         }
         else {
             String diamond = dictionaryType.keyType.targetType(visitor.targetLanguage) + ", " + dictionaryType.valueType.targetType(visitor.targetLanguage);
-            String code = "new " + dictionaryType.targetType(visitor.targetLanguage, true) + "(";
+            String code = "new " + dictionaryType.targetType(visitor.targetLanguage, true, false) + "(";
             List<SwiftParser.Dictionary_literal_itemContext> items = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item();
             for(int i = 0; i < items.size(); i++) {
                 code += (i > 0 ? ", " : "") + "new Pair<" + diamond + ">(" + visitor.visitChildren(items.get(i).expression(0)) + ", " + visitor.visitChildren(items.get(i).expression(1)) + ")";
@@ -188,8 +188,8 @@ public class PrefixElem {
         String typeStr = visitor.visit(rChild.getChild(0)).trim();
 
         if(typeStr.equals("Set")) {
-            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false);
-            return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true) + "()", "", type, null);
+            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false, false);
+            return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", "", type, null);
         }
 
         return null;
@@ -263,8 +263,21 @@ public class PrefixElem {
         }
 
         if(type == null) {
-            type = Type.resulting(lType, code.trim(), chain.get(0), visitor);
-            if(functionCallParams != null && type instanceof FunctionType) type = type.resulting("()");
+            String varName = code.trim();
+            if(lType == null) {
+                EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, chain.get(0));
+                type = cache.object.type;
+                if(EntityCache.isStructureBlock(cache.block)) {
+                    code = "this." + code;
+                }
+                else if(varName.equals("self")) {
+                    code = "this";
+                }
+            }
+            else {
+                type = lType.resulting(varName);
+            }
+            if(functionCallParams != null/* && type instanceof FunctionType*/) type = type.resulting("()");
         }
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Implicit_parameterContext.class, rChild)) {

@@ -91,10 +91,16 @@ public class BinaryExpression implements PrefixOrExpression {
                         definitionCode = "#L #R)";
                     }
                 }
+
                 if(((Prefix) L).hasOptionals()) {
                     ifCode0 = optionalsGuardingIf(((Prefix) L));
                 }
+
                 if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).endsWithGetAccessor()) {
+                    definitionCode = "#L #R)";
+                }
+
+                if(L.type().isGetterSetter) {
                     definitionCode = "#L #R)";
                 }
 

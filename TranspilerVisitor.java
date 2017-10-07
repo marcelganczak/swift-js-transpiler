@@ -54,6 +54,16 @@ public class TranspilerVisitor extends Visitor {
         return AssignmentUtil.handleInitializer(ctx, this);
     }
 
+    @Override public String visitProperty_declaration(SwiftParser.Property_declarationContext ctx) {
+        return AssignmentUtil.handlePropertyDeclaration(ctx, this);
+    }
+
+    @Override public String visitDeclaration(SwiftParser.DeclarationContext ctx) {
+        boolean shouldBeNewLine = ctx.parent instanceof SwiftParser.DeclarationsContext;
+        boolean shouldHaveSemicolon = shouldBeNewLine && !(ctx.getChild(0) instanceof SwiftParser.Function_declarationContext);
+        return visitChildren(ctx) + (shouldBeNewLine ? (shouldHaveSemicolon ? ";" : "") + "\n" : "");
+    }
+
     @Override public String visitExpression_element(SwiftParser.Expression_elementContext ctx) {
         return visit(ctx.expression());
     }
@@ -61,6 +71,11 @@ public class TranspilerVisitor extends Visitor {
     @Override public String visitStatement(SwiftParser.StatementContext ctx) {
         boolean shouldHaveSemicolon = !(ctx.parent.parent instanceof SwiftParser.Explicit_closure_expressionContext) && !WalkerUtil.isRightMostDescendant(SwiftParser.Code_blockContext.class, ctx);
         return visitChildren(ctx) + (shouldHaveSemicolon && ctx.semicolon() == null ? ";" : "") + "\n";
+    }
+
+    @Override public String visitStruct_keyword(SwiftParser.Struct_keywordContext ctx) {
+        //just treat struct as class for now; we could swap it for an interface, but it's less work that way for now
+        return "class ";
     }
 
     @Override public String visitParameter(SwiftParser.ParameterContext ctx) {
@@ -74,6 +89,9 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitExternal_parameter_name(SwiftParser.External_parameter_nameContext ctx) {
+        return "";
+    }
+    @Override public String visitInout(SwiftParser.InoutContext ctx) {
         return "";
     }
 }

@@ -1,6 +1,8 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 public class CacheVisitor extends Visitor {
 
@@ -15,9 +17,21 @@ public class CacheVisitor extends Visitor {
         AbstractType varType =
                 ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type())
                 : Type.infer(ctx.initializer().expression(), this);
+        cache(varName, varType, ctx);
+        return null;
+    }
+
+    @Override public String visitProperty_declaration(SwiftParser.Property_declarationContext ctx) {
+        String varName = ctx.variable_name().getText();
+        AbstractType varType = Type.fromDefinition(ctx.type_annotation().type());
+        cache(varName, varType, ctx);
+        visit(ctx.property_declaration_body());
+        return null;
+    }
+
+    private void cache(String varName, AbstractType varType, ParseTree ctx) {
         if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
         cache.cacheOne(varName, varType, ctx);
-        return null;
     }
 
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
@@ -26,12 +40,42 @@ public class CacheVisitor extends Visitor {
 
         ArrayList<String> parameterLocalNames = FunctionUtil.parameterLocalNames(FunctionUtil.parameters(ctx));
         for(int i = 0; i < parameterLocalNames.size(); i++) {
-            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), ctx);
+            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), ctx.function_body().code_block());
         }
 
         visit(ctx.function_body());
 
         return null;
+    }
+
+    @Override public String visitSetter_clause(SwiftParser.Setter_clauseContext ctx) {
+        this.visitPropertyClause(ctx);
+        return null;
+    }
+    @Override public String visitWillSet_clause(SwiftParser.WillSet_clauseContext ctx) {
+        this.visitPropertyClause(ctx);
+        return null;
+    }
+    @Override public String visitDidSet_clause(SwiftParser.DidSet_clauseContext ctx) {
+        this.visitPropertyClause(ctx);
+        return null;
+    }
+    private void visitPropertyClause(ParserRuleContext ctx) {
+        SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
+        AbstractType propertyType = cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object.type.copy();
+        propertyType.isGetterSetter = false;
+        SwiftParser.Code_blockContext blockContext =
+            ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :
+            ctx instanceof SwiftParser.WillSet_clauseContext ? ((SwiftParser.WillSet_clauseContext)ctx).code_block() :
+            ((SwiftParser.DidSet_clauseContext)ctx).code_block();
+        String argumentName =
+            ctx instanceof SwiftParser.Setter_clauseContext ? AssignmentUtil.setterArgumentName((SwiftParser.Setter_clauseContext) ctx) :
+            ctx instanceof SwiftParser.WillSet_clauseContext ? AssignmentUtil.willSetArgumentName((SwiftParser.WillSet_clauseContext)ctx) :
+            AssignmentUtil.didSetArgumentName((SwiftParser.DidSet_clauseContext)ctx);
+
+        cache.cacheOne(argumentName, propertyType, blockContext);
+
+        visit(blockContext);
     }
 
     @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
@@ -41,6 +85,26 @@ public class CacheVisitor extends Visitor {
         for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
             cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
         }*/
+
+        return null;
+    }
+
+    @Override public String visitClass_declaration(SwiftParser.Class_declarationContext ctx) {
+
+        String className = ctx.class_name().getText();
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "class", className, false), ctx);
+
+        visit(ctx.class_body());
+
+        return null;
+    }
+
+    @Override public String visitStruct_declaration(SwiftParser.Struct_declarationContext ctx) {
+
+        String className = ctx.struct_name().getText();
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "struct", className, false), ctx);
+
+        visit(ctx.struct_body());
 
         return null;
     }

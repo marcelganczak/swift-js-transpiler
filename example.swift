@@ -1,4 +1,6 @@
-var dictionary = ["key" : "val"]
-print(dictionary["non-existent"]?.characters.count)
-print(dictionary["non-existent"] ?? "key doesn't exist!")
-dictionary?["key2"] = "val2"
+func incr(_ a: inout Int) {
+    a = a + 1
+}
+var b = 0
+incr(&b)
+print(b)

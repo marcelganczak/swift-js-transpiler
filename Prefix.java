@@ -17,6 +17,8 @@ class Replacement {
         this.skip = skip;
     }
 }
+
+//stuff like a.b.c or a[1] or a(), with optional prefix operator
 public class Prefix implements PrefixOrExpression {
     static private JSONObject definitions;
     static {
@@ -85,32 +87,45 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public String code() {
-        return elemCode(elems, 0, initString(), false);
+        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
     }
     public String code(boolean onAssignmentLeftHandSide) {
-        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide);
+        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
     }
     public String code(boolean onAssignmentLeftHandSide, int limit) {
-        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide);
+        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
     }
     private String initString() {
-        return prefixOperatorContext != null ? prefixOperatorContext.getText() : "";
+        return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
     }
-    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide) {
+    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression) {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
         String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
                   : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? L + ".put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + elem.code + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
+                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? L + (chainPos == 0 ? "" : ".") + elem.code + ".set("
                   : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + L + ".get(\"" + elem.code.trim() + "\"))"
                   : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : elem.accessor.equals(".get()") ? ".get(" + elem.code + ")" : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
         String nextCode =
-                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide)
+                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression)
                 : LR;
 
         if(elem.isOptional && !onAssignmentLeftHandSide) {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
+        }
+
+        if(isLast && elem.type instanceof NestedByIndexType && elem.functionCallParams != null && ((NestedByIndexType)elem.type).isInitialization()) {
+            nextCode = "new " + nextCode;
+        }
+
+        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter) {
+            nextCode += ".get()";
+        }
+
+        if(isLast && isInOutExpression) {
+            nextCode = "{get: () => " + nextCode + ", set: $val => " + nextCode + " = $val}";
         }
 
         return nextCode;

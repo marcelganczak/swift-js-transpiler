@@ -3,6 +3,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import java.util.ArrayList;
 import java.util.List;
 
+//stuff like a + b, c / d
 public class Expression implements PrefixOrExpression {
 
     String code;

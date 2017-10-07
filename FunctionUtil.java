@@ -97,25 +97,27 @@ public class FunctionUtil {
     static public String nameFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, Visitor visitor) {
         ArrayList<AbstractType> parameterTypes = parameterTypes(parameters, visitor);
         String defaultFunctionName = swiftFunctionName + nameAugment(parameters, parameterTypes);
-        if(visitor.cache.getTypeStrict(defaultFunctionName, ctx) != null) return defaultFunctionName;
+        if(visitor.cache.find(defaultFunctionName, ctx) != null) return defaultFunctionName;
 
-        Map<String, FunctionType> candidates = visitor.cache.getFunctionTypesStartingWith(defaultFunctionName, ctx);
+        Map<String, EntityCache.CacheBlockAndObject> candidates = visitor.cache.getFunctionsStartingWith(defaultFunctionName, ctx);
         int numUsedParameters = parameters != null ? parameters.size() : 0;
-        for(Map.Entry<String, FunctionType> iterator:candidates.entrySet()) {
-            FunctionType functionType = iterator.getValue();
+        for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
+            EntityCache.CacheBlockAndObject cacheBlockAndObject = iterator.getValue();
+            FunctionType functionType = (FunctionType)cacheBlockAndObject.object.type;
             if(numUsedParameters >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey();
         }
 
-        Expression variadicFunction = visitor.cache.getFunctionTypeEndingWithVariadic(defaultFunctionName, ctx);
-        if(variadicFunction != null) return variadicFunction.code;
+        EntityCache.CacheBlockAndExpression variadicFunction = visitor.cache.getFunctionEndingWithVariadic(defaultFunctionName, ctx);
+        if(variadicFunction != null) return variadicFunction.expression.code;
 
         return null;
     }
 
     static public String nameFromCall(String swiftFunctionName, FunctionType type, ParserRuleContext ctx, Visitor visitor) {
-        Map<String, FunctionType> candidates = visitor.cache.getFunctionTypesStartingWith(swiftFunctionName, ctx);
-        for(Map.Entry<String, FunctionType> iterator:candidates.entrySet()) {
-            FunctionType functionType = iterator.getValue();
+        Map<String, EntityCache.CacheBlockAndObject> candidates = visitor.cache.getFunctionsStartingWith(swiftFunctionName, ctx);
+        for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
+            EntityCache.CacheBlockAndObject cacheBlockAndObject = iterator.getValue();
+            FunctionType functionType = (FunctionType)cacheBlockAndObject.object.type;
             if(functionType.sameAs(type)) return iterator.getKey();
         }
         return null;
@@ -123,8 +125,15 @@ public class FunctionUtil {
 
     static public String functionDeclaration(SwiftParser.Function_declarationContext ctx, Visitor visitor) {
         FunctionType functionType = new FunctionType(ctx, visitor);
+        boolean isInClass = ctx.parent != null && ctx.parent.parent instanceof SwiftParser.DeclarationsContext;
 
-        return "function " + FunctionUtil.functionName(ctx, functionType) + "(" + visitor.visitChildren(ctx.function_signature().parameter_clauses().parameter_clause().parameter_list()) + "):" + functionType.returnType.targetType(visitor.targetLanguage) + visitor.visit(ctx.function_body().code_block());
+        return (
+            (!isInClass ? "function " : "") +
+            FunctionUtil.functionName(ctx, functionType) +
+            "(" + visitor.visitChildren(ctx.function_signature().parameter_clauses().parameter_clause().parameter_list()) + "):" +
+            functionType.returnType.targetType(visitor.targetLanguage) +
+            visitor.visit(ctx.function_body().code_block())
+        );
     }
 
     static public String closureExpression(SwiftParser.Closure_expressionContext ctx, FunctionType type, Visitor visitor) {
