@@ -18,10 +18,9 @@ which contains Swift code snippets that demonstrate supported features in greate
 
 The transpiler currently lacks support for:
 
-- classes
+- classes inheritance & memberwise initialization
 - overloading operators
 - enums
-- inout params
 - switch
 
 Also, check out my reverse project (TypeScript to Swift transpiler): https://github.com/marcelganczak/ts-swift-transpiler
@@ -228,6 +227,27 @@ console.log(returnTuple()[0 ]);
 No support in Java yet.
 ```
 
+In-Out parameters
+```Swift
+func incr(_ a: inout Int) {
+    a = a + 1
+}
+var a = 0
+incr(&a)
+print(a)
+```
+```Typescript
+function incr$_Int(a : {get: () => number, set: (val: number) => void}):void{
+    a.set( a.get() + 1 );
+}
+let a:number = 0 ;
+incr$_Int({get: () => a, set: $val => a = $val});
+console.log(a);
+```
+```Java
+No support in Java yet.
+```
+
 #### Closures
 Operator methods
 ```Swift
@@ -242,7 +262,7 @@ numbers.sortBool((a, b) => a < b);
 No support in Java yet.
 ```
 
-Shorthand Argument Names
+Shorthand argument names
 ```Swift
 var numbers = [5, 2, 3, 1, 4]
 let sum = numbers.filter {
@@ -266,6 +286,43 @@ const sum:number = numbers.filter(
 ```Java
 No support in Java yet.
 ```
+
+#### Classes
+Getter/setter Properties
+```Swift
+struct Square {
+    var a = 1.0
+    var circum: Double {
+        get {
+            return a * 4
+        }
+        set(newGirth) {
+            a = newGirth / 4
+        }
+    }
+}
+var square = Square()
+square.circum = 16
+print(square.circum)
+```
+```Typescript
+class Square {
+    a:number = 1.0 ;
+    circum = {
+        get: (): number => {
+            return this.a * 4 ;
+        },
+        set: (newGirth:number) => {
+            this.a = newGirth / 4 ;
+        }
+    };
+}
+let square:Square = new Square();
+square.circum.set( 16 );
+console.log(square.circum.get());
+```
+```Java
+No support in Java yet.
 
 Motivation & Development
 ==============
