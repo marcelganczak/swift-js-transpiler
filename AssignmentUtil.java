@@ -85,11 +85,11 @@ public class AssignmentUtil {
         String propertyType = property.object.type.targetType(visitor.targetLanguage, false, true);
 
         return
-            visitor.visitChildren(ctx.variable_name()) + ": {\n" +
-                "get: function(): " + propertyType + " " + visitor.visit(getterSetterBlock.getter_clause().code_block()) + ",\n" +
-                "set: function(" +
+            visitor.visitChildren(ctx.variable_name()) + " = {\n" +
+                "get: (): " + propertyType + " => " + visitor.visit(getterSetterBlock.getter_clause().code_block()) + ",\n" +
+                "set: (" +
                     setterArgument + ":" + propertyType +
-                ") " + visitor.visit(getterSetterBlock.setter_clause().code_block()) + "\n" +
+                ") => " + visitor.visit(getterSetterBlock.setter_clause().code_block()) + "\n" +
             "}";
     }
     static private String handleReadOnlyComputedPropertyDeclaration(SwiftParser.Property_declarationContext ctx, Visitor visitor) {
@@ -100,8 +100,8 @@ public class AssignmentUtil {
         String propertyType = property.object.type.targetType(visitor.targetLanguage, false, true);
 
         return
-            propertyName + ": {\n" +
-                "get: function(): " + propertyType + " " + visitor.visit(declarationCtx.code_block()) + ",\n" +
+            propertyName + " = {\n" +
+                "get: (): " + propertyType + " => " + visitor.visit(declarationCtx.code_block()) + ",\n" +
             "}";
     }
     static public String willSetArgumentName(SwiftParser.WillSet_clauseContext ctx) {
@@ -121,12 +121,12 @@ public class AssignmentUtil {
         SwiftParser.DidSet_clauseContext didSetClause = declarationCtx.willSet_didSet_block().didSet_clause();
 
         return
-            propertyName + ": {\n" +
+            propertyName + " = {\n" +
                 "value: " + (declarationCtx.initializer() != null ? visitor.visit(declarationCtx.initializer().expression()) : "undefined" ) + ",\n" +
-                "get: function(): " + propertyType + "{ return this." + propertyName + ".value },\n" +
-                "set: function(newValue: " + propertyType + ") {\n" +
-                    "function willSet(" + willSetArgumentName(willSetClause) + ": " + propertyType + ") " + visitor.visit(willSetClause.code_block()) + "\n" +
-                    (didSetClause != null ? "function didSet(" + didSetArgumentName(didSetClause) + ": " + propertyType + ") " + visitor.visit(didSetClause.code_block()) + "\n" : "") +
+                "get: (): " + propertyType + " => { return this." + propertyName + ".value },\n" +
+                "set: (newValue: " + propertyType + ") => {\n" +
+                    "let willSet = (" + willSetArgumentName(willSetClause) + ": " + propertyType + ") => " + visitor.visit(willSetClause.code_block()) + "\n" +
+                    (didSetClause != null ? "let didSet = (" + didSetArgumentName(didSetClause) + ": " + propertyType + ") => " + visitor.visit(didSetClause.code_block()) + "\n" : "") +
                     (didSetClause != null ? "let oldValue: " + propertyType + " = this." + propertyName + ".value;\n" : "") +
                     "willSet(newValue);\n" +
                     "this." + propertyName + ".value = newValue;\n" +

@@ -63,7 +63,7 @@ public class PrefixElem {
             elementI++;
         }
 
-        if(type == null) type = new NestedByIndexType(types, "tuple", null, false);
+        if(type == null) type = new NestedByIndexType(types, "tuple", null, false, false);
         String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
 
         return new PrefixElem(code, "", type, null);
@@ -254,7 +254,7 @@ public class PrefixElem {
         }
 
         if(functionCallParams != null) {
-            code = FunctionUtil.nameFromCall(code, functionCallParams, rChild, visitor);
+            code = FunctionUtil.nameFromCall(code, functionCallParams, rChild, lType, visitor);
             functionCallParamsStr = "";
             for(int i = 0; i < functionCallParams.size(); i++) functionCallParamsStr += (i > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
         }

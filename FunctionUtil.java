@@ -72,7 +72,7 @@ public class FunctionUtil {
             ParserRuleContext parameter = parameters.get(i);
             AbstractType parameterType;
             if(parameter instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)parameter).type_annotation() != null) {
-                parameterType = Type.fromDefinition(((SwiftParser.ParameterContext)parameter).type_annotation().type());
+                parameterType = Type.fromDefinition(((SwiftParser.ParameterContext)parameter).type_annotation().type(), visitor);
             }
             else {
                 parameterType = Type.infer(parameter instanceof SwiftParser.ParameterContext ? ((SwiftParser.ParameterContext)parameter).default_argument_clause().expression() : ((SwiftParser.Expression_elementContext)parameter).expression(), visitor);
@@ -94,10 +94,11 @@ public class FunctionUtil {
         return numParametersWithDefaultValue;
     }
 
-    static public String nameFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, Visitor visitor) {
+    static public String nameFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, AbstractType lType, Visitor visitor) {
         ArrayList<AbstractType> parameterTypes = parameterTypes(parameters, visitor);
         String defaultFunctionName = swiftFunctionName + nameAugment(parameters, parameterTypes);
-        if(visitor.cache.find(defaultFunctionName, ctx) != null) return defaultFunctionName;
+        Object function = lType != null ? lType.resulting(defaultFunctionName) : visitor.cache.find(defaultFunctionName, ctx);
+        if(function != null) return defaultFunctionName;
 
         Map<String, EntityCache.CacheBlockAndObject> candidates = visitor.cache.getFunctionsStartingWith(defaultFunctionName, ctx);
         int numUsedParameters = parameters != null ? parameters.size() : 0;

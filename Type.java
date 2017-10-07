@@ -39,11 +39,12 @@ class FunctionType extends AbstractType {
 
         returnType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, visitor);
     }
-    public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType) {
+    public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType, boolean isGetterSetter) {
         this.parameterExternalNames = parameterExternalNames;
         this.parameterTypes = parameterTypes;
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
+        this.isGetterSetter = isGetterSetter;
     }
     public String swiftType() {
         return "Function";
@@ -55,7 +56,7 @@ class FunctionType extends AbstractType {
         return returnType;
     }
     public AbstractType copy() {
-        return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType);
+        return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType, this.isGetterSetter);
     }
     public boolean sameAs(FunctionType otherType) {
         if(parameterTypes.size() != otherType.parameterTypes.size()) return false;
@@ -96,7 +97,7 @@ class NestedType extends AbstractType {
         return valueType;
     }
     public AbstractType copy() {
-        return new NestedType(this.wrapperType, this.keyType, this.valueType, this.isOptional, this.isGetterSetter);
+        return new NestedType(wrapperType, keyType, valueType, isOptional, isGetterSetter);
     }
     @Override public boolean copiedOnAssignment() {
         return true;
@@ -106,12 +107,13 @@ class NestedByIndexType extends AbstractType {
     private LinkedHashMap<String, AbstractType> sourceType;
     private String structureType;
     private String definitionName;
-    private boolean isInstance;
-    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType, String structureType, String definitionName, boolean isInstance) {
+    public boolean isInstance;
+    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType, String structureType, String definitionName, boolean isInstance, boolean isGetterSetter) {
         this.sourceType = sourceType;
         this.structureType = structureType;
         this.definitionName = definitionName;
         this.isInstance = isInstance;
+        this.isGetterSetter = isGetterSetter;
     }
     public void put(String key, AbstractType type) {
         sourceType.put(key, type);
@@ -130,11 +132,11 @@ class NestedByIndexType extends AbstractType {
         return language.equals("ts") ? "Object" : (notGeneric ? "InitializableHashMap" : "Map") + "<String, ?>";
     }
     public AbstractType resulting(String accessor) {
-        if(accessor.equals("()")) return new NestedByIndexType(sourceType, structureType, definitionName, true);
+        if(accessor.equals("()")) return new NestedByIndexType(sourceType, structureType, definitionName, true, false);
         return sourceType.get(accessor);
     }
     public AbstractType copy() {
-        return new NestedByIndexType(sourceType, structureType, definitionName, isInstance);
+        return new NestedByIndexType(sourceType, structureType, definitionName, isInstance, isGetterSetter);
     }
     @Override public boolean copiedOnAssignment() {
         return structureType.equals("struct");
@@ -181,7 +183,7 @@ public class Type {
         return null;
     }
 
-    public static AbstractType fromDefinition(SwiftParser.TypeContext ctx) {
+    public static AbstractType fromDefinition(SwiftParser.TypeContext ctx, Visitor visitor) {
         boolean isOptional = false;
         if(ctx.optional_type() != null) {
             isOptional = true;
@@ -193,12 +195,24 @@ public class Type {
                 (ctx.parent instanceof SwiftParser.Type_annotationContext && ((SwiftParser.Type_annotationContext)ctx.parent).inout() != null);
 
         AbstractType type;
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter);
-        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter);
-        else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), isOptional, isGetterSetter);
-        else type = new BasicType(ctx.getText(), isOptional, isGetterSetter);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter, visitor);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter, visitor);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter, visitor);
+        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter, visitor);
+        else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), isOptional, isGetterSetter, visitor);
+        else {
+            String typeName = ctx.getText();
+            EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(typeName, ctx);
+            if(classDefinition != null) {
+                type = classDefinition.object.type.copy();
+                ((NestedByIndexType)type).isInstance = false;
+                type.isOptional = isOptional;
+                type.isGetterSetter = isGetterSetter;
+            }
+            else {
+                type = new BasicType(typeName, isOptional, isGetterSetter);
+            }
+        }
 
         if(ctx.getParent().getParent() instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)ctx.getParent().getParent()).range_operator() != null) {
             type = new NestedType("Array", new BasicType("Int"), type, false, false);
@@ -221,18 +235,18 @@ public class Type {
                 parameterExternalNames.add("");
                 parameterTypes.add(fromDefinition(params[i], lType));
             }
-            return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(parts[1], lType));
+            return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(parts[1], lType), false);
         }
         return new BasicType(description);
     }
 
-    private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter) {
+    private static AbstractType fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
         List<SwiftParser.TypeContext> types = ctx.type();
-        return new NestedType("Dictionary", fromDefinition(types.get(0)), fromDefinition(types.get(1)), isOptional, isGetterSetter);
+        return new NestedType("Dictionary", fromDefinition(types.get(0), visitor), fromDefinition(types.get(1), visitor), isOptional, isGetterSetter);
     }
 
-    private static AbstractType fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter) {
-        return new NestedType("Array", new BasicType("Int"), fromDefinition(ctx.type()), isOptional, isGetterSetter);
+    private static AbstractType fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
+        return new NestedType("Array", new BasicType("Int"), fromDefinition(ctx.type(), visitor), isOptional, isGetterSetter);
     }
 
     private static LinkedHashMap<String, AbstractType> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx) {
@@ -249,16 +263,16 @@ public class Type {
         }
         return flattened;
     }
-    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter) {
+    private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
         LinkedHashMap<String, AbstractType> elems = flattenTupleDefinition(ctx);
-        return new NestedByIndexType(elems, "tuple", null, false);
+        return new NestedByIndexType(elems, "tuple", null, false, false);
     }
 
-    private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter) {
-        return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type()), isOptional, isGetterSetter);
+    private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
+        return new NestedType("Set", new BasicType("Int"), fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type(), visitor), isOptional, isGetterSetter);
     }
 
-    private static AbstractType fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, boolean isOptional, boolean isGetterSetter) {
+    private static AbstractType fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
         LinkedHashMap<String, AbstractType> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list());
         ArrayList<String> parameterExternalNames = new ArrayList<String>();
         ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
@@ -267,11 +281,11 @@ public class Type {
             parameterExternalNames.add(externalName.matches("^\\d+$") ? "" : externalName);
             parameterTypes.add(iterator.getValue());
         }
-        return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(returnType));
+        return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), false);
     }
 
     public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {
-        if(functionResult != null) return fromDefinition(functionResult.type());
+        if(functionResult != null) return fromDefinition(functionResult.type(), visitor);
         visitor.visitChildren(statements);
         for(int i = 0; i < statements.getChildCount(); i++) {
             if(WalkerUtil.has(SwiftParser.Return_statementContext.class, statements.getChild(i))) {
@@ -288,18 +302,25 @@ public class Type {
     }
 
     public static AbstractType alternative(PrefixOrExpression L, PrefixOrExpression R) {
-        if(L.type().swiftType().equals(R.type().swiftType())) return L.type();
-        if(L.type().swiftType().equals("Void")) {
+        AbstractType type;
+        if(L.type().swiftType().equals(R.type().swiftType())) {
+            type = L.type().copy();
+        }
+        else if(L.type().swiftType().equals("Void")) {
             AbstractType rClone = R.type().copy();
             rClone.isOptional = true;
             return rClone;
         }
-        if(R.type().swiftType().equals("Void")) {
+        else if(R.type().swiftType().equals("Void")) {
             AbstractType lClone = L.type().copy();
             lClone.isOptional = true;
             return lClone;
         }
-        System.out.println("//Ambiguous return type: " + L.type().swiftType() + " || " + R.type().swiftType());
-        return L.type();
+        else {
+            System.out.println("//Ambiguous return type: " + L.type().swiftType() + " || " + R.type().swiftType());
+            type = L.type().copy();
+        }
+        type.isGetterSetter = false;
+        return type;
     }
 }

@@ -15,7 +15,7 @@ public class CacheVisitor extends Visitor {
     @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
         String varName = ctx.pattern().identifier_pattern().getText();
         AbstractType varType =
-                ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type())
+                ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type(), this)
                 : Type.infer(ctx.initializer().expression(), this);
         cache(varName, varType, ctx);
         return null;
@@ -23,7 +23,7 @@ public class CacheVisitor extends Visitor {
 
     @Override public String visitProperty_declaration(SwiftParser.Property_declarationContext ctx) {
         String varName = ctx.variable_name().getText();
-        AbstractType varType = Type.fromDefinition(ctx.type_annotation().type());
+        AbstractType varType = Type.fromDefinition(ctx.type_annotation().type(), this);
         cache(varName, varType, ctx);
         visit(ctx.property_declaration_body());
         return null;
@@ -92,7 +92,7 @@ public class CacheVisitor extends Visitor {
     @Override public String visitClass_declaration(SwiftParser.Class_declarationContext ctx) {
 
         String className = ctx.class_name().getText();
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "class", className, false), ctx);
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "class", className, false, false), ctx);
 
         visit(ctx.class_body());
 
@@ -102,7 +102,7 @@ public class CacheVisitor extends Visitor {
     @Override public String visitStruct_declaration(SwiftParser.Struct_declarationContext ctx) {
 
         String className = ctx.struct_name().getText();
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "struct", className, false), ctx);
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "struct", className, false, false), ctx);
 
         visit(ctx.struct_body());
 

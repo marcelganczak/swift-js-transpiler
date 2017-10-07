@@ -58,7 +58,7 @@ public class BinaryExpression implements PrefixOrExpression {
             this.code = L.code() + " ? " + passExpression.code + " : " + R.code();
         }
         else if(operator instanceof SwiftParser.Type_casting_operatorContext) {
-            AbstractType castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type());
+            AbstractType castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
             if(operator.getChild(0).getText().equals("as")) {
                 this.type = castType;
                 this.code = L.code();// + " as " + this.type.jsType();

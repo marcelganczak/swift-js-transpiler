@@ -1,6 +1,11 @@
-func incr(_ a: inout Int) {
-    a = a + 1
+struct Cuboid {
+    var width = 0, height = 0, depth = 0
+    var volume: Double {
+        return width * height * depth
+    }
 }
-var b = 0
-incr(&b)
-print(b)
+let fourByFiveByTwo = Cuboid()
+fourByFiveByTwo.width = 4
+fourByFiveByTwo.height = 5
+fourByFiveByTwo.depth = 2
+print(fourByFiveByTwo.volume)

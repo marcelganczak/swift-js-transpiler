@@ -31,7 +31,7 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return Type.fromDefinition(ctx).targetType(targetLanguage);
+        return Type.fromDefinition(ctx, this).targetType(targetLanguage);
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {
