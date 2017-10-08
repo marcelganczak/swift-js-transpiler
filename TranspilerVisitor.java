@@ -94,4 +94,8 @@ public class TranspilerVisitor extends Visitor {
     @Override public String visitInout(SwiftParser.InoutContext ctx) {
         return "";
     }
+
+    @Override public String visitType_inheritance_symbol(SwiftParser.Type_inheritance_symbolContext ctx) {
+        return "extends ";
+    }
 }

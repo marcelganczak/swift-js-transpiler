@@ -90,23 +90,30 @@ public class CacheVisitor extends Visitor {
     }
 
     @Override public String visitClass_declaration(SwiftParser.Class_declarationContext ctx) {
-
-        String className = ctx.class_name().getText();
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "class", className, false, false), ctx);
-
-        visit(ctx.class_body());
-
+        visitClassOrStructDeclaration(ctx);
         return null;
     }
-
     @Override public String visitStruct_declaration(SwiftParser.Struct_declarationContext ctx) {
-
-        String className = ctx.struct_name().getText();
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), "struct", className, false, false), ctx);
-
-        visit(ctx.struct_body());
-
+        visitClassOrStructDeclaration(ctx);
         return null;
+    }
+    private void visitClassOrStructDeclaration(ParserRuleContext ctx) {
+        String className =
+                ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_name().getText() :
+                ((SwiftParser.Struct_declarationContext)ctx).struct_name().getText();
+
+        EntityCache.CacheBlockAndObject superClass = null;
+        SwiftParser.Type_inheritance_clauseContext typeInheritanceClauseCtx =
+                ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).type_inheritance_clause() :
+                ((SwiftParser.Struct_declarationContext)ctx).type_inheritance_clause();
+        if(typeInheritanceClauseCtx != null) {
+            String superClassName = typeInheritanceClauseCtx.type_inheritance_list().type_identifier().getText();
+            superClass = this.cache.find(superClassName, ctx);
+        }
+
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, false), ctx);
+
+        visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {

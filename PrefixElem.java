@@ -63,7 +63,7 @@ public class PrefixElem {
             elementI++;
         }
 
-        if(type == null) type = new NestedByIndexType(types, "tuple", null, false, false);
+        if(type == null) type = new NestedByIndexType(types, "tuple", null, null, false, false);
         String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
 
         return new PrefixElem(code, "", type, null);

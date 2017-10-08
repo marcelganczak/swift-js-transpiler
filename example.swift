@@ -1,7 +1,8 @@
-struct Square {
-    var girth: Double {
-        return 1
-    }
+class Vehicle {
+    var speed = ["elo": 1]
 }
-var square = Square()
-print((square.girth))
+class Bicycle: Vehicle {
+    var hasBasket = false
+}
+var bicycle = Bicycle()
+print(bicycle.speed.count)

@@ -1809,6 +1809,13 @@ public class SwiftBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements 
 	 * <p>The default implementation returns the result of calling
 	 * {@link #visitChildren} on {@code ctx}.</p>
 	 */
+	@Override public T visitType_inheritance_symbol(SwiftParser.Type_inheritance_symbolContext ctx) { return visitChildren(ctx); }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation returns the result of calling
+	 * {@link #visitChildren} on {@code ctx}.</p>
+	 */
 	@Override public T visitType_inheritance_list(SwiftParser.Type_inheritance_listContext ctx) { return visitChildren(ctx); }
 	/**
 	 * {@inheritDoc}

@@ -855,10 +855,12 @@ protocol_identifier : type_identifier  ;
 // GRAMMAR OF A TYPE INHERITANCE CLAUSE
 
 type_inheritance_clause
- : ':' class_requirement ',' type_inheritance_list
- | ':' class_requirement
- | ':' type_inheritance_list
+ : type_inheritance_symbol class_requirement ',' type_inheritance_list
+ | type_inheritance_symbol class_requirement
+ | type_inheritance_symbol type_inheritance_list
  ;
+
+type_inheritance_symbol : ':';
 
 type_inheritance_list
  : type_identifier

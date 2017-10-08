@@ -104,25 +104,27 @@ class NestedType extends AbstractType {
     }
 }
 class NestedByIndexType extends AbstractType {
-    private LinkedHashMap<String, AbstractType> sourceType;
+    private LinkedHashMap<String, AbstractType> hash;
     private String structureType;
     private String definitionName;
+    public EntityCache.CacheBlockAndObject superClass;
     public boolean isInstance;
-    public NestedByIndexType(LinkedHashMap<String, AbstractType> sourceType, String structureType, String definitionName, boolean isInstance, boolean isGetterSetter) {
-        this.sourceType = sourceType;
+    public NestedByIndexType(LinkedHashMap<String, AbstractType> hash, String structureType, String definitionName, EntityCache.CacheBlockAndObject superClass, boolean isInstance, boolean isGetterSetter) {
+        this.hash = hash;
         this.structureType = structureType;
         this.definitionName = definitionName;
+        this.superClass = superClass;
         this.isInstance = isInstance;
         this.isGetterSetter = isGetterSetter;
     }
     public void put(String key, AbstractType type) {
-        sourceType.put(key, type);
+        hash.put(key, type);
     }
     public boolean isInitialization() {
         return structureType.equals("class") || structureType.equals("struct");
     }
     public ArrayList<String> keys() {
-        return new ArrayList<String>(sourceType.keySet());
+        return new ArrayList<String>(hash.keySet());
     }
     public String swiftType() {
         return "Tuple";
@@ -132,11 +134,14 @@ class NestedByIndexType extends AbstractType {
         return language.equals("ts") ? "Object" : (notGeneric ? "InitializableHashMap" : "Map") + "<String, ?>";
     }
     public AbstractType resulting(String accessor) {
-        if(accessor.equals("()")) return new NestedByIndexType(sourceType, structureType, definitionName, true, false);
-        return sourceType.get(accessor);
+        if(accessor.equals("()")) return new NestedByIndexType(hash, structureType, definitionName, superClass, true, false);
+        AbstractType resulting = hash.get(accessor);
+        if(resulting != null) return resulting;
+        if(superClass != null) return superClass.object.type.resulting(accessor);
+        return null;
     }
     public AbstractType copy() {
-        return new NestedByIndexType(sourceType, structureType, definitionName, isInstance, isGetterSetter);
+        return new NestedByIndexType(hash, structureType, definitionName, superClass, isInstance, isGetterSetter);
     }
     @Override public boolean copiedOnAssignment() {
         return structureType.equals("struct");
@@ -265,7 +270,7 @@ public class Type {
     }
     private static AbstractType fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
         LinkedHashMap<String, AbstractType> elems = flattenTupleDefinition(ctx);
-        return new NestedByIndexType(elems, "tuple", null, false, false);
+        return new NestedByIndexType(elems, "tuple", null, null, false, false);
     }
 
     private static AbstractType fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {

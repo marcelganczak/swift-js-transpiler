@@ -1562,6 +1562,12 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitType_inheritance_clause(SwiftParser.Type_inheritance_clauseContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#type_inheritance_symbol}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitType_inheritance_symbol(SwiftParser.Type_inheritance_symbolContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#type_inheritance_list}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

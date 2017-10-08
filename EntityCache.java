@@ -84,6 +84,8 @@ public class EntityCache {
 
         if(varName.equals("self")) return findNearestAncestorStructure(node);
 
+        if(varName.equals("super")) return ((NestedByIndexType)findNearestAncestorStructure(node).object.type).superClass;
+
         CacheBlockAndObject blockAndObject = find(varName, node);
         if(blockAndObject == null) {
             Map<String, CacheBlockAndObject> candidates = getFunctionsStartingWith(varName, node);
