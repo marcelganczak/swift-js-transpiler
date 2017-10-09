@@ -309,18 +309,16 @@ print(square.perimeter)
 ```Typescript
 class Square {
     a:number = 1.0 ;
-    perimeter = {
-        get: (): number => {
-            return this.a * 4 ;
-        },
-        set: (newPerimeter:number) => {
-            this.a = newPerimeter / 4 ;
-        }
-    };
-}
+    perimeter$get(): number {
+        return this.a * 4 ;
+    }
+    perimeter$set(newPerimeter:number) {
+        this.a = newPerimeter / 4 ;
+    } ;
+} ;
 let square:Square = new Square();
-square.perimeter.set( 16 );
-console.log(square.perimeter.get());
+square.perimeter$set( 16 );
+console.log(square.perimeter$get());
 ```
 ```Java
 No support in Java yet.
