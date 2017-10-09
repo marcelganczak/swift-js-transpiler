@@ -100,7 +100,7 @@ public class BinaryExpression implements PrefixOrExpression {
                     definitionCode = "#L #R)";
                 }
 
-                if(L.type().isGetterSetter) {
+                if(L.type().isGetterSetter != null) {
                     definitionCode = "#L #R)";
                 }
 

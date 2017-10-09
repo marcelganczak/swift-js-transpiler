@@ -63,7 +63,7 @@ public class CacheVisitor extends Visitor {
     private void visitPropertyClause(ParserRuleContext ctx) {
         SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
         AbstractType propertyType = cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object.type.copy();
-        propertyType.isGetterSetter = false;
+        propertyType.isGetterSetter = null;
         SwiftParser.Code_blockContext blockContext =
             ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :
             ctx instanceof SwiftParser.WillSet_clauseContext ? ((SwiftParser.WillSet_clauseContext)ctx).code_block() :
@@ -111,7 +111,7 @@ public class CacheVisitor extends Visitor {
             superClass = this.cache.find(superClassName, ctx);
         }
 
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, false), ctx);
+        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null), ctx);
 
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
     }

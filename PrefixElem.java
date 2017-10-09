@@ -63,7 +63,7 @@ public class PrefixElem {
             elementI++;
         }
 
-        if(type == null) type = new NestedByIndexType(types, "tuple", null, null, false, false);
+        if(type == null) type = new NestedByIndexType(types, "tuple", null, null, false, null);
         String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
 
         return new PrefixElem(code, "", type, null);
@@ -100,7 +100,7 @@ public class PrefixElem {
         if(arrayLiteral.array_literal_items() != null) {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
             AbstractType wrappedType = functionCallParams != null ? new BasicType(wrappedExpression.getText()) : Type.infer(wrappedExpression, visitor);
-            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false, false);
+            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false, null);
         }
 
         String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
@@ -159,7 +159,7 @@ public class PrefixElem {
         }
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
-            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false, false);
+            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false, null);
             code = getDictionaryInitializerCode(dictionaryLiteral, (NestedType)type, visitor);
         }
 
@@ -188,7 +188,7 @@ public class PrefixElem {
         String typeStr = visitor.visit(rChild.getChild(0)).trim();
 
         if(typeStr.equals("Set")) {
-            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false, false);
+            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false, null);
             return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", "", type, null);
         }
 

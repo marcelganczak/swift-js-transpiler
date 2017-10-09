@@ -473,6 +473,18 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitConstant_declaration(SwiftParser.Constant_declarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link SwiftParser#constant_declaration_head}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstant_declaration_head(SwiftParser.Constant_declaration_headContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link SwiftParser#constant_declaration_body}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitConstant_declaration_body(SwiftParser.Constant_declaration_bodyContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link SwiftParser#pattern_initializer_list}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1262,30 +1274,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitSelf_expression(SwiftParser.Self_expressionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link SwiftParser#superclass_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSuperclass_expression(SwiftParser.Superclass_expressionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link SwiftParser#superclass_method_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSuperclass_method_expression(SwiftParser.Superclass_method_expressionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link SwiftParser#superclass_subscript_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSuperclass_subscript_expression(SwiftParser.Superclass_subscript_expressionContext ctx);
-	/**
-	 * Visit a parse tree produced by {@link SwiftParser#superclass_initializer_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSuperclass_initializer_expression(SwiftParser.Superclass_initializer_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link SwiftParser#closure_expression}.
 	 * @param ctx the parse tree

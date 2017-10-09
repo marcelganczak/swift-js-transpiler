@@ -104,7 +104,7 @@ public class Prefix implements PrefixOrExpression {
 
         String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
                   : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? L + ".put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + elem.code + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
-                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? L + (chainPos == 0 ? "" : ".") + elem.code + ".set("
+                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter != null ? L + (chainPos == 0 ? "" : ".") + elem.code + elem.type.isGetterSetter + "set("
                   : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + L + ".get(\"" + elem.code.trim() + "\"))"
                   : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : elem.accessor.equals(".get()") ? ".get(" + elem.code + ")" : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
 
@@ -120,8 +120,8 @@ public class Prefix implements PrefixOrExpression {
             nextCode = "new " + nextCode;
         }
 
-        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter) {
-            nextCode += ".get()";
+        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter != null) {
+            nextCode += elem.type.isGetterSetter + "get()";
         }
 
         if(isLast && isInOutExpression) {

@@ -12,13 +12,14 @@ It has support for Swift:
 - control flow (if, for-in, while)
 - optionals & chaining
 - functions & closures (no Java support yet)
+- classes (no Java support & no support for initializers yet)
 
 To get a better sense of supported features, have a look inside the test directory,
 which contains Swift code snippets that demonstrate supported features in greater detail.
 
 The transpiler currently lacks support for:
 
-- classes inheritance & memberwise initialization
+- initializers
 - overloading operators
 - enums
 - switch

@@ -54,14 +54,14 @@ public class Expression implements PrefixOrExpression {
             Prefix prefix = new Prefix((SwiftParser.Prefix_expressionContext)ctxs.get(0), type, visitor);
             this.code = prefix.code();
             this.type = prefix.type().copy();
-            this.type.isGetterSetter = false;
+            this.type.isGetterSetter = null;
         }
         else {
             BinaryExpression top = (BinaryExpression)ctxs.get(0);
             top.compute(type, visitor);
             this.code = top.code;
             this.type = top.type.copy();
-            this.type.isGetterSetter = false;
+            this.type.isGetterSetter = null;
         }
     }
 

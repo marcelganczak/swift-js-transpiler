@@ -47,7 +47,7 @@ public class EntityCache {
         return findNearestAncestorBlock(node.getParent());
     }
 
-    private CacheBlockAndObject findNearestAncestorStructure(ParseTree node) {
+    public CacheBlockAndObject findNearestAncestorStructure(ParseTree node) {
         if(isStructureBlock(node)) return getClassDefinition(node);
         if(node == null || node.getParent() == null || node.getParent() == node) return null;
         return findNearestAncestorStructure(node.getParent());

@@ -319,7 +319,9 @@ import_path_identifier : identifier | operator  ;
 
 // GRAMMAR OF A CONSTANT DECLARATION
 
-constant_declaration : attributes? declaration_modifiers? 'let' pattern_initializer_list  ;
+constant_declaration : constant_declaration_head constant_declaration_body  ;
+constant_declaration_head : attributes? declaration_modifiers? 'let' ;
+constant_declaration_body : pattern_initializer_list ;
 pattern_initializer_list : pattern_initializer (',' pattern_initializer)* ;
 
 /** rule is ambiguous. can match "var x = 1" with x as pattern
@@ -652,7 +654,6 @@ primary_expression
  : identifier generic_argument_clause?
  | literal_expression
  | self_expression
- | superclass_expression
  | closure_expression
  | parenthesized_expression
  //| implicit_member_expression NEEDED??
@@ -687,18 +688,6 @@ self_expression
  | 'self' '[' expression_list ']'
  | 'self' '.' 'init'
  ;
-
-// GRAMMAR OF A SUPERCLASS EXPRESSION
-
-superclass_expression
-  : superclass_method_expression
-  | superclass_subscript_expression
-  | superclass_initializer_expression
-  ;
-
-superclass_method_expression	  : 'super' '.' identifier  ;
-superclass_subscript_expression   : 'super' '[' expression ']'  ;
-superclass_initializer_expression : 'super' '.' 'init'  ;
 
 // GRAMMAR OF A CLOSURE EXPRESSION
 
