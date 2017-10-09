@@ -293,34 +293,34 @@ Getter/setter Properties
 ```Swift
 struct Square {
     var a = 1.0
-    var circum: Double {
+    var perimeter: Double {
         get {
             return a * 4
         }
-        set(newGirth) {
-            a = newGirth / 4
+        set(newPerimeter) {
+            a = newPerimeter / 4
         }
     }
 }
 var square = Square()
-square.circum = 16
-print(square.circum)
+square.perimeter = 16
+print(square.perimeter)
 ```
 ```Typescript
 class Square {
     a:number = 1.0 ;
-    circum = {
+    perimeter = {
         get: (): number => {
             return this.a * 4 ;
         },
-        set: (newGirth:number) => {
-            this.a = newGirth / 4 ;
+        set: (newPerimeter:number) => {
+            this.a = newPerimeter / 4 ;
         }
     };
 }
 let square:Square = new Square();
-square.circum.set( 16 );
-console.log(square.circum.get());
+square.perimeter.set( 16 );
+console.log(square.perimeter.get());
 ```
 ```Java
 No support in Java yet.
