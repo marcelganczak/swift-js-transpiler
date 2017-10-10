@@ -1,4 +1,5 @@
 import org.antlr.v4.runtime.tree.ParseTree;
+import sun.org.mozilla.javascript.internal.Function;
 
 import java.util.*;
 
@@ -53,7 +54,7 @@ public class EntityCache {
         return findNearestAncestorStructure(node.getParent());
     }
 
-    private CacheBlockAndObject getClassDefinition(ParseTree block) {
+    public CacheBlockAndObject getClassDefinition(ParseTree block) {
         if(block instanceof SwiftParser.Class_bodyContext) {
             SwiftParser.Class_declarationContext classDeclaration = (SwiftParser.Class_declarationContext)((SwiftParser.Class_bodyContext)block).parent;
             String className = classDeclaration.class_name().getText();
@@ -102,13 +103,12 @@ public class EntityCache {
 
     public Map<String, CacheBlockAndObject> getFunctionsStartingWith(String varName, ParseTree node) {
         Map<String, CacheBlockAndObject> matches = new HashMap<String, CacheBlockAndObject>();
-        varName = varName.trim();
 
         while((node = findNearestAncestorBlock(node.getParent())) != null) {
             Map<String, CacheObject> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             for(Map.Entry<String, CacheObject> iterator:blockTypeCache.entrySet()) {
-                if(iterator.getKey().startsWith(varName) && iterator.getValue().type instanceof FunctionType && (iterator.getKey().length() == varName.length() || iterator.getKey().startsWith(varName + "$"))) {
+                if(FunctionUtil.functionStartsWith(iterator.getKey(), iterator.getValue().type, varName)) {
                     matches.put(iterator.getKey(), new CacheBlockAndObject(node, iterator.getValue()));
                 }
             }
@@ -116,24 +116,23 @@ public class EntityCache {
         }
         return matches;
     }
+    public Map<String, FunctionType> getFunctionTypesStartingWith(String varName, ParseTree node) {
+        Map<String, FunctionType> types = new HashMap<String, FunctionType>();
+        Map<String, CacheBlockAndObject> objects = getFunctionsStartingWith(varName.trim(), node);
+        for(Map.Entry<String, CacheBlockAndObject> iterator:objects.entrySet()) {
+            types.put(iterator.getKey(), (FunctionType)iterator.getValue().object.type);
+        }
+        return types;
+    }
 
     public CacheBlockAndExpression getFunctionEndingWithVariadic(String varName, ParseTree node) {
-        String[] params = varName.split("\\$");
-        if(params.length < 2) return null;
-
-        for(int i = params.length - 1; i >= 1; i--) {
-
-            String param = params[i];
-            for(int j = i + 1; j < params.length; j++) if(!params[j].equals(param)) return null;
-
-            String subVarName = "";
-            for(int j = 0; j < i; j++) subVarName += (j > 0 ? "$" : "") + params[j];
-            subVarName += "$_Array";
-            CacheBlockAndObject cache = find(subVarName, node);
+        ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
+        for(int i = 0; i < variadicNames.size(); i+=2) {
+            CacheBlockAndObject cache = find(variadicNames.get(i), node);
             if(cache != null && cache.object.type instanceof FunctionType) {
                 List<AbstractType> parameterTypes = ((FunctionType)cache.object.type).parameterTypes;
-                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(param.split("_")[1])) continue;
-                return new CacheBlockAndExpression(cache.block, new Expression(subVarName, cache.object.type));
+                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(variadicNames.get(i + 1).split("_")[1])) continue;
+                return new CacheBlockAndExpression(cache.block, new Expression(variadicNames.get(i), cache.object.type));
             }
         }
         return null;

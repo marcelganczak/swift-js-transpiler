@@ -653,7 +653,6 @@ type_casting_operator
 primary_expression
  : identifier generic_argument_clause?
  | literal_expression
- | self_expression
  | closure_expression
  | parenthesized_expression
  //| implicit_member_expression NEEDED??
@@ -679,15 +678,6 @@ dictionary_literal		 : '[' dictionary_literal_items ']' | empty_dictionary_liter
 dictionary_literal_items : dictionary_literal_item (',' dictionary_literal_item)* ','? ;
 dictionary_literal_item  : expression ':' expression  ;
 empty_dictionary_literal : '[' ':' ']';
-
-// GRAMMAR OF A SELF EXPRESSION
-
-self_expression
- : 'self'
- | 'self' '.' identifier
- | 'self' '[' expression_list ']'
- | 'self' '.' 'init'
- ;
 
 // GRAMMAR OF A CLOSURE EXPRESSION
 
@@ -739,7 +729,6 @@ chain_postfix_expression
  | '?'? '.' identifier generic_argument_clause?      # explicit_member_expression
  | '?'? '.' Decimal_literal                          # explicit_member_expression_number
  | '?'? '.' Floating_point_literal                   # explicit_member_expression_number_double
- | '?'? '.' 'self'                                   # postfix_self_expression
  | '?'? '.' 'dynamicType'                            # dynamic_type_expression
  | '?'? '[' expression_list ']'                      # subscript_expression
  | postfix_operator                                  # chain_postfix_operator

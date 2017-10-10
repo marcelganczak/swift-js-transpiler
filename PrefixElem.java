@@ -225,6 +225,10 @@ public class PrefixElem {
             code = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visitor.visit(rChild);
             accessor = ".";
         }
+        else if(rChild instanceof SwiftParser.Initializer_expressionContext) {
+            code = "init";
+            accessor = ".";
+        }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
             accessor = "[]";
@@ -254,12 +258,24 @@ public class PrefixElem {
         }
 
         if(functionCallParams != null) {
-            code = FunctionUtil.nameFromCall(code, functionCallParams, rChild, lType, visitor);
+            EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(code, rChild);
+            boolean isInitializer = lType == null && classDefinition != null && classDefinition.object.type instanceof NestedByIndexType && ((NestedByIndexType)classDefinition.object.type).isInitialization();
             functionCallParamsStr = "";
-            for(int i = 0; i < functionCallParams.size(); i++) functionCallParamsStr += (i > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
+
+            String augment = FunctionUtil.augmentFromCall(code, functionCallParams, rChild, isInitializer ? (NestedByIndexType)classDefinition.object.type : lType != null ? (NestedByIndexType)lType : null, isInitializer, visitor);
+            if(isInitializer) {
+                functionCallParamsStr += '"' + (augment == null ? "" : augment) + '"';
+            }
+            else {
+                code += augment;
+            }
+
+            for(int i = 0; i < functionCallParams.size(); i++) {
+                functionCallParamsStr += (functionCallParamsStr.length() > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
+            }
         }
         else if(rType instanceof FunctionType) {
-            code = FunctionUtil.nameFromCall(code, (FunctionType)rType, rChild, visitor);
+            code += FunctionUtil.augmentFromCall(code, (FunctionType) rType, rChild, visitor);
         }
 
         if(type == null) {

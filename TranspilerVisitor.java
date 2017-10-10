@@ -29,6 +29,9 @@ public class TranspilerVisitor extends Visitor {
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
         return FunctionUtil.functionDeclaration(ctx, this);
     }
+    @Override public String visitInitializer_declaration(SwiftParser.Initializer_declarationContext ctx) {
+        return FunctionUtil.functionDeclaration(ctx, this);
+    }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
         return Type.fromDefinition(ctx, this).targetType(targetLanguage);
@@ -97,5 +100,12 @@ public class TranspilerVisitor extends Visitor {
 
     @Override public String visitType_inheritance_symbol(SwiftParser.Type_inheritance_symbolContext ctx) {
         return "extends ";
+    }
+
+    @Override public String visitClass_body(SwiftParser.Class_bodyContext ctx) {
+        return Initializer.handleClassBody(ctx, this);
+    }
+    @Override public String visitStruct_body(SwiftParser.Struct_bodyContext ctx) {
+        return Initializer.handleClassBody(ctx, this);
     }
 }

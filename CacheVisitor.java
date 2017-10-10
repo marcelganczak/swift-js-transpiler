@@ -35,17 +35,24 @@ public class CacheVisitor extends Visitor {
     }
 
     @Override public String visitFunction_declaration(SwiftParser.Function_declarationContext ctx) {
+        visitFunctionDeclaration(ctx);
+        return null;
+    }
+    @Override public String visitInitializer_declaration(SwiftParser.Initializer_declarationContext ctx) {
+        visitFunctionDeclaration(ctx);
+        return null;
+    }
+    private void visitFunctionDeclaration(ParserRuleContext ctx) {
         FunctionType functionType = new FunctionType(ctx, this);
         cache.cacheOne(FunctionUtil.functionName(ctx, functionType), functionType, ctx);
 
+        SwiftParser.Code_blockContext codeBlockCtx = FunctionUtil.codeBlockCtx(ctx);
         ArrayList<String> parameterLocalNames = FunctionUtil.parameterLocalNames(FunctionUtil.parameters(ctx));
         for(int i = 0; i < parameterLocalNames.size(); i++) {
-            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), ctx.function_body().code_block());
+            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), codeBlockCtx);
         }
 
-        visit(ctx.function_body());
-
-        return null;
+        visit(codeBlockCtx);
     }
 
     @Override public String visitSetter_clause(SwiftParser.Setter_clauseContext ctx) {
@@ -111,9 +118,12 @@ public class CacheVisitor extends Visitor {
             superClass = this.cache.find(superClassName, ctx);
         }
 
-        cache.cacheOne(className, new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null), ctx);
+        NestedByIndexType classType = new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null);
+        cache.cacheOne(className, classType, ctx);
 
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
+
+        if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classType);
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {

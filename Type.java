@@ -1,3 +1,6 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+
 import java.util.*;
 
 class BasicType extends AbstractType {
@@ -30,14 +33,16 @@ class FunctionType extends AbstractType {
     public ArrayList<AbstractType> parameterTypes;
     public int numParametersWithDefaultValue;
     public AbstractType returnType;
-    public FunctionType(SwiftParser.Function_declarationContext ctx, Visitor visitor) {
+    public FunctionType(ParserRuleContext ctx, Visitor visitor) {
         List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
 
         parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
         parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
         numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
 
-        returnType = Type.fromFunction(ctx.function_signature().function_result(), ctx.function_body().code_block().statements(), false, visitor);
+        returnType =
+            ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, visitor) :
+            new BasicType("Void");
     }
     public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType, String isGetterSetter) {
         this.parameterExternalNames = parameterExternalNames;
@@ -104,11 +109,12 @@ class NestedType extends AbstractType {
     }
 }
 class NestedByIndexType extends AbstractType {
-    private LinkedHashMap<String, AbstractType> hash;
+    public LinkedHashMap<String, AbstractType> hash;
     private String structureType;
     private String definitionName;
     public EntityCache.CacheBlockAndObject superClass;
     public boolean isInstance;
+    public String memberwiseInitializer;
     public NestedByIndexType(LinkedHashMap<String, AbstractType> hash, String structureType, String definitionName, EntityCache.CacheBlockAndObject superClass, boolean isInstance, String isGetterSetter) {
         this.hash = hash;
         this.structureType = structureType;
@@ -116,6 +122,7 @@ class NestedByIndexType extends AbstractType {
         this.superClass = superClass;
         this.isInstance = isInstance;
         this.isGetterSetter = isGetterSetter;
+        memberwiseInitializer = null;
     }
     public void put(String key, AbstractType type) {
         hash.put(key, type);
@@ -145,6 +152,29 @@ class NestedByIndexType extends AbstractType {
     }
     @Override public boolean copiedOnAssignment() {
         return structureType.equals("struct");
+    }
+    public Map<String, FunctionType> getFunctionTypesStartingWith(String varName) {
+        Map<String, FunctionType> matches = new HashMap<String, FunctionType>();
+        varName = varName.trim();
+
+        for(Map.Entry<String, AbstractType> iterator:hash.entrySet()) {
+            if(FunctionUtil.functionStartsWith(iterator.getKey(), iterator.getValue(), varName)) {
+                matches.put(iterator.getKey(), (FunctionType)iterator.getValue());
+            }
+        }
+        return matches;
+    }
+    public Expression getFunctionEndingWithVariadic(String varName) {
+        ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
+        for(int i = 0; i < variadicNames.size(); i+=2) {
+            AbstractType resulting = this.resulting(variadicNames.get(i));
+            if(resulting instanceof FunctionType) {
+                List<AbstractType> parameterTypes = ((FunctionType)resulting).parameterTypes;
+                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(variadicNames.get(i + 1).split("_")[1])) continue;
+                return new Expression(variadicNames.get(i), resulting);
+            }
+        }
+        return null;
     }
 }
 

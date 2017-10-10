@@ -1269,12 +1269,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitEmpty_dictionary_literal(SwiftParser.Empty_dictionary_literalContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link SwiftParser#self_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitSelf_expression(SwiftParser.Self_expressionContext ctx);
-	/**
 	 * Visit a parse tree produced by {@link SwiftParser#closure_expression}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
@@ -1401,13 +1395,6 @@ public interface SwiftVisitor<T> extends ParseTreeVisitor<T> {
 	 * @return the visitor result
 	 */
 	T visitExplicit_member_expression_number_double(SwiftParser.Explicit_member_expression_number_doubleContext ctx);
-	/**
-	 * Visit a parse tree produced by the {@code postfix_self_expression}
-	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
-	 * @param ctx the parse tree
-	 * @return the visitor result
-	 */
-	T visitPostfix_self_expression(SwiftParser.Postfix_self_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by the {@code dynamic_type_expression}
 	 * labeled alternative in {@link SwiftParser#chain_postfix_expression}.
