@@ -118,6 +118,9 @@ public class Prefix implements PrefixOrExpression {
 
         if(isLast && elem.type instanceof NestedByIndexType && elem.functionCallParams != null && ((NestedByIndexType)elem.type).isInitialization()) {
             nextCode = "new " + nextCode;
+            if(Initializer.isFailable(elem)) {
+                nextCode = "_.failableInit(" + nextCode + ")";
+            }
         }
 
         if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter != null) {

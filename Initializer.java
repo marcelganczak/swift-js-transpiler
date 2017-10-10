@@ -12,6 +12,7 @@ public class Initializer {
 
         LinkedHashMap<String, AbstractType> initializers = Initializer.initializers(classDefinition);
         String constructorCode = "constructor(signature: string, ...params: any[]) {\n";
+        if(classDefinition.superClass != null) constructorCode += "super(null);\n";
         for(Map.Entry<String, AbstractType> entry : initializers.entrySet()) {
             constructorCode += "if(signature === '" + entry.getKey().substring(4) + "') return this." + entry.getKey() + ".apply(this, params);\n";
         }
@@ -42,7 +43,7 @@ public class Initializer {
     static private LinkedHashMap<String, AbstractType> initializers(NestedByIndexType classDefinition) {
         LinkedHashMap<String, AbstractType> initializers = new LinkedHashMap<String, AbstractType>();
         for(Map.Entry<String, AbstractType> entry : classDefinition.hash.entrySet()) {
-            if(entry.getKey().startsWith("init$") || entry.getKey().equals("init")) {
+            if(entry.getValue() instanceof FunctionType && ((FunctionType)entry.getValue()).isInitializer) {
                 initializers.put(entry.getKey(), entry.getValue());
             }
         }
@@ -63,8 +64,28 @@ public class Initializer {
         }
 
         if(!parameterNames.isEmpty()) {
-            classDefinition.hash.put("init" + nameAugment, new FunctionType(parameterNames, parameterTypes, 0, new BasicType("Void"), null));
+            classDefinition.hash.put("init" + nameAugment, new FunctionType(parameterNames, parameterTypes, 0, new BasicType("Void"), null, true, false));
             classDefinition.memberwiseInitializer = "init" + nameAugment;
         }
+    }
+
+    static public String handleReturnStatement(SwiftParser.Return_statementContext ctx, Visitor visitor) {
+        if(!WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, ctx.expression())) return visitor.visitChildren(ctx);
+
+        ParseTree containingBlock = visitor.cache.findNearestAncestorFunctionBlock(ctx);
+        if(containingBlock instanceof SwiftParser.Initializer_bodyContext) {
+            return "return (this.$failed = true)";
+        }
+
+        return visitor.visitChildren(ctx);
+    }
+
+    static public boolean isFailable(PrefixElem elem) {
+        //BODGE: we're retrieving the initializerSignature (i.e. what argument names/types it's using)
+        //by slicing the functionCallParams string (i.e. "$quantity_Int", 2 --> $quantity_Int)
+        //that's the simplest way of getting what we want for now, but it'd be better if the signature was passed somehow
+        String initializerSignature = elem.functionCallParams.substring(1, elem.functionCallParams.indexOf('"', 1));
+        FunctionType initializer = (FunctionType)((NestedByIndexType) elem.type).hash.get("init" + initializerSignature);
+        return initializer != null && initializer.isFailableInitializer;
     }
 }

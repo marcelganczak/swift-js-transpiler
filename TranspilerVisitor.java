@@ -108,4 +108,8 @@ public class TranspilerVisitor extends Visitor {
     @Override public String visitStruct_body(SwiftParser.Struct_bodyContext ctx) {
         return Initializer.handleClassBody(ctx, this);
     }
+
+    @Override public String visitReturn_statement(SwiftParser.Return_statementContext ctx) {
+        return Initializer.handleReturnStatement(ctx, this);
+    }
 }

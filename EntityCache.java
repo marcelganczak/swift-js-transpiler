@@ -37,7 +37,7 @@ public class EntityCache {
         return node instanceof SwiftParser.Class_bodyContext || node instanceof SwiftParser.Struct_bodyContext;
     }
 
-    private ParseTree findNearestAncestorBlock(ParseTree node) {
+    public ParseTree findNearestAncestorBlock(ParseTree node) {
         boolean isBlock =
                 node instanceof SwiftParser.Top_levelContext ||
                 node instanceof SwiftParser.Code_blockContext ||
@@ -46,6 +46,15 @@ public class EntityCache {
         if(isBlock) return node;
         if(node == null || node.getParent() == null || node.getParent() == node) return null;
         return findNearestAncestorBlock(node.getParent());
+    }
+    public ParseTree findNearestAncestorFunctionBlock(ParseTree node) {
+        boolean isBlock =
+                node instanceof SwiftParser.Top_levelContext ||
+                node instanceof SwiftParser.Function_bodyContext ||
+                node instanceof SwiftParser.Initializer_bodyContext;
+        if(isBlock) return node;
+        if(node == null || node.getParent() == null || node.getParent() == node) return null;
+        return findNearestAncestorFunctionBlock(node.getParent());
     }
 
     public CacheBlockAndObject findNearestAncestorStructure(ParseTree node) {

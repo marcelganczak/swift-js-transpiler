@@ -11,10 +11,10 @@ var assert = require('assert'),
         java: {dirs: ['functions', 'classes', 'weheartswift'], files: []}
     },
     only = {
-        ts: {dir: null, file: 'memberwise-initializer'},
+        ts: {dir: null, file: null},
         java: {dir: null, file: null}
     },
-    languages = ['ts'/*, 'java'*/];
+    languages = ['ts', 'java'];
 
 languages.forEach(language => {
     describe(language, () => {

@@ -33,6 +33,8 @@ class FunctionType extends AbstractType {
     public ArrayList<AbstractType> parameterTypes;
     public int numParametersWithDefaultValue;
     public AbstractType returnType;
+    public boolean isInitializer;
+    public boolean isFailableInitializer;
     public FunctionType(ParserRuleContext ctx, Visitor visitor) {
         List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
 
@@ -43,13 +45,18 @@ class FunctionType extends AbstractType {
         returnType =
             ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, visitor) :
             new BasicType("Void");
+
+        isInitializer = ctx instanceof SwiftParser.Initializer_declarationContext;
+        isFailableInitializer = isInitializer && ((SwiftParser.Initializer_declarationContext)ctx).initializer_head().getText().contains("?");
     }
-    public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType, String isGetterSetter) {
+    public FunctionType(ArrayList<String> parameterExternalNames, ArrayList<AbstractType> parameterTypes, int numParametersWithDefaultValue, AbstractType returnType, String isGetterSetter, boolean isInitializer, boolean isFailableInitializer) {
         this.parameterExternalNames = parameterExternalNames;
         this.parameterTypes = parameterTypes;
         this.numParametersWithDefaultValue = numParametersWithDefaultValue;
         this.returnType = returnType;
         this.isGetterSetter = isGetterSetter;
+        this.isInitializer = isInitializer;
+        this.isFailableInitializer = isFailableInitializer;
     }
     public String swiftType() {
         return "Function";
@@ -61,7 +68,7 @@ class FunctionType extends AbstractType {
         return returnType;
     }
     public AbstractType copy() {
-        return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType, this.isGetterSetter);
+        return new FunctionType(this.parameterExternalNames, this.parameterTypes, this.numParametersWithDefaultValue, this.returnType, this.isGetterSetter, this.isInitializer, this.isFailableInitializer);
     }
     public boolean sameAs(FunctionType otherType) {
         if(parameterTypes.size() != otherType.parameterTypes.size()) return false;
@@ -271,7 +278,7 @@ public class Type {
                 parameterExternalNames.add("");
                 parameterTypes.add(fromDefinition(params[i], lType));
             }
-            return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(parts[1], lType), null);
+            return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(parts[1], lType), null, false, false);
         }
         return new BasicType(description);
     }
@@ -317,7 +324,7 @@ public class Type {
             parameterExternalNames.add(externalName.matches("^\\d+$") ? "" : externalName);
             parameterTypes.add(iterator.getValue());
         }
-        return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), null);
+        return new FunctionType(parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), null, false, false);
     }
 
     public static AbstractType fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {
