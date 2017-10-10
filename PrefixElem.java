@@ -36,7 +36,7 @@ public class PrefixElem {
             return getLiteral(rChild, rType, visitor);
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Closure_expressionContext.class, rChild)) {
-            return getClosure(rChild, rType, visitor);
+            return getClosure(rChild, rType, functionCallParams, visitor);
         }
         return getBasic(rChild, functionCallParams, chain, chainPos, lType, rType, visitor);
     }
@@ -210,8 +210,8 @@ public class PrefixElem {
         return new PrefixElem(code, "", type, null);
     }
 
-    static private PrefixElem getClosure(ParserRuleContext rChild, AbstractType type, Visitor visitor) {
-        return new PrefixElem(FunctionUtil.closureExpression(((SwiftParser.Primary_expressionContext) rChild).closure_expression(), (FunctionType)type, visitor), "", type, null);
+    static private PrefixElem getClosure(ParserRuleContext rChild, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+        return new PrefixElem(FunctionUtil.closureExpression(((SwiftParser.Primary_expressionContext) rChild).closure_expression(), type, functionCallParams, visitor), "", type, null);
     }
 
     static private PrefixElem getBasic(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, AbstractType lType, AbstractType rType, Visitor visitor) {

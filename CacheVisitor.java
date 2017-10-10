@@ -18,6 +18,7 @@ public class CacheVisitor extends Visitor {
                 ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type(), this)
                 : Type.infer(ctx.initializer().expression(), this);
         cache(varName, varType, ctx);
+        visitChildren(ctx.initializer());
         return null;
     }
 
@@ -85,16 +86,16 @@ public class CacheVisitor extends Visitor {
         visit(blockContext);
     }
 
-    @Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
-        /*SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
+    /*@Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
+        SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
         List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
         ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
         for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
             cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
-        }*/
+        }
 
         return null;
-    }
+    }*/
 
     @Override public String visitClass_declaration(SwiftParser.Class_declarationContext ctx) {
         visitClassOrStructDeclaration(ctx);

@@ -171,20 +171,29 @@ public class FunctionUtil {
         );
     }
 
-    static public String closureExpression(SwiftParser.Closure_expressionContext ctx, FunctionType type, Visitor visitor) {
+    static public String closureExpression(SwiftParser.Closure_expressionContext ctx, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+        String closureExpression = "";
         if(ctx.operator() != null) {
-            return "(a, b) => a " + ctx.operator().getText() + " b";
+            closureExpression = "(a, b) => a " + ctx.operator().getText() + " b";
         }
-        if(ctx.explicit_closure_expression() != null) {
-            return explicitClosureExpression(ctx.explicit_closure_expression(), type, visitor);
+        else if(ctx.explicit_closure_expression() != null) {
+            closureExpression = explicitClosureExpression(ctx.explicit_closure_expression(), functionCallParams == null ? type : null, visitor);
         }
-        return null;
+        if(functionCallParams != null) {
+            closureExpression = "(" + closureExpression + ")(";
+            for(int i = 0; i < functionCallParams.size(); i++) {
+                closureExpression += (i > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
+            }
+            closureExpression += ")";
+        }
+        return closureExpression;
     }
 
-    static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, FunctionType type, Visitor visitor) {
-        if(type != null) {
-            for(int i = 0; i < type.parameterTypes.size(); i++) {
-                visitor.cache.cacheOne("$" + i, type.parameterTypes.get(i), ctx);
+    static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, AbstractType type, Visitor visitor) {
+        if(type instanceof FunctionType) {
+            FunctionType functionType = (FunctionType)type;
+            for(int i = 0; i < functionType.parameterTypes.size(); i++) {
+                visitor.cache.cacheOne("$" + i, functionType.parameterTypes.get(i), ctx);
             }
         }
 
