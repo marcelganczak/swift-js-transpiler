@@ -104,6 +104,10 @@ public class BinaryExpression implements PrefixOrExpression {
                     definitionCode = "#L #R)";
                 }
 
+                if(lCode.equals("this")) {
+                    definitionCode = "Object.assign(#L, #R)";
+                }
+
                 if(type instanceof FunctionType && R.type() != null) type = R.type();
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }

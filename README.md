@@ -12,17 +12,17 @@ It has support for Swift:
 - control flow (if, for-in, while)
 - optionals & chaining
 - functions & closures (no Java support yet)
-- classes (no Java support & no support for initializers yet)
+- classes (no Java support)
 
 To get a better sense of supported features, have a look inside the test directory,
 which contains Swift code snippets that demonstrate supported features in greater detail.
 
 The transpiler currently lacks support for:
 
-- initializers
 - overloading operators
 - enums
 - switch
+- binary operators
 
 Also, check out my reverse project (TypeScript to Swift transpiler): https://github.com/marcelganczak/ts-swift-transpiler
 
