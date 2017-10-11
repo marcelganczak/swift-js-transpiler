@@ -1,10 +1,4 @@
-struct Point {
-    var x = 0.0, y = 0.0
-    mutating func moveBy(x deltaX: Double, y deltaY: Double) {
-        self = Point(x: x + deltaX, y: y + deltaY)
-    }
+var dict = ["key":"val"]
+if let dictVal = dict["key"], let anotherDictVal = dict["nonExistent"] {
+    print(dictVal);
 }
-var point = Point()
-point.moveBy(x: 1.5, y: 1.5)
-print(point.x)
-print(point.y)

@@ -91,9 +91,12 @@ public class ControlFlow {
         IfLet ifLet = new IfLet(ctx, visitor);
         if(ifLet.varNames.size() > 0) {
             for(int i = 0; i < ifLet.varNames.size(); i++) {
-                condition += (condition.length() > 0 ? " && " : "") + ifLet.varVals.get(i) + " != null";
+                condition +=
+                        (condition.length() > 0 ? " && " : "") +
+                        (visitor.targetLanguage.equals("ts") ? "(_.$ifLet" + i + " = " + ifLet.varVals.get(i) + ")" : ifLet.varVals.get(i)) +
+                        " != null";
                 beforeBlock +=
-                    visitor.targetLanguage.equals("ts") ? (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " = " + ifLet.varVals.get(i)
+                    visitor.targetLanguage.equals("ts") ? (beforeBlock.length() > 0 ? ", " : "") + ifLet.varNames.get(i) + ":" + ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " = _.$ifLet" + i
                     : ifLet.varTypes.get(i).targetType(visitor.targetLanguage) + " " + ifLet.varNames.get(i) + " = " + ifLet.varVals.get(i) + ";";
             }
             if(visitor.targetLanguage.equals("ts")) beforeBlock = "const " + beforeBlock + ";";
