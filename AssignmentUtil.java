@@ -4,10 +4,10 @@ import java.util.List;
 
 public class AssignmentUtil {
 
-    static public String augment(String code, AbstractType type, ParserRuleContext originalCtx, Visitor visitor) {
+    static public String augment(String code, Instance type, ParserRuleContext originalCtx, Visitor visitor) {
 
         boolean isCopied =
-            type.copiedOnAssignment() &&
+            type.definition.cloneOnAssignmentReplacement.get(visitor.targetLanguage) &&
             !WalkerUtil.isDirectDescendant(SwiftParser.Literal_expressionContext.class, originalCtx) &&
             !code.startsWith("new ");
 
@@ -20,7 +20,7 @@ public class AssignmentUtil {
     static public String handleInitializer(SwiftParser.Pattern_initializerContext ctx, Visitor visitor) {
         String varName = ctx.pattern().identifier_pattern().getText();
         EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, ctx);
-        AbstractType varType = cache != null ? cache.object.type : null;
+        Instance varType = cache != null && cache.object instanceof Instance ? (Instance)cache.object : null;
         if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
 
         String transpiled =
@@ -83,7 +83,7 @@ public class AssignmentUtil {
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
         String setterArgument = setterArgumentName(getterSetterBlock.setter_clause());
         EntityCache.CacheBlockAndObject property = visitor.cache.findLoose(setterArgument, getterSetterBlock.setter_clause().code_block());
-        String propertyType = property.object.type.targetType(visitor.targetLanguage, false, true);
+        String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
 
         return
             propertyName + "$get(): " + propertyType + " " + visitor.visit(getterSetterBlock.getter_clause().code_block()) + "\n" +
@@ -96,7 +96,7 @@ public class AssignmentUtil {
         SwiftParser.Read_only_computed_property_declarationContext declarationCtx = ((SwiftParser.Read_only_computed_property_declarationContext)ctx.property_declaration_body());
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
         EntityCache.CacheBlockAndObject property = visitor.cache.findLoose(propertyName, ctx);
-        String propertyType = property.object.type.targetType(visitor.targetLanguage, false, true);
+        String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
 
         return propertyName + "$get(): " + propertyType + " " + visitor.visit(declarationCtx.code_block());
     }
@@ -111,7 +111,7 @@ public class AssignmentUtil {
         SwiftParser.WillSet_didSet_property_declarationContext declarationCtx = ((SwiftParser.WillSet_didSet_property_declarationContext)ctx.property_declaration_body());
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
         EntityCache.CacheBlockAndObject property = visitor.cache.findLoose(propertyName, ctx);
-        String propertyType = property.object.type.targetType(visitor.targetLanguage, false, true);
+        String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
         String internalVar = "this." + propertyName + "$val";
 
         SwiftParser.WillSet_clauseContext willSetClause = declarationCtx.willSet_didSet_block().willSet_clause();
@@ -121,8 +121,8 @@ public class AssignmentUtil {
         boolean isOverride = varCtx.variable_declaration_head().attributes() != null && varCtx.variable_declaration_head().attributes().getText().contains("override");
         if(isOverride) {
             EntityCache.CacheBlockAndObject classDefinition = visitor.cache.findNearestAncestorStructure(ctx);
-            AbstractType superPropertyType = ((NestedByIndexType) classDefinition.object.type).superClass.object.type.resulting(propertyName);
-            if(superPropertyType.isGetterSetter == null) internalVar = "this." + propertyName;
+            //Instance superPropertyType = ((NestedByIndexType) classDefinition.object).superClass.object.getProperty(propertyName);
+            //TODO if(superPropertyType.isGetterSetter == null) internalVar = "this." + propertyName;
         }
 
         return

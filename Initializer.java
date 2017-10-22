@@ -8,12 +8,12 @@ public class Initializer {
 
     static public String handleClassBody(ParseTree ctx, Visitor visitor) {
 
-        NestedByIndexType classDefinition = (NestedByIndexType)visitor.cache.getClassDefinition(ctx).object.type;
+        NestedByIndexType classDefinition = (NestedByIndexType)visitor.cache.getClassDefinition(ctx).object;
 
-        LinkedHashMap<String, AbstractType> initializers = Initializer.initializers(classDefinition);
+        LinkedHashMap<String, Instance> initializers = Initializer.initializers(classDefinition);
         String constructorCode = "constructor(signature: string, ...params: any[]) {\n";
         if(classDefinition.superClass != null) constructorCode += "super(null);\n";
-        for(Map.Entry<String, AbstractType> entry : initializers.entrySet()) {
+        for(Map.Entry<String, Instance> entry : initializers.entrySet()) {
             constructorCode += "if(signature === '" + entry.getKey().substring(4) + "') return this." + entry.getKey() + ".apply(this, params);\n";
         }
         constructorCode += "}\n";
@@ -40,9 +40,9 @@ public class Initializer {
         return "{\n" + visitor.visit(declarations) + memberwiseInitializerCode + constructorCode + "}";
     }
 
-    static private LinkedHashMap<String, AbstractType> initializers(NestedByIndexType classDefinition) {
-        LinkedHashMap<String, AbstractType> initializers = new LinkedHashMap<String, AbstractType>();
-        for(Map.Entry<String, AbstractType> entry : classDefinition.hash.entrySet()) {
+    static private LinkedHashMap<String, Instance> initializers(NestedByIndexType classDefinition) {
+        LinkedHashMap<String, Instance> initializers = new LinkedHashMap<String, Instance>();
+        for(Map.Entry<String, Instance> entry : classDefinition.hash.entrySet()) {
             if(entry.getValue() instanceof FunctionType && ((FunctionType)entry.getValue()).isInitializer) {
                 initializers.put(entry.getKey(), entry.getValue());
             }
@@ -55,10 +55,10 @@ public class Initializer {
 
         String nameAugment = "";
         ArrayList<String> parameterNames = new ArrayList<String>();
-        ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
-        for(Map.Entry<String, AbstractType> entry : classDefinition.hash.entrySet()) {
+        ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
+        for(Map.Entry<String, Instance> entry : classDefinition.hash.entrySet()) {
             if(entry.getValue() instanceof FunctionType) continue;
-            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().swiftType();
+            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().uniqueId();
             parameterNames.add(entry.getKey());
             parameterTypes.add(entry.getValue());
         }

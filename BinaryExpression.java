@@ -18,11 +18,11 @@ public class BinaryExpression implements PrefixOrExpression {
     static public int minOperatorPriority = 4;
     static public int maxOperatorPriority = 10;
 
-    AbstractType type;
+    Instance type;
     String code;
     ParserRuleContext originalCtx;
     public String code() {return code;}
-    public AbstractType type() {return type;}
+    public Instance type() {return type;}
     public ParserRuleContext originalCtx() {return originalCtx;}
     private Object L;
     private Object R;
@@ -32,7 +32,7 @@ public class BinaryExpression implements PrefixOrExpression {
         this.L = L; this.R = R; this.operator = operator;
     }
 
-    public void compute(AbstractType type, Visitor visitor) {
+    public void compute(Instance type, Visitor visitor) {
         String alias = BinaryExpression.operatorAlias(operator);
         String definitionCode = null;
 
@@ -52,13 +52,13 @@ public class BinaryExpression implements PrefixOrExpression {
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
             //TODO should be grouping conditionals from right to left, e.g. true ? 1 : true ? 2 : 3 to true ? 1 : (true ? 2 : 3), currently that would be evaluated as 'true ? 1 : true'
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
-            AbstractType passType = Type.infer(conditionalOperator.expression(), visitor);
+            Instance passType = Type.infer(conditionalOperator.expression(), visitor);
             Expression passExpression = new Expression(conditionalOperator.expression(), passType, visitor);
             this.type = Type.alternative(passExpression, R);
             this.code = L.code() + " ? " + passExpression.code + " : " + R.code();
         }
         else if(operator instanceof SwiftParser.Type_casting_operatorContext) {
-            AbstractType castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
+            Instance castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
             if(operator.getChild(0).getText().equals("as")) {
                 this.type = castType;
                 this.code = L.code();// + " as " + this.type.jsType();
@@ -74,7 +74,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             if(isAssignment(alias)) {
                 if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().swiftType().equals("Void")) {
+                    if(R.type().uniqueId().equals("Void")) {
                         if(visitor.targetLanguage.equals("ts")) {
                             lCode = "delete " + lCode; rCode = ""; definitionCode = "#L";
                         }
@@ -112,7 +112,7 @@ public class BinaryExpression implements PrefixOrExpression {
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }
 
-            JSONObject definition = definitions.optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().swiftType() + "-" + R.type().swiftType());
+            JSONObject definition = definitions.optJSONObject(alias).optJSONObject("compute").optJSONObject(L.type().uniqueId() + "-" + R.type().uniqueId());
             if(definition == null) definition = definitions.optJSONObject(alias).optJSONObject("compute").optJSONObject("default");
             if(definitionCode == null) definitionCode = definition.opt(visitor.targetLanguage + "Code") != null ? definition.optString(visitor.targetLanguage + "Code") : "#L " + alias + " #R";
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";

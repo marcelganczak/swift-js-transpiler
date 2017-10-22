@@ -7,17 +7,17 @@ import java.util.List;
 public class Expression implements PrefixOrExpression {
 
     String code;
-    AbstractType type;
+    Instance type;
     ParserRuleContext originalCtx;
     public String code() {return code;}
-    public AbstractType type() {return type;}
+    public Instance type() {return type;}
     public ParserRuleContext originalCtx() {return originalCtx;}
 
-    public Expression(SwiftParser.ExpressionContext ctx, AbstractType type, Visitor visitor) {
+    public Expression(SwiftParser.ExpressionContext ctx, Instance type, Visitor visitor) {
         this(ctx, type, false, visitor);
     }
 
-    public Expression(SwiftParser.ExpressionContext ctx, AbstractType type, boolean skipFirst, Visitor visitor) {
+    public Expression(SwiftParser.ExpressionContext ctx, Instance type, boolean skipFirst, Visitor visitor) {
         originalCtx = ctx;
 
         List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions() != null ? ctx.binary_expressions().binary_expression() : new ArrayList<SwiftParser.Binary_expressionContext>();
@@ -65,7 +65,7 @@ public class Expression implements PrefixOrExpression {
         }
     }
 
-    public Expression(String code, AbstractType type) {
+    public Expression(String code, Instance type) {
         this.code = code;
         this.type = type;
         this.originalCtx = null;

@@ -6,7 +6,7 @@ import java.util.List;
 class IfLet {
     public ArrayList<String> varNames = new ArrayList<String>();
     public ArrayList<String> varVals = new ArrayList<String>();
-    public ArrayList<AbstractType> varTypes = new ArrayList<AbstractType>();
+    public ArrayList<Instance> varTypes = new ArrayList<Instance>();
     public IfLet(ParserRuleContext ctx, Visitor visitor) {
         SwiftParser.Condition_clauseContext conditionClause = ctx instanceof SwiftParser.If_statementContext ? ((SwiftParser.If_statementContext)ctx).condition_clause() : ((SwiftParser.Guard_statementContext)ctx).condition_clause();
         if(!(WalkerUtil.isDirectDescendant(SwiftParser.Optional_binding_conditionContext.class, conditionClause))) return;
@@ -41,7 +41,7 @@ public class ControlFlow {
         }
 
         Expression iteratedObject = new Expression(expression, null, visitor);
-        AbstractType iteratedType = iteratedObject.type;
+        Instance iteratedType = iteratedObject.type;
         String indexVar = null, valueVar;
         if(ctx.pattern().tuple_pattern() != null) {
             indexVar = ctx.pattern().tuple_pattern().tuple_pattern_element_list().tuple_pattern_element(0).getText();
@@ -53,7 +53,7 @@ public class ControlFlow {
 
         String iterator;
         if(visitor.targetLanguage.equals("ts")) {
-            if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("Set") || iteratedType.swiftType().equals("String")) {
+            if(iteratedType.uniqueId().equals("Array") || iteratedType.uniqueId().equals("Set") || iteratedType.uniqueId().equals("String")) {
                 if(indexVar == null) indexVar = "$";
                 iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
             }
@@ -63,7 +63,7 @@ public class ControlFlow {
             }
         }
         else {
-            if(iteratedType.swiftType().equals("Array") || iteratedType.swiftType().equals("Set") || iteratedType.swiftType().equals("String")) {
+            if(iteratedType.uniqueId().equals("Array") || iteratedType.uniqueId().equals("Set") || iteratedType.uniqueId().equals("String")) {
                 if(indexVar == null) indexVar = "$";
                 iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + ((NestedType) iteratedType).valueType.targetType("java") + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
             }

@@ -33,12 +33,12 @@ public class Prefix implements PrefixOrExpression {
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
     public ParserRuleContext originalCtx() {return originalCtx;}
 
-    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, AbstractType type, Visitor visitor) {
+    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Instance type, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
         originalCtx = prefixCtx;
         prefixOperatorContext = prefixCtx.prefix_operator();
 
-        AbstractType currType = null;
+        Instance currType = null;
         boolean nextIsOptional = false;
         
         for(int chainPos = 0; chainPos < chain.size(); chainPos++) {
@@ -134,15 +134,15 @@ public class Prefix implements PrefixOrExpression {
         return nextCode;
     }
 
-    static private Replacement replacement(AbstractType lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+    static private Replacement replacement(Instance lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
         if(R == null) return null;
-        if(definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()) == null) return null;
+        if(definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()) == null) return null;
 
         JSONObject definition = null;
-        JSONArray possibleDefinitions = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONArray(R);
+        JSONArray possibleDefinitions = definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()).optJSONArray(R);
         if(possibleDefinitions != null) {
             ArrayList<String> parameterExternalNames = FunctionUtil.parameterExternalNames(functionCallParams);
-            ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(functionCallParams, visitor);
+            ArrayList<Instance> parameterTypes = FunctionUtil.parameterTypes(functionCallParams, visitor);
             for(int i = 0; i < possibleDefinitions.length(); i++) {
                 JSONArray signature = possibleDefinitions.optJSONObject(i).optJSONArray("signature");
                 if(functionCallParams.size() != signature.length()) continue;
@@ -151,8 +151,8 @@ public class Prefix implements PrefixOrExpression {
                     JSONObject param = signature.optJSONObject(j);
                     String expectedExternalName = param.optString("externalName") == null ? "" : param.optString("externalName");
                     if(!parameterExternalNames.get(j).equals(expectedExternalName)) { signatureConforms = false; break; }
-                    AbstractType expectedType = Type.fromDefinition(param.optString("type"), lType);
-                    if(!parameterTypes.get(j).swiftType().equals(expectedType.swiftType())) { signatureConforms = false; break; }
+                    Instance expectedType = Type.fromDefinition(param.optString("type"), lType);
+                    if(!parameterTypes.get(j).uniqueId().equals(expectedType.uniqueId())) { signatureConforms = false; break; }
                 }
                 if(signatureConforms) {
                     definition = possibleDefinitions.optJSONObject(i);
@@ -161,7 +161,7 @@ public class Prefix implements PrefixOrExpression {
             }
         }
         else {
-            definition = definitions.optJSONObject(lType == null ? "top-level" : lType.swiftType()).optJSONObject(R);
+            definition = definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()).optJSONObject(R);
         }
         if(definition == null) return null;
 
@@ -174,7 +174,7 @@ public class Prefix implements PrefixOrExpression {
             String[] strArrFunctionCallParams = new String[functionCallParams.size() + (defaultParams != null ? defaultParams.length() : 0)];
             for(int i = 0; i < functionCallParams.size(); i++) {
                 int paramOutputIndex = definition.optJSONArray(visitor.targetLanguage + "ParamsOrder") != null ? definition.optJSONArray(visitor.targetLanguage + "ParamsOrder").optInt(i, i) : i;
-                AbstractType type = Type.fromDefinition(signature != null ? signature.optJSONObject(i).optString("type") : null, lType);
+                Instance type = Type.fromDefinition(signature != null ? signature.optJSONObject(i).optString("type") : null, lType);
                 strArrFunctionCallParams[paramOutputIndex] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionType) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
             }
             if(defaultParams != null) {
@@ -195,16 +195,16 @@ public class Prefix implements PrefixOrExpression {
             code = definitionCode;
             accessor = lType == null ? "" : ".";
         }
-        AbstractType type = Type.fromDefinition(definition.optString("returnType"), lType);
+        Instance type = Type.fromDefinition(definition.optString("returnType"), lType);
         return new Replacement(new PrefixElem(code, accessor, type, strFunctionCallParams), false);
     }
 
-    public AbstractType type() {
+    public Instance type() {
         return elems.get(elems.size() - 1).type;
     }
 
     public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.swiftType().equals("Dictionary") && (elems.get(elems.size() - 1).accessor.equals("[]") || isGetAccessor(elems.get(elems.size() - 1).accessor));
+        return elems.size() >= 2 && elems.get(elems.size() - 2).type.uniqueId().equals("Dictionary") && (elems.get(elems.size() - 1).accessor.equals("[]") || isGetAccessor(elems.get(elems.size() - 1).accessor));
     }
 
     public boolean hasOptionals() {

@@ -1,0 +1,98 @@
+{
+  "=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "?:": {
+    "priority": 9
+  },
+  "&&": {
+    "priority": 7,
+    "result": "Bool"
+  },
+  "||": {
+    "priority": 7,
+    "result": "Bool"
+  },
+  "??": {
+    "priority": 7,
+    "codeReplacement": {
+      "ts": "((_.$nilCoalescing = #A0) != null ? _.$nilCoalescing : #A1)",
+      "java": "(#A0 != null ? #A0 : #A1)"
+    }
+  },
+  "===": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "==": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "!==": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "!=": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  ">": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  ">=": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "<": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "<=": {
+    "priority": 6,
+    "result": "Bool"
+  },
+  "+": {
+    "priority": 5
+  },
+  "-": {
+    "priority": 5
+  },
+  "*": {
+    "priority": 4
+  },
+  "/": {
+    "priority": 4
+  },
+  "%": {
+    "priority": 4
+  },
+  "+=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "-=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "*=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "/=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "%=": {
+    "priority": 10,
+    "result": "Void"
+  },
+  "as": {
+    "priority": 8
+  },
+  "is": {
+    "priority": 8,
+    "result": "Bool"
+  }
+}

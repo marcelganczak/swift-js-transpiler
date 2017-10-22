@@ -1,22 +1,14 @@
 import org.antlr.v4.runtime.tree.ParseTree;
-import sun.org.mozilla.javascript.internal.Function;
 
 import java.util.*;
 
 public class EntityCache {
 
-    class CacheObject {
-        public AbstractType type;
-
-        public CacheObject(AbstractType type) {
-            this.type = type;
-        }
-    }
     class CacheBlockAndObject {
         public ParseTree block;
-        public CacheObject object;
+        public Object object;//Operator/Definition/Instance
 
-        public CacheBlockAndObject(ParseTree block, CacheObject object) {
+        public CacheBlockAndObject(ParseTree block, Object object) {
             this.block = block;
             this.object = object;
         }
@@ -31,7 +23,7 @@ public class EntityCache {
         }
     }
 
-    private Map<ParseTree, Map<String, CacheObject>> cache = new HashMap<ParseTree, Map<String, CacheObject>>();
+    private Map<ParseTree, Map<String, Object>> cache = new HashMap<ParseTree, Map<String, Object>>();
 
     static public boolean isStructureBlock(ParseTree node) {
         return node instanceof SwiftParser.Class_bodyContext || node instanceof SwiftParser.Struct_bodyContext;
@@ -80,7 +72,7 @@ public class EntityCache {
         varName = varName.trim();
 
         do {
-            Map<String, CacheObject> blockTypeCache = cache.get(node);
+            Map<String, Object> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             if(blockTypeCache.containsKey(varName)) return new CacheBlockAndObject(node, blockTypeCache.get(varName));
             if(node instanceof SwiftParser.Top_levelContext) break;
@@ -94,7 +86,7 @@ public class EntityCache {
 
         if(varName.equals("self")) return findNearestAncestorStructure(node);
 
-        if(varName.equals("super")) return ((NestedByIndexType)findNearestAncestorStructure(node).object.type).superClass;
+        if(varName.equals("super")) return ((NestedByIndexType)findNearestAncestorStructure(node).object).superClass;
 
         CacheBlockAndObject blockAndObject = find(varName, node);
         if(blockAndObject == null) {
@@ -102,7 +94,7 @@ public class EntityCache {
             if(candidates.size() == 0) {
                 CacheBlockAndExpression variadicFunction = getFunctionEndingWithVariadic(varName, node);
                 if(variadicFunction == null) return null;
-                return new CacheBlockAndObject(variadicFunction.block, new CacheObject(variadicFunction.expression.type));
+                return new CacheBlockAndObject(variadicFunction.block, variadicFunction.expression.type);
             }
             if(candidates.size() > 1) System.out.println("//Found more than 1 candidate for " + varName);
             return candidates.get(candidates.keySet().toArray()[0]);
@@ -114,9 +106,9 @@ public class EntityCache {
         Map<String, CacheBlockAndObject> matches = new HashMap<String, CacheBlockAndObject>();
 
         while((node = findNearestAncestorBlock(node.getParent())) != null) {
-            Map<String, CacheObject> blockTypeCache = cache.get(node);
+            Map<String, Object> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
-            for(Map.Entry<String, CacheObject> iterator:blockTypeCache.entrySet()) {
+            for(Map.Entry<String, Object> iterator:blockTypeCache.entrySet()) {
                 if(FunctionUtil.functionStartsWith(iterator.getKey(), iterator.getValue().type, varName)) {
                     matches.put(iterator.getKey(), new CacheBlockAndObject(node, iterator.getValue()));
                 }
@@ -129,7 +121,7 @@ public class EntityCache {
         Map<String, FunctionType> types = new HashMap<String, FunctionType>();
         Map<String, CacheBlockAndObject> objects = getFunctionsStartingWith(varName.trim(), node);
         for(Map.Entry<String, CacheBlockAndObject> iterator:objects.entrySet()) {
-            types.put(iterator.getKey(), (FunctionType)iterator.getValue().object.type);
+            types.put(iterator.getKey(), (FunctionType)iterator.getValue().object);
         }
         return types;
     }
@@ -138,29 +130,29 @@ public class EntityCache {
         ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
         for(int i = 0; i < variadicNames.size(); i+=2) {
             CacheBlockAndObject cache = find(variadicNames.get(i), node);
-            if(cache != null && cache.object.type instanceof FunctionType) {
-                List<AbstractType> parameterTypes = ((FunctionType)cache.object.type).parameterTypes;
-                if(!parameterTypes.get(parameterTypes.size() - 1).resulting(null).swiftType().equals(variadicNames.get(i + 1).split("_")[1])) continue;
-                return new CacheBlockAndExpression(cache.block, new Expression(variadicNames.get(i), cache.object.type));
+            if(cache != null && cache.object instanceof FunctionType) {
+                List<Instance> parameterTypes = ((FunctionType)cache.object).parameterTypes;
+                if(!parameterTypes.get(parameterTypes.size() - 1)/*.resulting(null)*/.uniqueId().equals(variadicNames.get(i + 1).split("_")[1])) continue;
+                return new CacheBlockAndExpression(cache.block, new Expression(variadicNames.get(i), (Instance)cache.object));
             }
         }
         return null;
     }
 
-    public void cacheOne(String identifier, AbstractType type, ParseTree ctx) {
-        //System.out.println("Caching " + identifier + " as " + type.swiftType());
+    public void cacheOne(String identifier, Object object/*Operator/Definition/Instance*/, ParseTree ctx) {
+        //System.out.println("Caching " + identifier + " as " + object.uniqueId());
 
         ParseTree nearestAncestorBlock = findNearestAncestorBlock(ctx);
 
         if(isStructureBlock(nearestAncestorBlock)) {
             //save the variable under class definition too
             CacheBlockAndObject classDefinition = getClassDefinition(nearestAncestorBlock);
-            ((NestedByIndexType)classDefinition.object.type).put(identifier, type);
+            ((NestedByIndexType)classDefinition.object).put(identifier, (Instance)object);
         }
 
         if(!cache.containsKey(nearestAncestorBlock)) {
-            cache.put(nearestAncestorBlock, new HashMap<String, CacheObject>());
+            cache.put(nearestAncestorBlock, new HashMap<String, Object>());
         }
-        cache.get(nearestAncestorBlock).put(identifier, new CacheObject(type));
+        cache.get(nearestAncestorBlock).put(identifier, object);
     }
 }

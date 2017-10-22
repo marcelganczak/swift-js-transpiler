@@ -48,16 +48,16 @@ public class FunctionUtil {
     static public String nameAugment(FunctionType type) {
         String augment = "";
         for(int i = 0; i < type.parameterTypes.size(); i++) {
-            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).swiftType();
+            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).uniqueId();
         }
         return augment;
     }
-    static private String nameAugment(List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ArrayList<AbstractType> parameterTypes) {
+    static private String nameAugment(List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ArrayList<Instance> parameterTypes) {
         if(parameters == null) return "";
         String augment = "";
         for(int i = 0; i < parameters.size(); i++) {
             ParserRuleContext parameter = parameters.get(i);
-            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).swiftType();
+            augment += "$" + parameterExternalName(parameter, i) + "_" + parameterTypes.get(i).uniqueId();
         }
         return augment;
     }
@@ -69,13 +69,13 @@ public class FunctionUtil {
         return baseName + nameAugment(type);
     }
 
-    static public ArrayList<AbstractType> parameterTypes(List<?extends ParserRuleContext> parameters, Visitor visitor) {
-        ArrayList<AbstractType> parameterTypes = new ArrayList<AbstractType>();
+    static public ArrayList<Instance> parameterTypes(List<?extends ParserRuleContext> parameters, Visitor visitor) {
+        ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
         if(parameters == null) return parameterTypes;
 
         for(int i = 0; i < parameters.size(); i++) {
             ParserRuleContext parameter = parameters.get(i);
-            AbstractType parameterType;
+            Instance parameterType;
             if(parameter instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)parameter).type_annotation() != null) {
                 parameterType = Type.fromDefinition(((SwiftParser.ParameterContext)parameter).type_annotation().type(), visitor);
             }
@@ -100,11 +100,11 @@ public class FunctionUtil {
     }
 
     static public String augmentFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, NestedByIndexType lType, boolean isInitializer, Visitor visitor) {
-        ArrayList<AbstractType> parameterTypes = parameterTypes(parameters, visitor);
+        ArrayList<Instance> parameterTypes = parameterTypes(parameters, visitor);
         String defaultAugment = nameAugment(parameters, parameterTypes);
         String defaultFunctionName = isInitializer ? "init" : swiftFunctionName;
         Object function =
-                lType != null ? lType.resulting(defaultFunctionName + defaultAugment) :
+                lType != null ? lType.getProperty(defaultFunctionName + defaultAugment) :
                 visitor.cache.find(defaultFunctionName + defaultAugment, ctx);
         if(function != null) return defaultAugment;
 
@@ -148,13 +148,13 @@ public class FunctionUtil {
         Map<String, EntityCache.CacheBlockAndObject> candidates = visitor.cache.getFunctionsStartingWith(swiftFunctionName, ctx);
         for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
             EntityCache.CacheBlockAndObject cacheBlockAndObject = iterator.getValue();
-            FunctionType functionType = (FunctionType)cacheBlockAndObject.object.type;
+            FunctionType functionType = (FunctionType)cacheBlockAndObject.object;
             if(functionType.sameAs(type)) return iterator.getKey().substring(swiftFunctionName.length());
         }
         return null;
     }
 
-    static public boolean functionStartsWith(String name, AbstractType type, String varName) {
+    static public boolean functionStartsWith(String name, Instance type, String varName) {
         return name.startsWith(varName) && type instanceof FunctionType && (name.length() == varName.length() || name.startsWith(varName + "$"));
     }
 
@@ -171,7 +171,7 @@ public class FunctionUtil {
         );
     }
 
-    static public String closureExpression(SwiftParser.Closure_expressionContext ctx, AbstractType type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
+    static public String closureExpression(SwiftParser.Closure_expressionContext ctx, Instance type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
         String closureExpression = "";
         if(ctx.operator() != null) {
             closureExpression = "(a, b) => a " + ctx.operator().getText() + " b";
@@ -189,7 +189,7 @@ public class FunctionUtil {
         return closureExpression;
     }
 
-    static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, AbstractType type, Visitor visitor) {
+    static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, Instance type, Visitor visitor) {
         if(type instanceof FunctionType) {
             FunctionType functionType = (FunctionType)type;
             for(int i = 0; i < functionType.parameterTypes.size(); i++) {

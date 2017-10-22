@@ -14,7 +14,7 @@ public class CacheVisitor extends Visitor {
 
     @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
         String varName = ctx.pattern().identifier_pattern().getText();
-        AbstractType varType =
+        Instance varType =
                 ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type(), this)
                 : Type.infer(ctx.initializer().expression(), this);
         cache(varName, varType, ctx);
@@ -24,13 +24,13 @@ public class CacheVisitor extends Visitor {
 
     @Override public String visitProperty_declaration(SwiftParser.Property_declarationContext ctx) {
         String varName = ctx.variable_name().getText();
-        AbstractType varType = Type.fromDefinition(ctx.type_annotation().type(), this);
+        Instance varType = Type.fromDefinition(ctx.type_annotation().type(), this);
         cache(varName, varType, ctx);
         visit(ctx.property_declaration_body());
         return null;
     }
 
-    private void cache(String varName, AbstractType varType, ParseTree ctx) {
+    private void cache(String varName, Instance varType, ParseTree ctx) {
         if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
         cache.cacheOne(varName, varType, ctx);
     }
@@ -70,8 +70,8 @@ public class CacheVisitor extends Visitor {
     }
     private void visitPropertyClause(ParserRuleContext ctx) {
         SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
-        AbstractType propertyType = cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object.type.copy();
-        propertyType.isGetterSetter = null;
+        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object);
+        //propertyType.isGetterSetter = null;
         SwiftParser.Code_blockContext blockContext =
             ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :
             ctx instanceof SwiftParser.WillSet_clauseContext ? ((SwiftParser.WillSet_clauseContext)ctx).code_block() :
@@ -89,7 +89,7 @@ public class CacheVisitor extends Visitor {
     /*@Override public String visitClosure_expression(SwiftParser.Closure_expressionContext ctx) {
         SwiftParser.Parameter_listContext parameterList = ctx.closure_signature().parameter_clause().parameter_list();
         List<SwiftParser.ParameterContext> parameters = parameterList != null ? parameterList.parameter() : null;
-        ArrayList<AbstractType> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
+        ArrayList<Instance> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
         for(int i = 0; parameterTypes != null && i < parameterTypes.size(); i++) {
             cache.cacheOne(FunctionUtil.parameterLocalName(parameters.get(i)), parameterTypes.get(i), ctx);
         }
@@ -119,7 +119,7 @@ public class CacheVisitor extends Visitor {
             superClass = this.cache.find(superClassName, ctx);
         }
 
-        NestedByIndexType classType = new NestedByIndexType(new LinkedHashMap<String, AbstractType>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null);
+        NestedByIndexType classType = new NestedByIndexType(new LinkedHashMap<String, Instance>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null);
         cache.cacheOne(className, classType, ctx);
 
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
@@ -135,7 +135,7 @@ public class CacheVisitor extends Visitor {
         }
         else {
             Expression iteratedObject = new Expression(ctx.expression(), null, this);
-            AbstractType iteratedType = iteratedObject.type;
+            Instance iteratedType = iteratedObject.type;
             String indexVar = "$", valueVar;
             if(ctx.pattern().tuple_pattern() != null) {
                 indexVar = ctx.pattern().tuple_pattern().tuple_pattern_element_list().tuple_pattern_element(0).getText();
@@ -144,8 +144,8 @@ public class CacheVisitor extends Visitor {
             else {
                 valueVar = ctx.pattern().identifier_pattern().getText();
             }
-            cache.cacheOne(indexVar, iteratedType.swiftType().equals("String") ? new BasicType("Int"): ((NestedType)iteratedType).keyType, ctx.code_block());
-            cache.cacheOne(valueVar, iteratedType.swiftType().equals("String") ? new BasicType("String"): ((NestedType)iteratedType).valueType, ctx.code_block());
+            cache.cacheOne(indexVar, iteratedType.uniqueId().equals("String") ? new BasicType("Int"): ((NestedType)iteratedType).keyType, ctx.code_block());
+            cache.cacheOne(valueVar, iteratedType.uniqueId().equals("String") ? new BasicType("String"): ((NestedType)iteratedType).valueType, ctx.code_block());
         }
 
         visit(ctx.code_block());
