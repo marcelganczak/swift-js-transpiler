@@ -8,20 +8,22 @@ public class Initializer {
 
     static public String handleClassBody(ParseTree ctx, Visitor visitor) {
 
-        NestedByIndexType classDefinition = (NestedByIndexType)visitor.cache.getClassDefinition(ctx).object;
+        ClassDefinition classDefinition = (ClassDefinition)visitor.cache.getClassDefinition(ctx).object;
 
         LinkedHashMap<String, Instance> initializers = Initializer.initializers(classDefinition);
+        String memberwiseInitializerSignature = null;
         String constructorCode = "constructor(signature: string, ...params: any[]) {\n";
         if(classDefinition.superClass != null) constructorCode += "super(null);\n";
         for(Map.Entry<String, Instance> entry : initializers.entrySet()) {
             constructorCode += "if(signature === '" + entry.getKey().substring(4) + "') return this." + entry.getKey() + ".apply(this, params);\n";
+            if(entry.getValue().isMemberwiseInitializer) memberwiseInitializerSignature = entry.getKey();
         }
         constructorCode += "}\n";
 
         String memberwiseInitializerCode = "";
-        if(classDefinition.memberwiseInitializer != null) {
-            FunctionType memberwiseInitializer = (FunctionType)classDefinition.hash.get(classDefinition.memberwiseInitializer);
-            memberwiseInitializerCode += classDefinition.memberwiseInitializer + "(";
+        if(memberwiseInitializerSignature != null) {
+            FunctionDefinition memberwiseInitializer = (FunctionDefinition)classDefinition.properties.get(memberwiseInitializerSignature).definition;
+            memberwiseInitializerCode += memberwiseInitializerSignature + "(";
             for(int i = 0; i < memberwiseInitializer.parameterExternalNames.size(); i++) {
                 memberwiseInitializerCode +=
                     (i > 0 ? ", " : "") + memberwiseInitializer.parameterExternalNames.get(i) +
@@ -40,32 +42,34 @@ public class Initializer {
         return "{\n" + visitor.visit(declarations) + memberwiseInitializerCode + constructorCode + "}";
     }
 
-    static private LinkedHashMap<String, Instance> initializers(NestedByIndexType classDefinition) {
+    static private LinkedHashMap<String, Instance> initializers(ClassDefinition classDefinition) {
         LinkedHashMap<String, Instance> initializers = new LinkedHashMap<String, Instance>();
-        for(Map.Entry<String, Instance> entry : classDefinition.hash.entrySet()) {
-            if(entry.getValue() instanceof FunctionType && ((FunctionType)entry.getValue()).isInitializer) {
+        for(Map.Entry<String, Instance> entry : classDefinition.properties.entrySet()) {
+            if(entry.getValue().isInitializer) {
                 initializers.put(entry.getKey(), entry.getValue());
             }
         }
         return initializers;
     }
 
-    static public void addMemberwiseInitializer(NestedByIndexType classDefinition) {
+    static public void addMemberwiseInitializer(ClassDefinition classDefinition) {
         if(!initializers(classDefinition).isEmpty()) return;
 
         String nameAugment = "";
         ArrayList<String> parameterNames = new ArrayList<String>();
         ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
-        for(Map.Entry<String, Instance> entry : classDefinition.hash.entrySet()) {
-            if(entry.getValue() instanceof FunctionType) continue;
-            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().uniqueId();
+        for(Map.Entry<String, Instance> entry : classDefinition.properties.entrySet()) {
+            if(entry.getValue().isMethod) continue;
+            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().typeName.uniqueId();
             parameterNames.add(entry.getKey());
             parameterTypes.add(entry.getValue());
         }
 
         if(!parameterNames.isEmpty()) {
-            classDefinition.hash.put("init" + nameAugment, new FunctionType(parameterNames, parameterTypes, 0, new BasicType("Void"), null, true, false));
-            classDefinition.memberwiseInitializer = "init" + nameAugment;
+            FunctionDefinition function = new FunctionDefinition(null, parameterNames, parameterTypes, 0, new Instance("Void"), null);
+            Instance initializer = new Instance(function);
+            initializer.isMethod = initializer.isInitializer = initializer.isMemberwiseInitializer = true;
+            classDefinition.properties.put("init" + nameAugment, initializer);
         }
     }
 

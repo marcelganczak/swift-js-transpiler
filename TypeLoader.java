@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 //loads in native data types (e.g. String, Array) and caches them as Definitions
 public class TypeLoader {
@@ -21,28 +22,19 @@ public class TypeLoader {
             String className = definitions.names().optString(i);
             JSONObject src = definitions.optJSONObject(className);
 
-            Definition definition = src.optBoolean("function") ? new FunctionDefinition() : new ClassDefinition();
+            Definition definition =
+                    src.optBoolean("function") ? parseFunction(className, src, true) :
+                    parseClass(className, src);
 
             cache.cacheOne(className, definition, topLevel);
         }
-
-        for(int i = 0; i < definitions.names().length(); i++) {
-            String className = definitions.names().optString(i);
-            JSONObject src = definitions.optJSONObject(className);
-
-            Definition definition = cache.find(className, topLevel).object.definition;
-
-            if(definition instanceof FunctionDefinition) parseFunction(className, (FunctionDefinition)definition, src, cache, topLevel, true);
-            else parseClass(className, (ClassDefinition)definition, src, cache, topLevel);
-        }
     }
 
-    static private void parseClass(String className, ClassDefinition definition, JSONObject src, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static private ClassDefinition parseClass(String className, JSONObject src) {
 
-        definition.name = className;
+        ClassDefinition definition = new ClassDefinition(className, null, new ArrayList<String>());
 
         if(src.optJSONArray("generics") != null) {
-            definition.generics = new ArrayList<String>();
             for(int i = 0; i < src.optJSONArray("generics").length(); i++) {
                 definition.generics.add(src.optJSONArray("generics").optString(i));
             }
@@ -67,24 +59,26 @@ public class TypeLoader {
         for(int i = 0; i < src.optJSONArray("properties").length(); i++) {
             JSONObject propertySrc = src.optJSONArray("properties").optJSONObject(i);
 
-            Property property = parseProperty(src);
+            Instance property = parseProperty(propertySrc);
             String name = src.optString("name");
-            if(propertySrc.optBoolean("isFunction")) {
-                FunctionDefinition functionDefinition = new FunctionDefinition();
-                parseFunction(propertySrc.optString("name"), functionDefinition, propertySrc, cache, topLevel, false);
-                property.definition = new DefinitionOrGeneric(functionDefinition);
-                //TODO amend name
-            }
-            else {
-                property.definition = getDefinition(propertySrc.optString("type"), cache, topLevel);
-            }
-            
+
             definition.properties.put(name, property);
         }
+
+        return definition;
     }
 
-    static private Property parseProperty(JSONObject src) {
-        Property property = new Property();
+    static private Instance parseProperty(JSONObject src) {
+
+        Instance property;
+
+        if(src.optBoolean("isFunction")) {
+            property = new Instance(parseFunction(src.optString("name"), src, false));
+            //TODO amend name
+        }
+        else {
+            property = new Instance(src.optString("type"));
+        }
 
         if(src.optJSONObject("codeReplacement") != null) {
             property.codeReplacement = new HashMap<String, String>();
@@ -100,20 +94,20 @@ public class TypeLoader {
         return property;
     }
 
-    static private void parseFunction(String className, FunctionDefinition definition, JSONObject src, EntityCache cache, SwiftParser.Top_levelContext topLevel, boolean isTopLevel) {
+    static private FunctionDefinition parseFunction(String name, JSONObject src, boolean isTopLevel) {
 
-        definition.parameterExternalNames = new ArrayList<String>();
-        definition.parameterTypes = new ArrayList<InstanceOrGeneric>();
+        List<String> parameterExternalNames = new ArrayList<String>();
+        List<Instance> parameterTypes = new ArrayList<Instance>();
         if(src.optJSONArray("parameters") != null) {
             for(int i = 0; i < src.optJSONArray("parameters").length(); i++) {
                 JSONObject parameter = src.optJSONArray("parameters").optJSONObject(i);
-                definition.parameterExternalNames.add(parameter.optString("externalName"));
+                parameterExternalNames.add(parameter.optString("externalName"));
                 String parameterType = parameter.optString("type");
-                definition.parameterTypes.add(getInstance(parameterType, cache, topLevel));
+                parameterTypes.add(new Instance(parameterType));
             }
         }
 
-        definition.result = getInstance(src.optString("type"), cache, topLevel);
+        FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, new Instance(src.optString("type")), null);
 
         if(src.optJSONObject("parameterReplacement") != null) {
             definition.parameterReplacement = new HashMap<String, ParameterReplacement>();
@@ -145,12 +139,7 @@ public class TypeLoader {
                 definition.codeReplacement.put(language, src.optJSONObject("codeReplacement").optString(language));
             }
         }
-    }
 
-    static private InstanceOrGeneric getInstance(String type, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
-        return type.contains("#") ? new InstanceOrGeneric(type) : new InstanceOrGeneric(cache.find(type, topLevel).object.instance);
-    }
-    static private DefinitionOrGeneric getDefinition(String type, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
-        return type.contains("#") ? new DefinitionOrGeneric(type) : new DefinitionOrGeneric(cache.find(type, topLevel).object.definition);
+        return definition;
     }
 }

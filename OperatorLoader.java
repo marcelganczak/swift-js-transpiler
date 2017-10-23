@@ -31,7 +31,7 @@ public class OperatorLoader {
         definition.priority = src.optInt("priority");
 
         if(src.optString("result") != null) {
-            definition.result = cache.find(src.optString("result"), topLevel).object.definition;
+            definition.result = (Definition)cache.find(src.optString("result"), topLevel).object;
         }
 
         if(src.optJSONObject("codeReplacement") != null) {

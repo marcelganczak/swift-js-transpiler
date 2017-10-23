@@ -45,10 +45,10 @@ public class FunctionUtil {
         return "";
     }
 
-    static public String nameAugment(FunctionType type) {
+    static public String nameAugment(List<String> parameterExternalNames, List<Instance> parameterTypes) {
         String augment = "";
-        for(int i = 0; i < type.parameterTypes.size(); i++) {
-            augment += "$" + type.parameterExternalNames.get(i) + "_" + type.parameterTypes.get(i).uniqueId();
+        for(int i = 0; i < parameterTypes.size(); i++) {
+            augment += "$" + parameterExternalNames.get(i) + "_" + parameterTypes.get(i).uniqueId();
         }
         return augment;
     }
@@ -62,11 +62,11 @@ public class FunctionUtil {
         return augment;
     }
 
-    static public String functionName(ParserRuleContext ctx, FunctionType type) {
+    static public String functionName(ParserRuleContext ctx, List<String> parameterExternalNames, List<Instance> parameterTypes) {
         String baseName =
             ctx instanceof SwiftParser.Function_declarationContext ? ((SwiftParser.Function_declarationContext)ctx).function_name().getText() :
             "init";
-        return baseName + nameAugment(type);
+        return baseName + nameAugment(parameterExternalNames, parameterTypes);
     }
 
     static public ArrayList<Instance> parameterTypes(List<?extends ParserRuleContext> parameters, Visitor visitor) {
@@ -164,7 +164,7 @@ public class FunctionUtil {
 
         return (
             (!isInClass ? "function " : "") +
-            FunctionUtil.functionName(ctx, functionType) +
+            FunctionUtil.functionName(ctx, functionType.parameterExternalNames, functionType.parameterTypes) +
             "(" + visitor.visitChildren(parameterList(ctx)) + "):" +
             functionType.returnType.targetType(visitor.targetLanguage) +
             visitor.visit(codeBlockCtx(ctx))

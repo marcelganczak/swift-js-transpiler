@@ -40,9 +40,9 @@
   "Dictionary": {
     "generics": ["Key", "Value"],
     "typeReplacement": {
-      "ts": "Dictionary<#Value>",
-      "java": "InitializableHashMap<#Key, #Value>",
-      "javaProtocol": "Map<#Key, #Value>"
+      "ts": "Dictionary<Value>",
+      "java": "InitializableHashMap<Key, Value>",
+      "javaProtocol": "Map<Key, Value>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -51,7 +51,7 @@
     "properties": [{
       "name": "[]",
       "function": true,
-      "type": "#Value",
+      "type": "Value",
       "codeReplacement": {
         "java": "#L.get(#A)"
       }
@@ -65,7 +65,7 @@
     }, {
       "name": "updateValue",
       "function": true,
-      "parameters": [{"type": "#Value"}, {"type": "#Key", "externalName": "forKey"}],
+      "parameters": [{"type": "Value"}, {"type": "Key", "externalName": "forKey"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "_.updateValue(#L, #A)",
@@ -76,9 +76,9 @@
   "Array": {
     "generics": ["T"],
     "typeReplacement": {
-      "ts": "Array<#T>",
-      "java": "ArrayList<#T>",
-      "javaProtocol": "List<#T>"
+      "ts": "Array<T>",
+      "java": "ArrayList<T>",
+      "javaProtocol": "List<T>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -88,32 +88,32 @@
       "name": "init",
       "function": true,
       "parameters": [],
-      "type": "[#T]",
+      "type": "[T]",
       "codeReplacement": {
-        "java": "new Array<#T>()",
-        "java": "new ArrayList<#T>()"
+        "java": "new Array<T>()",
+        "java": "new ArrayList<T>()"
       }
     }, {
       "name": "init",
       "function": true,
-      "parameters": [{"type": "#T", "externalName": "repeating"}, {"type": "Int", "externalName": "count"}],
-      "type": "[#T]",
+      "parameters": [{"type": "T", "externalName": "repeating"}, {"type": "Int", "externalName": "count"}],
+      "type": "[T]",
       "codeReplacement": {
         "ts": "new Array(#A1).fill(#A0)",
-        "java": "new ArrayList<#T>(Collections.nCopies(#A1, #A0))"
+        "java": "new ArrayList<T>(Collections.nCopies(#A1, #A0))"
       }
     }, {
       "name": "[]",
       "function": true,
-      "type": "#T",
+      "type": "T",
       "codeReplacement": {
         "java": "#L.get(#A)"
       }
     }, {
       "name": "+",
       "function": true,
-      "parameters": [{"type": "[#T]"}, {"type": "[#T]"}],
-      "type": "[#T]",
+      "parameters": [{"type": "[T]"}, {"type": "[T]"}],
+      "type": "[T]",
       "codeReplacement": {
         "ts": "#A0.concat(#A1)",
         "java": "new ArrayList<String>() { { addAll(#A0); addAll(#A1); } }"
@@ -121,7 +121,7 @@
     }, {
       "name": "+=",
       "function": true,
-      "parameters": [{"type": "[#T]"}, {"type": "[#T]"}],
+      "parameters": [{"type": "[T]"}, {"type": "[T]"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#A0.pushMany(#A1)",
@@ -143,7 +143,7 @@
     }, {
       "name": "append",
       "function": true,
-      "parameters": [{"type": "#T"}],
+      "parameters": [{"type": "T"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.push(#A)",
@@ -152,7 +152,7 @@
     }, {
       "name": "append",
       "function": true,
-      "parameters": [{"type": "[#T]", "externalName": "contentsOf"}],
+      "parameters": [{"type": "[T]", "externalName": "contentsOf"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.pushMany(#A)",
@@ -161,7 +161,7 @@
     }, {
       "name": "insert",
       "function": true,
-      "parameters": [{"type": "#T"}, {"type": "Int", "externalName": "at"}],
+      "parameters": [{"type": "T"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.splice(#A)",
@@ -179,7 +179,7 @@
     }, {
       "name": "insert",
       "function": true,
-      "parameters": [{"type": "[#T]", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
+      "parameters": [{"type": "[T]", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.pushManyAt(#A)",
@@ -207,26 +207,26 @@
     }, {
       "name": "filter",
       "function": true,
-      "parameters": [{"type": "(#T)->Bool"}],
-      "type": "[#T]"
+      "parameters": [{"type": "(T)->Bool"}],
+      "type": "[T]"
     }, {
       "name": "sort",
       "function": true,
-      "parameters": [{"type": "(#T,#T)->Bool", "externalName": "by"}],
-      "type": "[#T]",
+      "parameters": [{"type": "(T,T)->Bool", "externalName": "by"}],
+      "type": "[T]",
       "codeReplacement": {
         "ts": "#L.sortBool(#A)"
       }
     }, {
       "name": "map",
       "function": true,
-      "parameters": [{"type": "(#T)->#T"}],
-      "type": "[#T]"
+      "parameters": [{"type": "(T)->T"}],
+      "type": "[T]"
     }, {
       "name": "reduce",
       "function": true,
-      "parameters": [{"type": "#T"}, {"type": "(#T,#T)->#T"}],
-      "type": "#T",
+      "parameters": [{"type": "T"}, {"type": "(T,T)->T"}],
+      "type": "T",
       "parameterReplacement": {
         "ts": {
           "order": [1, 0]
@@ -237,9 +237,9 @@
   "Set": {
     "generics": ["T"],
     "typeReplacement": {
-      "ts": "Set<#T>",
-      "java": "HashSet<#T>",
-      "javaProtocol": "Set<#T>"
+      "ts": "Set<T>",
+      "java": "HashSet<T>",
+      "javaProtocol": "Set<T>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,

@@ -109,7 +109,7 @@ public class EntityCache {
             Map<String, Object> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             for(Map.Entry<String, Object> iterator:blockTypeCache.entrySet()) {
-                if(FunctionUtil.functionStartsWith(iterator.getKey(), iterator.getValue().type, varName)) {
+                if(FunctionUtil.functionStartsWith(iterator.getKey(), (Instance)iterator.getValue(), varName)) {
                     matches.put(iterator.getKey(), new CacheBlockAndObject(node, iterator.getValue()));
                 }
             }
@@ -147,7 +147,7 @@ public class EntityCache {
         if(isStructureBlock(nearestAncestorBlock)) {
             //save the variable under class definition too
             CacheBlockAndObject classDefinition = getClassDefinition(nearestAncestorBlock);
-            ((NestedByIndexType)classDefinition.object).put(identifier, (Instance)object);
+            ((ClassDefinition)classDefinition.object).properties.put(identifier, (Instance)object);
         }
 
         if(!cache.containsKey(nearestAncestorBlock)) {

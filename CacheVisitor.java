@@ -2,7 +2,8 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
+import java.util.List;
 
 public class CacheVisitor extends Visitor {
 
@@ -31,7 +32,7 @@ public class CacheVisitor extends Visitor {
     }
 
     private void cache(String varName, Instance varType, ParseTree ctx) {
-        if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
+        if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment(((FunctionType) varType).parameterExternalNames, ((FunctionType) varType).parameterTypes);
         cache.cacheOne(varName, varType, ctx);
     }
 
@@ -44,13 +45,25 @@ public class CacheVisitor extends Visitor {
         return null;
     }
     private void visitFunctionDeclaration(ParserRuleContext ctx) {
-        FunctionType functionType = new FunctionType(ctx, this);
-        cache.cacheOne(FunctionUtil.functionName(ctx, functionType), functionType, ctx);
+
+        List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
+
+        List<String> parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
+        List<Instance> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
+        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+        String name = FunctionUtil.functionName(ctx, parameterExternalNames, parameterTypes);
+
+        Instance returnType =
+            ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, this) :
+            new BasicType("Void");
+
+        FunctionDefinition functionDefinition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, numParametersWithDefaultValue, returnType, new ArrayList<String>());;
+        cache.cacheOne(name, functionDefinition, ctx);
 
         SwiftParser.Code_blockContext codeBlockCtx = FunctionUtil.codeBlockCtx(ctx);
         ArrayList<String> parameterLocalNames = FunctionUtil.parameterLocalNames(FunctionUtil.parameters(ctx));
         for(int i = 0; i < parameterLocalNames.size(); i++) {
-            cache.cacheOne(parameterLocalNames.get(i), functionType.parameterTypes.get(i), codeBlockCtx);
+            cache.cacheOne(parameterLocalNames.get(i), functionDefinition.parameterTypes.get(i), codeBlockCtx);
         }
 
         visit(codeBlockCtx);
@@ -119,12 +132,17 @@ public class CacheVisitor extends Visitor {
             superClass = this.cache.find(superClassName, ctx);
         }
 
-        NestedByIndexType classType = new NestedByIndexType(new LinkedHashMap<String, Instance>(), ctx instanceof SwiftParser.Class_declarationContext ? "class" : "struct", className, superClass, false, null);
-        cache.cacheOne(className, classType, ctx);
+        ClassDefinition classDefinition = new ClassDefinition(className, superClass, new ArrayList<String>());
+        if(ctx instanceof SwiftParser.Struct_declarationContext) {
+            classDefinition.cloneOnAssignmentReplacement = new HashMap<String, Boolean>();
+            classDefinition.cloneOnAssignmentReplacement.put("ts", true);
+            classDefinition.cloneOnAssignmentReplacement.put("java", true);
+        }
+        cache.cacheOne(className, classDefinition, ctx);
 
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
 
-        if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classType);
+        if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classDefinition);
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {

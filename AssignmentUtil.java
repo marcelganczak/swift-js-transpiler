@@ -7,7 +7,7 @@ public class AssignmentUtil {
     static public String augment(String code, Instance type, ParserRuleContext originalCtx, Visitor visitor) {
 
         boolean isCopied =
-            type.definition.cloneOnAssignmentReplacement.get(visitor.targetLanguage) &&
+            type.definition().cloneOnAssignmentReplacement.get(visitor.targetLanguage) &&
             !WalkerUtil.isDirectDescendant(SwiftParser.Literal_expressionContext.class, originalCtx) &&
             !code.startsWith("new ");
 
