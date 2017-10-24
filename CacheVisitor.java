@@ -3,6 +3,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class CacheVisitor extends Visitor {
@@ -32,7 +33,7 @@ public class CacheVisitor extends Visitor {
     }
 
     private void cache(String varName, Instance varType, ParseTree ctx) {
-        if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment(((FunctionType) varType).parameterExternalNames, ((FunctionType) varType).parameterTypes);
+        if(varType instanceof FunctionDefinition) varName += FunctionUtil.nameAugment(((FunctionDefinition) varType).parameterExternalNames, ((FunctionDefinition) varType).parameterTypes);
         cache.cacheOne(varName, varType, ctx);
     }
 
@@ -46,19 +47,8 @@ public class CacheVisitor extends Visitor {
     }
     private void visitFunctionDeclaration(ParserRuleContext ctx) {
 
-        List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
-
-        List<String> parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
-        List<Instance> parameterTypes = FunctionUtil.parameterTypes(parameters, this);
-        int numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
-        String name = FunctionUtil.functionName(ctx, parameterExternalNames, parameterTypes);
-
-        Instance returnType =
-            ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, this) :
-            new BasicType("Void");
-
-        FunctionDefinition functionDefinition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, numParametersWithDefaultValue, returnType, new ArrayList<String>());;
-        cache.cacheOne(name, functionDefinition, ctx);
+        FunctionDefinition functionDefinition = new FunctionDefinition(ctx, this);
+        cache.cacheOne(functionDefinition.name, functionDefinition, ctx);
 
         SwiftParser.Code_blockContext codeBlockCtx = FunctionUtil.codeBlockCtx(ctx);
         ArrayList<String> parameterLocalNames = FunctionUtil.parameterLocalNames(FunctionUtil.parameters(ctx));
@@ -132,7 +122,7 @@ public class CacheVisitor extends Visitor {
             superClass = this.cache.find(superClassName, ctx);
         }
 
-        ClassDefinition classDefinition = new ClassDefinition(className, superClass, new ArrayList<String>());
+        ClassDefinition classDefinition = new ClassDefinition(className, superClass, new LinkedHashMap<String, Instance>(), new ArrayList<String>());
         if(ctx instanceof SwiftParser.Struct_declarationContext) {
             classDefinition.cloneOnAssignmentReplacement = new HashMap<String, Boolean>();
             classDefinition.cloneOnAssignmentReplacement.put("ts", true);
@@ -149,11 +139,10 @@ public class CacheVisitor extends Visitor {
 
         if(ctx.expression() != null && ctx.expression().binary_expressions() != null) {
             String varName = ctx.pattern().getText().equals("_") ? "$" : ctx.pattern().getText();
-            cache.cacheOne(varName, new BasicType("Int"), ctx.code_block());
+            cache.cacheOne(varName, new Instance("Int"), ctx.code_block());
         }
         else {
-            Expression iteratedObject = new Expression(ctx.expression(), null, this);
-            Instance iteratedType = iteratedObject.type;
+            Instance iteratedType = new Expression(ctx.expression(), null, this).type;
             String indexVar = "$", valueVar;
             if(ctx.pattern().tuple_pattern() != null) {
                 indexVar = ctx.pattern().tuple_pattern().tuple_pattern_element_list().tuple_pattern_element(0).getText();
@@ -162,8 +151,8 @@ public class CacheVisitor extends Visitor {
             else {
                 valueVar = ctx.pattern().identifier_pattern().getText();
             }
-            cache.cacheOne(indexVar, iteratedType.uniqueId().equals("String") ? new BasicType("Int"): ((NestedType)iteratedType).keyType, ctx.code_block());
-            cache.cacheOne(valueVar, iteratedType.uniqueId().equals("String") ? new BasicType("String"): ((NestedType)iteratedType).valueType, ctx.code_block());
+            cache.cacheOne(indexVar, iteratedType.typeName.equals("Dictionary") ? iteratedType.generics.get(0) : new Instance("Int"), ctx.code_block());
+            cache.cacheOne(valueVar, iteratedType.typeName.equals("String") ? new Instance("String") : iteratedType.generics.get(iteratedType.typeName.equals("Dictionary") ? 1 : 0), ctx.code_block());
         }
 
         visit(ctx.code_block());

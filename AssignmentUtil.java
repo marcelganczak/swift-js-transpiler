@@ -21,7 +21,7 @@ public class AssignmentUtil {
         String varName = ctx.pattern().identifier_pattern().getText();
         EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, ctx);
         Instance varType = cache != null && cache.object instanceof Instance ? (Instance)cache.object : null;
-        if(varType instanceof FunctionType) varName += FunctionUtil.nameAugment((FunctionType)varType);
+        if(varType instanceof FunctionDefinition) varName += FunctionUtil.nameAugment((FunctionDefinition)varType);
 
         String transpiled =
             visitor.targetLanguage.equals("ts") ? varName + ":" + varType.targetType(visitor.targetLanguage)

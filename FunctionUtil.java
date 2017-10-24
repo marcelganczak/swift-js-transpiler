@@ -1,8 +1,6 @@
 import org.antlr.v4.runtime.ParserRuleContext;
-import sun.org.mozilla.javascript.internal.Function;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -99,21 +97,21 @@ public class FunctionUtil {
         return numParametersWithDefaultValue;
     }
 
-    static public String augmentFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, NestedByIndexType lType, boolean isInitializer, Visitor visitor) {
+    static public String augmentFromCall(String swiftFunctionName, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/>parameters, ParserRuleContext ctx, ClassDefinition lType, boolean isInitializer, Visitor visitor) {
         ArrayList<Instance> parameterTypes = parameterTypes(parameters, visitor);
         String defaultAugment = nameAugment(parameters, parameterTypes);
         String defaultFunctionName = isInitializer ? "init" : swiftFunctionName;
         Object function =
-                lType != null ? lType.getProperty(defaultFunctionName + defaultAugment) :
+                lType != null ? lType.properties.get(defaultFunctionName + defaultAugment) :
                 visitor.cache.find(defaultFunctionName + defaultAugment, ctx);
         if(function != null) return defaultAugment;
 
-        Map<String, FunctionType> candidates =
+        Map<String, FunctionDefinition> candidates =
                 lType != null ? lType.getFunctionTypesStartingWith(defaultFunctionName + defaultAugment) :
                 visitor.cache.getFunctionTypesStartingWith(defaultFunctionName + defaultAugment, ctx);
         int numUsedParameters = parameters != null ? parameters.size() : 0;
-        for(Map.Entry<String, FunctionType> iterator:candidates.entrySet()) {
-            FunctionType functionType = iterator.getValue();
+        for(Map.Entry<String, FunctionDefinition> iterator:candidates.entrySet()) {
+            FunctionDefinition functionType = iterator.getValue();
             if(numUsedParameters >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey().substring(defaultFunctionName.length());
         }
 
@@ -144,29 +142,36 @@ public class FunctionUtil {
         return variadicNames;
     }
 
-    static public String augmentFromCall(String swiftFunctionName, FunctionType type, ParserRuleContext ctx, Visitor visitor) {
+    static public String augmentFromCall(String swiftFunctionName, FunctionDefinition type, ParserRuleContext ctx, Visitor visitor) {
         Map<String, EntityCache.CacheBlockAndObject> candidates = visitor.cache.getFunctionsStartingWith(swiftFunctionName, ctx);
         for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
             EntityCache.CacheBlockAndObject cacheBlockAndObject = iterator.getValue();
-            FunctionType functionType = (FunctionType)cacheBlockAndObject.object;
-            if(functionType.sameAs(type)) return iterator.getKey().substring(swiftFunctionName.length());
+            FunctionDefinition functionType = (FunctionDefinition)cacheBlockAndObject.object;
+            if(identicalSignatures(functionType, type)) return iterator.getKey().substring(swiftFunctionName.length());
         }
         return null;
     }
 
+    static private boolean identicalSignatures(FunctionDefinition a, FunctionDefinition b) {
+        if(a.parameterTypes.size() != b.parameterTypes.size()) return false;
+        if(!a.result.uniqueId().equals(b.result.uniqueId())) return false;
+        for(int i = 0; i < a.parameterTypes.size(); i++) if(!a.parameterTypes.get(i).uniqueId().equals(b.parameterTypes.get(i).uniqueId())) return false;
+        return true;
+    }
+
     static public boolean functionStartsWith(String name, Instance type, String varName) {
-        return name.startsWith(varName) && type instanceof FunctionType && (name.length() == varName.length() || name.startsWith(varName + "$"));
+        return name.startsWith(varName) && type instanceof FunctionDefinition && (name.length() == varName.length() || name.startsWith(varName + "$"));
     }
 
     static public String functionDeclaration(ParserRuleContext ctx, Visitor visitor) {
-        FunctionType functionType = new FunctionType(ctx, visitor);
+        FunctionDefinition functionDefinition = new FunctionDefinition(ctx, visitor);
         boolean isInClass = ctx.parent != null && ctx.parent.parent instanceof SwiftParser.DeclarationsContext;
 
         return (
             (!isInClass ? "function " : "") +
-            FunctionUtil.functionName(ctx, functionType.parameterExternalNames, functionType.parameterTypes) +
+            FunctionUtil.functionName(ctx, functionDefinition.parameterExternalNames, functionDefinition.parameterTypes) +
             "(" + visitor.visitChildren(parameterList(ctx)) + "):" +
-            functionType.returnType.targetType(visitor.targetLanguage) +
+                functionDefinition.result.targetType(visitor.targetLanguage) +
             visitor.visit(codeBlockCtx(ctx))
         );
     }
@@ -190,8 +195,8 @@ public class FunctionUtil {
     }
 
     static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, Instance type, Visitor visitor) {
-        if(type instanceof FunctionType) {
-            FunctionType functionType = (FunctionType)type;
+        if(type instanceof FunctionDefinition) {
+            FunctionDefinition functionType = (FunctionDefinition)type;
             for(int i = 0; i < functionType.parameterTypes.size(); i++) {
                 visitor.cache.cacheOne("$" + i, functionType.parameterTypes.get(i), ctx);
             }

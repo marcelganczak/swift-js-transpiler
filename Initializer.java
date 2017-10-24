@@ -89,7 +89,7 @@ public class Initializer {
         //by slicing the functionCallParams string (i.e. "$quantity_Int", 2 --> $quantity_Int)
         //that's the simplest way of getting what we want for now, but it'd be better if the signature was passed somehow
         String initializerSignature = elem.functionCallParams.substring(1, elem.functionCallParams.indexOf('"', 1));
-        FunctionType initializer = (FunctionType)((NestedByIndexType) elem.type).hash.get("init" + initializerSignature);
+        Instance initializer = elem.type.getProperty("init" + initializerSignature);
         return initializer != null && initializer.isFailableInitializer;
     }
 }

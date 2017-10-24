@@ -1,3 +1,5 @@
+import org.antlr.v4.runtime.ParserRuleContext;
+
 import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -17,8 +19,8 @@ abstract class Definition {
 
 class ClassDefinition extends Definition {
     public EntityCache.CacheBlockAndObject superClass;
-    public Map<String, Instance> properties = new LinkedHashMap<String, Instance>();
-    public ClassDefinition(String name, EntityCache.CacheBlockAndObject superClass, List<String> generics){ this.name = name; this.superClass = superClass; this.generics = generics; }
+    public Map<String, Instance> properties;
+    public ClassDefinition(String name, EntityCache.CacheBlockAndObject superClass, Map<String, Instance> properties, List<String> generics){ this.name = name; this.superClass = superClass; this.properties = properties; this.generics = generics; }
 }
 
 class FunctionDefinition extends Definition {
@@ -29,6 +31,18 @@ class FunctionDefinition extends Definition {
     public Map<String, ParameterReplacement> parameterReplacement;
     public Map<String, String> codeReplacement;//ts->tsCode, java->javaCode; if you can, rather keep it in Property, but sometimes needed for top-level funcs
     public FunctionDefinition(String name, List<String> parameterExternalNames, List<Instance> parameterTypes, int numParametersWithDefaultValue, Instance result, List<String> generics){ this.name = name; this.parameterExternalNames = parameterExternalNames; this.parameterTypes = parameterTypes; this.numParametersWithDefaultValue = numParametersWithDefaultValue; this.result = result; this.generics = generics; }
+    public FunctionDefinition(ParserRuleContext ctx, Visitor visitor) {
+        List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
+
+        this.parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
+        this.parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
+        this.numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+        this.name = FunctionUtil.functionName(ctx, parameterExternalNames, parameterTypes);
+
+        this.result =
+            ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, visitor) :
+            new Instance("Void");
+    }
 }
 
 class ParameterReplacement {

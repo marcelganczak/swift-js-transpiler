@@ -64,7 +64,7 @@ public class BinaryExpression implements PrefixOrExpression {
                 this.code = L.code();// + " as " + this.type.jsType();
             }
             else {
-                this.type = new BasicType("Bool");
+                this.type = new Instance("Bool");
                 this.code = L.code() + " instanceof " + this.type.targetType(visitor.targetLanguage);
             }
         }
@@ -108,7 +108,7 @@ public class BinaryExpression implements PrefixOrExpression {
                     definitionCode = "Object.assign(#L, #R)";
                 }
 
-                if(type instanceof FunctionType && R.type() != null) type = R.type();
+                if(type instanceof FunctionDefinition && R.type() != null) type = R.type();
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }
 
@@ -118,7 +118,7 @@ public class BinaryExpression implements PrefixOrExpression {
             String definitionType = definition.opt("type") != null ? definition.optString("type") : "L/R";
 
             this.code = definitionCode.replaceAll("#L", lCode.replaceAll("\\$", "\\\\\\$")).replaceAll("#R", rCode.replaceAll("\\$", "\\\\\\$"));
-            this.type = definitionType.equals("L/R") ? Type.alternative(L, R) : new BasicType(definitionType);
+            this.type = definitionType.equals("L/R") ? Type.alternative(L, R) : new Instance(definitionType);
             if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + "; } else { " + elseCode1 + "; }";
             if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + "; }";
         }

@@ -53,7 +53,7 @@ public class PrefixElem {
         LinkedHashMap<String, Instance> types = new LinkedHashMap<String, Instance>();
 
         ArrayList<String> keys = null;
-        if(type instanceof NestedByIndexType) keys = ((NestedByIndexType) type).keys();
+        keys = new ArrayList<String>(((ClassDefinition)type.definition()).properties.keySet());
 
         for(int i = 0, elementI = 0; i < tupleLiteral.getChildCount(); i++) {
             if(!(tupleLiteral.getChild(i) instanceof SwiftParser.Expression_elementContext)) continue;
@@ -63,12 +63,15 @@ public class PrefixElem {
             elementI++;
         }
 
-        if(type == null) type = new NestedByIndexType(types, "tuple", null, null, false, null);
-        String code = getTupleCode(keys, elementList, (NestedByIndexType)type, visitor);
+        if(type == null) {
+            ClassDefinition tupleDefinition = new ClassDefinition(null, null, types, new ArrayList<String>());
+            type = new Instance(tupleDefinition);
+        }
+        String code = getTupleCode(keys, elementList, type, visitor);
 
         return new PrefixElem(code, "", type, null);
     }
-    static public String getTupleCode(ArrayList<String> keys, List<SwiftParser.Expression_elementContext> elementList, NestedByIndexType type, Visitor visitor) {
+    static public String getTupleCode(ArrayList<String> keys, List<SwiftParser.Expression_elementContext> elementList, Instance type, Visitor visitor) {
         String code = "";
         if(visitor.targetLanguage.equals("ts")) {
             code += "{";
@@ -97,10 +100,12 @@ public class PrefixElem {
 
         SwiftParser.Array_literalContext arrayLiteral = ((SwiftParser.Primary_expressionContext) rChild).literal_expression().array_literal();
 
-        if(arrayLiteral.array_literal_items() != null) {
+        if(arrayLiteral.array_literal_items() != null && type == null) {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
-            Instance wrappedType = functionCallParams != null ? new BasicType(wrappedExpression.getText()) : Type.infer(wrappedExpression, visitor);
-            if(type == null) type = new NestedType("Array", new BasicType("Int"), wrappedType, false, null);
+            Instance wrappedType = functionCallParams != null ? new Instance(wrappedExpression.getText()) : Type.infer(wrappedExpression, visitor);
+            type = new Instance("Array");
+            type.generics = new ArrayList<Instance>();
+            type.generics.add(wrappedType);
         }
 
         String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
@@ -159,19 +164,24 @@ public class PrefixElem {
         }
         else {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
-            if(type == null) type = new NestedType("Dictionary", Type.infer(keyVal.get(0), visitor), Type.infer(keyVal.get(1), visitor), false, null);
-            code = getDictionaryInitializerCode(dictionaryLiteral, (NestedType)type, visitor);
+            if(type == null) {
+                type = new Instance("Dictionary");
+                type.generics = new ArrayList<Instance>();
+                type.generics.add(Type.infer(keyVal.get(0), visitor));
+                type.generics.add(Type.infer(keyVal.get(1), visitor));
+            }
+            code = getDictionaryInitializerCode(dictionaryLiteral, type, visitor);
         }
 
         return new PrefixElem(code, "", type, null);
     }
 
-    static private String getDictionaryInitializerCode(SwiftParser.Dictionary_literalContext dictionaryLiteral, NestedType dictionaryType, Visitor visitor) {
+    static private String getDictionaryInitializerCode(SwiftParser.Dictionary_literalContext dictionaryLiteral, Instance dictionaryType, Visitor visitor) {
         if(visitor.targetLanguage.equals("ts")) {
             return '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
         }
         else {
-            String diamond = dictionaryType.keyType.targetType(visitor.targetLanguage) + ", " + dictionaryType.valueType.targetType(visitor.targetLanguage);
+            String diamond = dictionaryType.generics.get(0).targetType(visitor.targetLanguage) + ", " + dictionaryType.generics.get(1).targetType(visitor.targetLanguage);
             String code = "new " + dictionaryType.targetType(visitor.targetLanguage, true, false) + "(";
             List<SwiftParser.Dictionary_literal_itemContext> items = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item();
             for(int i = 0; i < items.size(); i++) {
@@ -188,7 +198,11 @@ public class PrefixElem {
         String typeStr = visitor.visit(rChild.getChild(0)).trim();
 
         if(typeStr.equals("Set")) {
-            if(type == null) type = new NestedType("Set", new BasicType("Int"), new BasicType(template.generic_argument_list().generic_argument(0).getText()), false, null);
+            if(type == null) {
+                type = new Instance("Set");
+                type.generics = new ArrayList<Instance>();
+                type.generics.add(new Instance(template.generic_argument_list().generic_argument(0).getText()));
+            }
             return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", "", type, null);
         }
 
@@ -198,14 +212,14 @@ public class PrefixElem {
     static private PrefixElem getLiteral(ParserRuleContext rChild, Instance type, Visitor visitor) {
         String code = visitor.visit(rChild);
         if(WalkerUtil.isDirectDescendant(SwiftParser.Nil_literalContext.class, rChild)) {
-            type = new BasicType("Void");
+            type = new Instance("Void");
             code = "null ";
         }
         else {
-            if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new BasicType("Int");
-            else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new BasicType("Double");
-            else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new BasicType("String");
-            else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new BasicType("Bool");
+            if(WalkerUtil.isDirectDescendant(SwiftParser.Integer_literalContext.class, rChild)) type = new Instance("Int");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.Numeric_literalContext.class, rChild)) type = new Instance("Double");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new Instance("String");
+            else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new Instance("Bool");
         }
         return new PrefixElem(code, "", type, null);
     }
@@ -259,10 +273,10 @@ public class PrefixElem {
 
         if(functionCallParams != null) {
             EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(code, rChild);
-            boolean isInitializer = lType == null && classDefinition != null && classDefinition.object instanceof NestedByIndexType && ((NestedByIndexType)classDefinition.object).isInitialization();
+            boolean isInitializer = lType == null && classDefinition != null && classDefinition.object instanceof ClassDefinition;
             functionCallParamsStr = "";
 
-            String augment = FunctionUtil.augmentFromCall(code, functionCallParams, rChild, isInitializer ? (NestedByIndexType)classDefinition.object : lType != null ? (NestedByIndexType)lType : null, isInitializer, visitor);
+            String augment = FunctionUtil.augmentFromCall(code, functionCallParams, rChild, isInitializer ? (ClassDefinition)classDefinition.object : lType != null && lType.definition() instanceof ClassDefinition ? (ClassDefinition)lType.definition() : null, isInitializer, visitor);
             if(isInitializer) {
                 functionCallParamsStr += '"' + (augment == null ? "" : augment) + '"';
             }
@@ -274,15 +288,16 @@ public class PrefixElem {
                 functionCallParamsStr += (functionCallParamsStr.length() > 0 ? ", " : "") + visitor.visit(functionCallParams.get(i));
             }
         }
-        else if(rType instanceof FunctionType) {
-            code += FunctionUtil.augmentFromCall(code, (FunctionType) rType, rChild, visitor);
+        else if(rType instanceof FunctionDefinition) {
+            code += FunctionUtil.augmentFromCall(code, (FunctionDefinition) rType, rChild, visitor);
         }
 
         if(type == null) {
             String varName = code.trim();
+            Object/*Instance/Definition*/ instanceOrDefinition;
             if(lType == null) {
                 EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, chain.get(0));
-                type = (Instance)cache.object;
+                instanceOrDefinition = cache.object;
                 if(EntityCache.isStructureBlock(cache.block)) {
                     code = "this." + code;
                 }
@@ -291,15 +306,15 @@ public class PrefixElem {
                 }
             }
             else {
-                type = lType.getProperty(varName);
+                instanceOrDefinition = lType.getProperty(varName);
             }
             if(functionCallParams != null) {
-                if(type instanceof FunctionType) type = ((FunctionType)type).returnType;
+                if(instanceOrDefinition instanceof FunctionDefinition) type = ((FunctionDefinition)instanceOrDefinition).result;
                 else {
-                    NestedByIndexType baseType = (NestedByIndexType)type;
-                    type = new NestedByIndexType(baseType.hash, baseType.structureType, baseType.definitionName, baseType.superClass, true, null);
+                    type = new Instance((Definition)instanceOrDefinition);
                 }
             }
+            else type = (Instance)instanceOrDefinition;
         }
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Implicit_parameterContext.class, rChild)) {

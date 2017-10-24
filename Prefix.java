@@ -116,7 +116,7 @@ public class Prefix implements PrefixOrExpression {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
-        if(isLast && elem.type instanceof NestedByIndexType && elem.functionCallParams != null && ((NestedByIndexType)elem.type).isInitialization()) {
+        if(isLast && elem.functionCallParams != null && elem.type instanceof FunctionDefinition/*if Class()*/) {
             nextCode = "new " + nextCode;
             if(Initializer.isFailable(elem)) {
                 nextCode = "_.failableInit(" + nextCode + ")";
@@ -175,7 +175,7 @@ public class Prefix implements PrefixOrExpression {
             for(int i = 0; i < functionCallParams.size(); i++) {
                 int paramOutputIndex = definition.optJSONArray(visitor.targetLanguage + "ParamsOrder") != null ? definition.optJSONArray(visitor.targetLanguage + "ParamsOrder").optInt(i, i) : i;
                 Instance type = Type.fromDefinition(signature != null ? signature.optJSONObject(i).optString("type") : null, lType);
-                strArrFunctionCallParams[paramOutputIndex] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionType) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
+                strArrFunctionCallParams[paramOutputIndex] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionDefinition) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
             }
             if(defaultParams != null) {
                 for(int i = 0; i < defaultParams.length(); i++) {

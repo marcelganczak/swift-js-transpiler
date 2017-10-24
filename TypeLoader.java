@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 //loads in native data types (e.g. String, Array) and caches them as Definitions
@@ -32,7 +33,7 @@ public class TypeLoader {
 
     static private ClassDefinition parseClass(String className, JSONObject src) {
 
-        ClassDefinition definition = new ClassDefinition(className, null, new ArrayList<String>());
+        ClassDefinition definition = new ClassDefinition(className, null, new LinkedHashMap<String, Instance>(), new ArrayList<String>());
 
         if(src.optJSONArray("generics") != null) {
             for(int i = 0; i < src.optJSONArray("generics").length(); i++) {

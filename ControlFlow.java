@@ -53,7 +53,7 @@ public class ControlFlow {
 
         String iterator;
         if(visitor.targetLanguage.equals("ts")) {
-            if(iteratedType.uniqueId().equals("Array") || iteratedType.uniqueId().equals("Set") || iteratedType.uniqueId().equals("String")) {
+            if(iteratedType.typeName.equals("Array") || iteratedType.typeName.equals("Set") || iteratedType.typeName.equals("String")) {
                 if(indexVar == null) indexVar = "$";
                 iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
             }
@@ -63,15 +63,16 @@ public class ControlFlow {
             }
         }
         else {
-            if(iteratedType.uniqueId().equals("Array") || iteratedType.uniqueId().equals("Set") || iteratedType.uniqueId().equals("String")) {
+            if(iteratedType.typeName.equals("Array") || iteratedType.typeName.equals("Set") || iteratedType.typeName.equals("String")) {
                 if(indexVar == null) indexVar = "$";
-                iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + ((NestedType) iteratedType).valueType.targetType("java") + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
+                String targetType = iteratedType.typeName.equals("String") ? new Instance("String").targetType("java") : iteratedType.generics.get(0).targetType("java");
+                iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + targetType + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
             }
             else {
                 String[] iteratedTypeChunks = iteratedType.targetType("java").split("<");
                 iterator = "for(" + iteratedTypeChunks[0] + ".Entry<" + iteratedTypeChunks[1] + " $ : (" + iteratedObject.code + ").entrySet()) {";
-                if(indexVar != null) iterator += ((NestedType) iteratedType).keyType.targetType("java") + " " + indexVar + " = $.getKey();";
-                iterator += ((NestedType) iteratedType).valueType.targetType("java") + " " + valueVar + " = $.getValue();";
+                if(indexVar != null) iterator += iteratedType.generics.get(0).targetType("java") + " " + indexVar + " = $.getKey();";
+                iterator += iteratedType.generics.get(1).targetType("java") + " " + valueVar + " = $.getValue();";
             }
         }
 

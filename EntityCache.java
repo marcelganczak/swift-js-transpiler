@@ -86,7 +86,7 @@ public class EntityCache {
 
         if(varName.equals("self")) return findNearestAncestorStructure(node);
 
-        if(varName.equals("super")) return ((NestedByIndexType)findNearestAncestorStructure(node).object).superClass;
+        if(varName.equals("super")) return ((ClassDefinition)findNearestAncestorStructure(node).object).superClass;
 
         CacheBlockAndObject blockAndObject = find(varName, node);
         if(blockAndObject == null) {
@@ -117,11 +117,11 @@ public class EntityCache {
         }
         return matches;
     }
-    public Map<String, FunctionType> getFunctionTypesStartingWith(String varName, ParseTree node) {
-        Map<String, FunctionType> types = new HashMap<String, FunctionType>();
+    public Map<String, FunctionDefinition> getFunctionTypesStartingWith(String varName, ParseTree node) {
+        Map<String, FunctionDefinition> types = new HashMap<String, FunctionDefinition>();
         Map<String, CacheBlockAndObject> objects = getFunctionsStartingWith(varName.trim(), node);
         for(Map.Entry<String, CacheBlockAndObject> iterator:objects.entrySet()) {
-            types.put(iterator.getKey(), (FunctionType)iterator.getValue().object);
+            types.put(iterator.getKey(), (FunctionDefinition)iterator.getValue().object);
         }
         return types;
     }
@@ -130,8 +130,8 @@ public class EntityCache {
         ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
         for(int i = 0; i < variadicNames.size(); i+=2) {
             CacheBlockAndObject cache = find(variadicNames.get(i), node);
-            if(cache != null && cache.object instanceof FunctionType) {
-                List<Instance> parameterTypes = ((FunctionType)cache.object).parameterTypes;
+            if(cache != null && cache.object instanceof FunctionDefinition) {
+                List<Instance> parameterTypes = ((FunctionDefinition)cache.object).parameterTypes;
                 if(!parameterTypes.get(parameterTypes.size() - 1)/*.resulting(null)*/.uniqueId().equals(variadicNames.get(i + 1).split("_")[1])) continue;
                 return new CacheBlockAndExpression(cache.block, new Expression(variadicNames.get(i), (Instance)cache.object));
             }
@@ -147,7 +147,7 @@ public class EntityCache {
         if(isStructureBlock(nearestAncestorBlock)) {
             //save the variable under class definition too
             CacheBlockAndObject classDefinition = getClassDefinition(nearestAncestorBlock);
-            ((ClassDefinition)classDefinition.object).properties.put(identifier, (Instance)object);
+            ((ClassDefinition)classDefinition.object).properties.put(identifier, (Instance) object);
         }
 
         if(!cache.containsKey(nearestAncestorBlock)) {
