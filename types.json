@@ -41,9 +41,9 @@
   "Dictionary": {
     "generics": ["Key", "Value"],
     "typeReplacement": {
-      "ts": "Dictionary<#G1>",
-      "java": "InitializableHashMap<#G0, #G1>",
-      "javaProtocol": "Map<#G0, #G1>"
+      "ts": "Dictionary<#Value>",
+      "java": "InitializableHashMap<#Key, #Value>",
+      "javaProtocol": "Map<#Key, #Value>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -75,11 +75,11 @@
     }]
   },
   "Array": {
-    "generics": ["T"],
+    "generics": ["Value"],
     "typeReplacement": {
-      "ts": "Array<#G0>",
-      "java": "ArrayList<#G0>",
-      "javaProtocol": "List<#G0>"
+      "ts": "Array<#Value>",
+      "java": "ArrayList<#Value>",
+      "javaProtocol": "List<#Value>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -89,32 +89,32 @@
       "name": "init",
       "function": true,
       "parameters": [],
-      "type": "[T]",
+      "type": "[Value]",
       "codeReplacement": {
-        "ts": "new Array<#G0>()",
-        "java": "new ArrayList<#G0>()"
+        "ts": "new Array<#Value>()",
+        "java": "new ArrayList<#Value>()"
       }
     }, {
       "name": "init",
       "function": true,
-      "parameters": [{"type": "T", "externalName": "repeating"}, {"type": "Int", "externalName": "count"}],
-      "type": "[T]",
+      "parameters": [{"type": "Value", "externalName": "repeating"}, {"type": "Int", "externalName": "count"}],
+      "type": "[Value]",
       "codeReplacement": {
         "ts": "new Array(#A1).fill(#A0)",
-        "java": "new ArrayList<#G0>(Collections.nCopies(#A1, #A0))"
+        "java": "new ArrayList<#Value>(Collections.nCopies(#A1, #A0))"
       }
     }, {
       "name": "[]",
       "function": true,
-      "type": "T",
+      "type": "Value",
       "codeReplacement": {
         "java": "#L.get(#A)"
       }
     }, {
       "name": "+",
       "function": true,
-      "parameters": [{"type": "[T]"}, {"type": "[T]"}],
-      "type": "[T]",
+      "parameters": [{"type": "[Value]"}, {"type": "[Value]"}],
+      "type": "[Value]",
       "codeReplacement": {
         "ts": "#A0.concat(#A1)",
         "java": "new ArrayList<String>() { { addAll(#A0); addAll(#A1); } }"
@@ -122,7 +122,7 @@
     }, {
       "name": "+=",
       "function": true,
-      "parameters": [{"type": "[T]"}, {"type": "[T]"}],
+      "parameters": [{"type": "[Value]"}, {"type": "[Value]"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#A0.pushMany(#A1)",
@@ -144,7 +144,7 @@
     }, {
       "name": "append",
       "function": true,
-      "parameters": [{"type": "T"}],
+      "parameters": [{"type": "Value"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.push(#A)",
@@ -153,7 +153,7 @@
     }, {
       "name": "append",
       "function": true,
-      "parameters": [{"type": "[T]", "externalName": "contentsOf"}],
+      "parameters": [{"type": "[Value]", "externalName": "contentsOf"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.pushMany(#A)",
@@ -162,7 +162,7 @@
     }, {
       "name": "insert",
       "function": true,
-      "parameters": [{"type": "T"}, {"type": "Int", "externalName": "at"}],
+      "parameters": [{"type": "Value"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.splice(#A)",
@@ -180,7 +180,7 @@
     }, {
       "name": "insert",
       "function": true,
-      "parameters": [{"type": "[T]", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
+      "parameters": [{"type": "[Value]", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
         "ts": "#L.pushManyAt(#A)",
@@ -208,26 +208,26 @@
     }, {
       "name": "filter",
       "function": true,
-      "parameters": [{"type": "(T)->Bool"}],
-      "type": "[T]"
+      "parameters": [{"type": "(Value)->Bool"}],
+      "type": "[Value]"
     }, {
       "name": "sort",
       "function": true,
-      "parameters": [{"type": "(T,T)->Bool", "externalName": "by"}],
-      "type": "[T]",
+      "parameters": [{"type": "(Value,Value)->Bool", "externalName": "by"}],
+      "type": "[Value]",
       "codeReplacement": {
         "ts": "#L.sortBool(#A)"
       }
     }, {
       "name": "map",
       "function": true,
-      "parameters": [{"type": "(T)->T"}],
-      "type": "[T]"
+      "parameters": [{"type": "(Value)->Value"}],
+      "type": "[Value]"
     }, {
       "name": "reduce",
       "function": true,
-      "parameters": [{"type": "T"}, {"type": "(T,T)->T"}],
-      "type": "T",
+      "parameters": [{"type": "Value"}, {"type": "(Value,Value)->Value"}],
+      "type": "Value",
       "parameterReplacement": {
         "ts": {
           "order": [1, 0]
@@ -236,11 +236,11 @@
     }]
   },
   "Set": {
-    "generics": ["T"],
+    "generics": ["Value"],
     "typeReplacement": {
-      "ts": "Set<#G0>",
-      "java": "HashSet<#G0>",
-      "javaProtocol": "Set<#G0>"
+      "ts": "Set<#Value>",
+      "java": "HashSet<#Value>",
+      "javaProtocol": "Set<#Value>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,

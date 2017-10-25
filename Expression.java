@@ -1,4 +1,5 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,7 +10,7 @@ public class Expression implements PrefixOrExpression {
     String code;
     Instance type;
     ParserRuleContext originalCtx;
-    public String code(Visitor visitor) {return code;}
+    public String code(ParseTree ctx, Visitor visitor) {return code;}
     public Instance type() {return type;}
     public ParserRuleContext originalCtx() {return originalCtx;}
 
@@ -52,7 +53,7 @@ public class Expression implements PrefixOrExpression {
 
         if(ctxs.get(0) instanceof SwiftParser.Prefix_expressionContext) {
             Prefix prefix = new Prefix((SwiftParser.Prefix_expressionContext)ctxs.get(0), knownType, visitor);
-            this.code = prefix.code(visitor);
+            this.code = prefix.code(ctx, visitor);
             this.type = prefix.type();
         }
         else {

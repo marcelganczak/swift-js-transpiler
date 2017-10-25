@@ -12,7 +12,7 @@ public class BinaryExpression implements PrefixOrExpression {
     Instance type;
     String code;
     ParserRuleContext originalCtx;
-    public String code(Visitor visitor) {return code;}
+    public String code(ParseTree ctx, Visitor visitor) {return code;}
     public Instance type() {return type;}
     public ParserRuleContext originalCtx() {return originalCtx;}
     private Object L;
@@ -46,21 +46,21 @@ public class BinaryExpression implements PrefixOrExpression {
             Instance passType = Type.infer(conditionalOperator.expression(), visitor);
             Expression passExpression = new Expression(conditionalOperator.expression(), passType, visitor);
             this.type = Type.alternative(passExpression, R);
-            this.code = L.code(visitor) + " ? " + passExpression.code + " : " + R.code(visitor);
+            this.code = L.code(ctx, visitor) + " ? " + passExpression.code + " : " + R.code(ctx, visitor);
         }
         else if(operator instanceof SwiftParser.Type_casting_operatorContext) {
             Instance castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
             if(operator.getChild(0).getText().equals("as")) {
                 this.type = castType;
-                this.code = L.code(visitor);// + " as " + this.type.jsType();
+                this.code = L.code(ctx, visitor);// + " as " + this.type.jsType();
             }
             else {
                 this.type = new Instance("Bool", ctx, visitor.cache);
-                this.code = L.code(visitor) + " instanceof " + this.type.targetType(visitor.targetLanguage);
+                this.code = L.code(ctx, visitor) + " instanceof " + this.type.targetType(visitor.targetLanguage);
             }
         }
         else {
-            String lCode = isAssignment(alias) ? ((Prefix)L).code(true, visitor) : L.code(visitor), rCode = R.code(visitor),
+            String lCode = isAssignment(alias) ? ((Prefix)L).code(true, ctx, visitor) : L.code(ctx, visitor), rCode = R.code(ctx, visitor),
                    ifCode0 = null, ifCode1 = null, elseCode1 = null;
 
             if(isAssignment(alias)) {
@@ -70,13 +70,13 @@ public class BinaryExpression implements PrefixOrExpression {
                             lCode = "delete " + lCode; rCode = ""; definitionCode = "#A0";
                         }
                         else {
-                            lCode = ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")"; rCode = ""; definitionCode = "#A0";
+                            lCode = ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, ctx, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")"; rCode = ""; definitionCode = "#A0";
                         }
                     }
                     else if(R.type().isOptional) {
                         ifCode1 = "(" + rCode + ") != null";
                         if(((Prefix) L).endsWithGetAccessor()) definitionCode = "#A0 #A1)";
-                        elseCode1 = visitor.targetLanguage.equals("ts") ? "delete " + lCode : ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")";
+                        elseCode1 = visitor.targetLanguage.equals("ts") ? "delete " + lCode : ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, ctx, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")";
                     }
                     else if(((Prefix) L).endsWithGetAccessor()) {
                         definitionCode = "#A0 #A1)";
@@ -84,7 +84,7 @@ public class BinaryExpression implements PrefixOrExpression {
                 }
 
                 if(((Prefix) L).hasOptionals()) {
-                    ifCode0 = optionalsGuardingIf(((Prefix) L), visitor);
+                    ifCode0 = optionalsGuardingIf(((Prefix) L), ctx, visitor);
                 }
 
                 if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).endsWithGetAccessor()) {
@@ -122,7 +122,7 @@ public class BinaryExpression implements PrefixOrExpression {
 
             Operator operator = (Operator)visitor.cache.find(alias, ctx).object;
             
-            this.type = augment != null ? ((FunctionDefinition)functionOwner.getProperty(alias + augment).definition).result : operator.result != null ? new Instance(operator.result) : Type.alternative(L, R);
+            this.type = augment != null ? functionOwner.getProperty(alias + augment).result() : operator.result != null ? new Instance(operator.result) : Type.alternative(L, R);
 
             if(definitionCode == null) {
                 definitionCode =
@@ -150,10 +150,10 @@ public class BinaryExpression implements PrefixOrExpression {
         return alias.equals("=") || alias.equals("+=") || alias.equals("-=") || alias.equals("*=") || alias.equals("/=") || alias.equals("%=");
     }
 
-    static private String optionalsGuardingIf(Prefix L, Visitor visitor) {
+    static private String optionalsGuardingIf(Prefix L, ParseTree ctx, Visitor visitor) {
         String ifCode = "";
         for(int i = 0; i < L.elems.size(); i++) {
-            if(L.elems.get(i).isOptional) ifCode += (ifCode.length() > 0 ? " && " : "") + L.code(true, i, visitor) + " != null";
+            if(L.elems.get(i).isOptional) ifCode += (ifCode.length() > 0 ? " && " : "") + L.code(true, i, ctx, visitor) + " != null";
         }
         return ifCode;
     }

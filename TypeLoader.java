@@ -1,3 +1,5 @@
+import org.antlr.v4.runtime.ANTLRInputStream;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -81,12 +83,12 @@ public class TypeLoader {
 
         Instance property;
 
-        if(src.optBoolean("isFunction")) {
+        if(src.optBoolean("function")) {
             property = new Instance(parseFunction(src.optString("name"), src, false, cache, topLevel));
             //TODO amend name
         }
         else {
-            property = new Instance(src.optString("type"), topLevel, cache);
+            property = parseType(src.optString("type"), cache, topLevel);
         }
 
         if(src.optJSONObject("codeReplacement") != null) {
@@ -116,7 +118,7 @@ public class TypeLoader {
             }
         }
 
-        FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, new Instance(src.optString("type"), topLevel, cache), null);
+        FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, parseType(src.optString("type"), cache, topLevel), null);
 
         if(src.optJSONObject("parameterReplacement") != null) {
             definition.parameterReplacement = new HashMap<String, ParameterReplacement>();
@@ -150,5 +152,19 @@ public class TypeLoader {
         }
 
         return definition;
+    }
+
+    static private Instance parseType(String type, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+        if(type.equals("")) return new Instance(type, topLevel, cache);
+
+        SwiftLexer lexer = new SwiftLexer(new ANTLRInputStream("let a:" + type));
+        CommonTokenStream tokens = new CommonTokenStream(lexer);
+        SwiftParser.TypeContext typeContext = new SwiftParser(tokens).top_level().statement(0).declaration().constant_declaration().constant_declaration_body().pattern_initializer_list().pattern_initializer(0).pattern().type_annotation().type();
+
+        //setting typeContext's parent to topLevel, so that when we're bubbling up the tree in search of the class definition,
+        //we arrive at the same topLevel that the cache uses
+        typeContext.parent = topLevel;
+        //TODO refactor so that we don't have to create a dummy Visitor
+        return Type.fromDefinition(typeContext, new TranspilerVisitor(cache, null));
     }
 }

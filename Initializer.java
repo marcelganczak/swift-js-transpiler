@@ -84,7 +84,7 @@ public class Initializer {
         return visitor.visitChildren(ctx);
     }
 
-    static public boolean isFailable(PrefixElem elem) {
+    static public boolean isFailable(PrefixElem elem, ParseTree ctx, Visitor visitor) {
         //BODGE: we're retrieving the initializerSignature (i.e. what argument names/types it's using)
         //by removing quotes from the first functionCallParam string (i.e. "$quantity_Int" --> $quantity_Int)
         //that's slightly bodgy, but the simplest way to retrieve it for now

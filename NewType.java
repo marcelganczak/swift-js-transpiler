@@ -65,7 +65,7 @@ class Instance {
     public boolean isFailableInitializer = false;
     public boolean isGetterSetter = false;
     public Map<String, String> codeReplacement;//ts->tsCode, java->javaCode
-    public List<Instance> generics;
+    public Map<String, Instance> generics;
     //utils
     public String typeName() {
         //just definition name, e.g. dictionary
@@ -88,16 +88,30 @@ class Instance {
             if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
             else type = definition.typeReplacement.get(language);
             if(generics != null) {
-                for(int i = 0; i < generics.size(); i++) type = type.replaceAll("#G" + i, generics.get(i).targetType(language, false, true));
+                for(String key : generics.keySet()) type = type.replaceAll("#" + key, generics.get(key).targetType(language, false, true));
             }
         }
         //TODO might be different based on specified generics too
         if(!isInout || baseIfInout) return type;
         return "{get: () => " + type + ", set: (val: " + type + ") => void}";
     }
-    //TODO probably should return Property & Instance (definition accounted for generics)
     public Instance getProperty(String name) {
-        return ((ClassDefinition)definition).properties.get(name);
+        //TODO probably should return Property & Instance
+        Instance property = ((ClassDefinition)definition).properties.get(name);
+        return specifyGenerics(property);
+    }
+    public Instance result() {
+        Instance result = ((FunctionDefinition)definition).result;
+        return specifyGenerics(result);
+    }
+    private Instance specifyGenerics(Instance instance) {
+        if(instance.definition == null) {
+            instance.definition = generics.get(instance.genericDefinition).definition;
+        }
+        else {
+            instance.generics = generics;
+        }
+        return instance;
     }
     public Instance(String typeName, ParseTree ctx, EntityCache cache){
         EntityCache.CacheBlockAndObject definition = cache.find(typeName, ctx);

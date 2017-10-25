@@ -22,7 +22,8 @@ public class Type {
             String typeName = ctx.getText();
             EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(typeName, ctx);
             if(classDefinition != null) {
-                type = (Instance)classDefinition.object;
+                type = new Instance(typeName, ctx, visitor.cache);
+                //type = (ClassDefinition)classDefinition.object;
             }
             else {
                 type = new Instance(typeName, ctx, visitor.cache);
@@ -33,8 +34,8 @@ public class Type {
 
         if(ctx.getParent().getParent() instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)ctx.getParent().getParent()).range_operator() != null) {
             type = new Instance("Array", ctx, visitor.cache);
-            type.generics = new ArrayList<Instance>();
-            type.generics.add(type);
+            type.generics = new HashMap<String, Instance>();
+            type.generics.put("Value", type);
         }
 
         return type;
@@ -43,9 +44,9 @@ public class Type {
     private static Instance fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
         List<SwiftParser.TypeContext> types = ctx.type();
         Instance type = new Instance("Dictionary", ctx, visitor.cache);
-        type.generics = new ArrayList<Instance>();
-        type.generics.add(fromDefinition(types.get(0), visitor));
-        type.generics.add(fromDefinition(types.get(1), visitor));
+        type.generics = new HashMap<String, Instance>();
+        type.generics.put("Key", fromDefinition(types.get(0), visitor));
+        type.generics.put("Value", fromDefinition(types.get(1), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
         type.isInout = isInout;
@@ -54,8 +55,8 @@ public class Type {
 
     private static Instance fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
         Instance type = new Instance("Array", ctx, visitor.cache);
-        type.generics = new ArrayList<Instance>();
-        type.generics.add(fromDefinition(ctx.type(), visitor));
+        type.generics = new HashMap<String, Instance>();
+        type.generics.put("Value", fromDefinition(ctx.type(), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
         type.isInout = isInout;
@@ -84,8 +85,8 @@ public class Type {
 
     private static Instance fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
         Instance type = new Instance("Set", ctx, visitor.cache);
-        type.generics = new ArrayList<Instance>();
-        type.generics.add(fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type(), visitor));
+        type.generics = new HashMap<String, Instance>();
+        type.generics.put("Value", fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type(), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
         type.isInout = isInout;

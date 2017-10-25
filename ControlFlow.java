@@ -65,14 +65,14 @@ public class ControlFlow {
         else {
             if(iteratedType.typeName().equals("Array") || iteratedType.typeName().equals("Set") || iteratedType.typeName().equals("String")) {
                 if(indexVar == null) indexVar = "$";
-                String targetType = iteratedType.typeName().equals("String") ? new Instance("String", ctx, visitor.cache).targetType("java") : iteratedType.generics.get(0).targetType("java");
+                String targetType = iteratedType.typeName().equals("String") ? new Instance("String", ctx, visitor.cache).targetType("java") : iteratedType.generics.get("Value").targetType("java");
                 iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + targetType + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
             }
             else {
                 String[] iteratedTypeChunks = iteratedType.targetType("java").split("<");
                 iterator = "for(" + iteratedTypeChunks[0] + ".Entry<" + iteratedTypeChunks[1] + " $ : (" + iteratedObject.code + ").entrySet()) {";
-                if(indexVar != null) iterator += iteratedType.generics.get(0).targetType("java") + " " + indexVar + " = $.getKey();";
-                iterator += iteratedType.generics.get(1).targetType("java") + " " + valueVar + " = $.getValue();";
+                if(indexVar != null) iterator += iteratedType.generics.get("Key").targetType("java") + " " + indexVar + " = $.getKey();";
+                iterator += iteratedType.generics.get("Value").targetType("java") + " " + valueVar + " = $.getValue();";
             }
         }
 

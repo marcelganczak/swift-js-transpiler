@@ -1,4 +1,5 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,19 +58,19 @@ public class Prefix implements PrefixOrExpression {
         }
     }
 
-    public String code(Visitor visitor) {
-        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
+    public String code(ParseTree ctx, Visitor visitor) {
+        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide, Visitor visitor) {
-        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
+    public String code(boolean onAssignmentLeftHandSide, ParseTree ctx, Visitor visitor) {
+        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide, int limit, Visitor visitor) {
-        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
+    public String code(boolean onAssignmentLeftHandSide, int limit, ParseTree ctx, Visitor visitor) {
+        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
     private String initString() {
         return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
     }
-    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression, Visitor visitor) {
+    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression, ParseTree ctx, Visitor visitor) {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
@@ -91,11 +92,11 @@ public class Prefix implements PrefixOrExpression {
             for(int i = 0; i < elem.functionCallParams.size(); i++) LR = LR.replaceAll("#A" + i, elem.functionCallParams.get(i));
         }
         if(elem.type.generics != null) {
-            for(int i = 0; i < elem.type.generics.size(); i++) LR = LR.replaceAll("#G" + i, elem.type.generics.get(i).targetType(visitor.targetLanguage, false, true));
+            for(String key : elem.type.generics.keySet()) LR = LR.replaceAll("#" + key, elem.type.generics.get(key).targetType(visitor.targetLanguage, false, true));
         }
 
         String nextCode =
-                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression, visitor)
+                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression, ctx, visitor)
                 : LR;
 
         if(elem.isOptional && !onAssignmentLeftHandSide) {
@@ -104,7 +105,7 @@ public class Prefix implements PrefixOrExpression {
 
         if(isLast && elem.functionCallParams != null && elem.definitionBeforeCallParams instanceof ClassDefinition) {
             nextCode = "new " + nextCode;
-            if(Initializer.isFailable(elem)) {
+            if(Initializer.isFailable(elem, ctx, visitor)) {
                 nextCode = "_.failableInit(" + nextCode + ")";
             }
         }

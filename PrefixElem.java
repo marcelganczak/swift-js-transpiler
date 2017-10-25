@@ -1,6 +1,7 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -68,11 +69,11 @@ public class PrefixElem {
             ClassDefinition tupleDefinition = new ClassDefinition(null, null, types, new ArrayList<String>());
             type = new Instance(tupleDefinition);
         }
-        String code = getTupleCode(keys, elementList, type, visitor);
+        String code = getTupleCode(keys, elementList, type, rChild, visitor);
 
         return new PrefixElem(code, "", type, null, null);
     }
-    static public String getTupleCode(ArrayList<String> keys, List<SwiftParser.Expression_elementContext> elementList, Instance type, Visitor visitor) {
+    static public String getTupleCode(ArrayList<String> keys, List<SwiftParser.Expression_elementContext> elementList, Instance type, ParserRuleContext ctx, Visitor visitor) {
         String code = "";
         if(visitor.targetLanguage.equals("ts")) {
             code += "{";
@@ -105,8 +106,8 @@ public class PrefixElem {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
             Instance wrappedType = functionCallParams != null ? new Instance(wrappedExpression.getText(), rChild, visitor.cache) : Type.infer(wrappedExpression, visitor);
             type = new Instance("Array", rChild, visitor.cache);
-            type.generics = new ArrayList<Instance>();
-            type.generics.add(wrappedType);
+            type.generics = new HashMap<String, Instance>();
+            type.generics.put("Value", wrappedType);
         }
 
         String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
@@ -167,9 +168,9 @@ public class PrefixElem {
             List<SwiftParser.ExpressionContext> keyVal = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item(0).expression();
             if(type == null) {
                 type = new Instance("Dictionary", rChild, visitor.cache);
-                type.generics = new ArrayList<Instance>();
-                type.generics.add(Type.infer(keyVal.get(0), visitor));
-                type.generics.add(Type.infer(keyVal.get(1), visitor));
+                type.generics = new HashMap<String, Instance>();
+                type.generics.put("Key", Type.infer(keyVal.get(0), visitor));
+                type.generics.put("Value", Type.infer(keyVal.get(1), visitor));
             }
             code = getDictionaryInitializerCode(dictionaryLiteral, type, visitor);
         }
@@ -182,7 +183,7 @@ public class PrefixElem {
             return '{' + visitor.visitWithoutStrings(dictionaryLiteral, "[]") + '}';
         }
         else {
-            String diamond = dictionaryType.generics.get(0).targetType(visitor.targetLanguage) + ", " + dictionaryType.generics.get(1).targetType(visitor.targetLanguage);
+            String diamond = dictionaryType.generics.get("Key").targetType(visitor.targetLanguage) + ", " + dictionaryType.generics.get("Value").targetType(visitor.targetLanguage);
             String code = "new " + dictionaryType.targetType(visitor.targetLanguage, true, false) + "(";
             List<SwiftParser.Dictionary_literal_itemContext> items = dictionaryLiteral.dictionary_literal_items().dictionary_literal_item();
             for(int i = 0; i < items.size(); i++) {
@@ -201,8 +202,8 @@ public class PrefixElem {
         if(typeStr.equals("Set")) {
             if(type == null) {
                 type = new Instance("Set", rChild, visitor.cache);
-                type.generics = new ArrayList<Instance>();
-                type.generics.add(new Instance(template.generic_argument_list().generic_argument(0).getText(), rChild, visitor.cache));
+                type.generics = new HashMap<String, Instance>();
+                type.generics.put("Value", new Instance(template.generic_argument_list().generic_argument(0).getText(), rChild, visitor.cache));
             }
             return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", "", type, null, null);
         }
@@ -248,6 +249,8 @@ public class PrefixElem {
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
+            definitionBeforeCallParams = lType.getProperty("[]").definition;
+            type = lType.getProperty("[]").result();
             accessor = "[]";
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
@@ -308,16 +311,19 @@ public class PrefixElem {
                     code = "this";
                 }
             }
-            else if(accessor.equals("[]")) {
-                instanceOrDefinition = lType.getProperty("[]");
-            }
             else {
                 instanceOrDefinition = lType.getProperty(varName);
             }
             if(functionCallParams != null) {
-                definitionBeforeCallParams = (Definition)instanceOrDefinition;
-                if(instanceOrDefinition instanceof FunctionDefinition) type = ((FunctionDefinition)instanceOrDefinition).result;
-                else type = new Instance((Definition)instanceOrDefinition);
+                if(instanceOrDefinition instanceof Definition) {
+                    definitionBeforeCallParams = (Definition)instanceOrDefinition;
+                    if(instanceOrDefinition instanceof FunctionDefinition) type = ((FunctionDefinition)instanceOrDefinition).result;
+                    else type = new Instance((Definition)instanceOrDefinition);
+                }
+                else {
+                    definitionBeforeCallParams = ((Instance)instanceOrDefinition).definition;
+                    type = ((Instance)instanceOrDefinition).result();
+                }
             }
             else type = (Instance)instanceOrDefinition;
         }
