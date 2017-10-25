@@ -32,8 +32,8 @@ public class CacheVisitor extends Visitor {
         return null;
     }
 
-    private void cache(String varName, Instance varType, ParseTree ctx) {
-        if(varType instanceof FunctionDefinition) varName += FunctionUtil.nameAugment(((FunctionDefinition) varType).parameterExternalNames, ((FunctionDefinition) varType).parameterTypes);
+    private void cache(String varName, Object/*Definition/Instance*/ varType, ParseTree ctx) {
+        if(varType instanceof FunctionDefinition) varName += FunctionUtil.nameAugment(((FunctionDefinition)varType).parameterExternalNames, ((FunctionDefinition)varType).parameterTypes);
         cache.cacheOne(varName, varType, ctx);
     }
 
@@ -132,14 +132,14 @@ public class CacheVisitor extends Visitor {
 
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
 
-        if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classDefinition);
+        if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classDefinition, ctx, this);
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {
 
         if(ctx.expression() != null && ctx.expression().binary_expressions() != null) {
             String varName = ctx.pattern().getText().equals("_") ? "$" : ctx.pattern().getText();
-            cache.cacheOne(varName, new Instance("Int"), ctx.code_block());
+            cache.cacheOne(varName, new Instance("Int", ctx, cache), ctx.code_block());
         }
         else {
             Instance iteratedType = new Expression(ctx.expression(), null, this).type;
@@ -151,8 +151,8 @@ public class CacheVisitor extends Visitor {
             else {
                 valueVar = ctx.pattern().identifier_pattern().getText();
             }
-            cache.cacheOne(indexVar, iteratedType.typeName.equals("Dictionary") ? iteratedType.generics.get(0) : new Instance("Int"), ctx.code_block());
-            cache.cacheOne(valueVar, iteratedType.typeName.equals("String") ? new Instance("String") : iteratedType.generics.get(iteratedType.typeName.equals("Dictionary") ? 1 : 0), ctx.code_block());
+            cache.cacheOne(indexVar, iteratedType.typeName().equals("Dictionary") ? iteratedType.generics.get(0) : new Instance("Int", ctx, cache), ctx.code_block());
+            cache.cacheOne(valueVar, iteratedType.typeName().equals("String") ? new Instance("String", ctx, cache) : iteratedType.generics.get(iteratedType.typeName().equals("Dictionary") ? 1 : 0), ctx.code_block());
         }
 
         visit(ctx.code_block());

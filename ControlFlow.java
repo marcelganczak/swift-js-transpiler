@@ -53,7 +53,7 @@ public class ControlFlow {
 
         String iterator;
         if(visitor.targetLanguage.equals("ts")) {
-            if(iteratedType.typeName.equals("Array") || iteratedType.typeName.equals("Set") || iteratedType.typeName.equals("String")) {
+            if(iteratedType.typeName().equals("Array") || iteratedType.typeName().equals("Set") || iteratedType.typeName().equals("String")) {
                 if(indexVar == null) indexVar = "$";
                 iterator = "for(let " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").length; " + indexVar + "++) { let " + valueVar + " = (" + iteratedObject.code + ")[" + indexVar + "];";
             }
@@ -63,9 +63,9 @@ public class ControlFlow {
             }
         }
         else {
-            if(iteratedType.typeName.equals("Array") || iteratedType.typeName.equals("Set") || iteratedType.typeName.equals("String")) {
+            if(iteratedType.typeName().equals("Array") || iteratedType.typeName().equals("Set") || iteratedType.typeName().equals("String")) {
                 if(indexVar == null) indexVar = "$";
-                String targetType = iteratedType.typeName.equals("String") ? new Instance("String").targetType("java") : iteratedType.generics.get(0).targetType("java");
+                String targetType = iteratedType.typeName().equals("String") ? new Instance("String", ctx, visitor.cache).targetType("java") : iteratedType.generics.get(0).targetType("java");
                 iterator = "for(int " + indexVar + " = 0; " + indexVar + " < (" + iteratedObject.code + ").size(); " + indexVar + "++) { " + targetType + " " + valueVar + " = (" + iteratedObject.code + ").get(" + indexVar + ");";
             }
             else {

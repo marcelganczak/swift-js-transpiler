@@ -9,16 +9,14 @@ public class Type {
             ctx = ctx.type(0);
         }
 
-        String isGetterSetter =
-                ctx.parent != null && ctx.parent.parent instanceof SwiftParser.Property_declarationContext ? "$" :
-                ctx.parent instanceof SwiftParser.Type_annotationContext && ((SwiftParser.Type_annotationContext)ctx.parent).inout() != null ? "." :
-                null;
+        boolean isGetterSetter = ctx.parent != null && ctx.parent.parent instanceof SwiftParser.Property_declarationContext;
+        boolean isInout = ctx.parent instanceof SwiftParser.Type_annotationContext && ((SwiftParser.Type_annotationContext)ctx.parent).inout() != null;
 
         Instance type;
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter, visitor);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter, visitor);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter, visitor);
-        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter, visitor);
+        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter, isInout, visitor);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter, isInout, visitor);
+        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter, isInout, visitor);
+        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter, isInout, visitor);
         else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), visitor);
         else {
             String typeName = ctx.getText();
@@ -27,14 +25,14 @@ public class Type {
                 type = (Instance)classDefinition.object;
             }
             else {
-                type = new Instance(typeName);
+                type = new Instance(typeName, ctx, visitor.cache);
                 type.isOptional = isOptional;
                 type.isGetterSetter = isGetterSetter;
             }
         }
 
         if(ctx.getParent().getParent() instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)ctx.getParent().getParent()).range_operator() != null) {
-            type = new Instance("Array");
+            type = new Instance("Array", ctx, visitor.cache);
             type.generics = new ArrayList<Instance>();
             type.generics.add(type);
         }
@@ -42,57 +40,60 @@ public class Type {
         return type;
     }
 
-    private static Instance fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
+    private static Instance fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
         List<SwiftParser.TypeContext> types = ctx.type();
-        Instance type = new Instance("Dictionary");
+        Instance type = new Instance("Dictionary", ctx, visitor.cache);
         type.generics = new ArrayList<Instance>();
         type.generics.add(fromDefinition(types.get(0), visitor));
         type.generics.add(fromDefinition(types.get(1), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
+        type.isInout = isInout;
         return type;
     }
 
-    private static Instance fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
-        Instance type = new Instance("Array");
+    private static Instance fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
+        Instance type = new Instance("Array", ctx, visitor.cache);
         type.generics = new ArrayList<Instance>();
         type.generics.add(fromDefinition(ctx.type(), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
+        type.isInout = isInout;
         return type;
     }
 
-    private static LinkedHashMap<String, Instance> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx) {
+    private static LinkedHashMap<String, Instance> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, Visitor visitor) {
         int elementI = 0;
         LinkedHashMap<String, Instance> flattened = new LinkedHashMap<String, Instance>();
         while(ctx != null) {
             SwiftParser.Tuple_type_elementContext tupleTypeElement = ctx.tuple_type_element();
             if(tupleTypeElement != null) {
                 String index = tupleTypeElement.element_name() != null ? tupleTypeElement.element_name().getText() : Integer.toString(elementI);
-                flattened.put(index, new Instance(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText()));
+                flattened.put(index, new Instance(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText(), ctx, visitor.cache));
                 elementI++;
             }
             ctx = ctx.tuple_type_element_list();
         }
         return flattened;
     }
-    private static Instance fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, String isGetterSetter, Visitor visitor) {
-        LinkedHashMap<String, Instance> elems = flattenTupleDefinition(ctx);
+    private static Instance fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
+        LinkedHashMap<String, Instance> elems = flattenTupleDefinition(ctx, visitor);
         ClassDefinition tupleDefinition = new ClassDefinition(null, null, elems, new ArrayList<String>());
         return new Instance(tupleDefinition);
     }
 
-    private static Instance fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, Visitor visitor) {
-        Instance type = new Instance("Set");
+    private static Instance fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
+        Instance type = new Instance("Set", ctx, visitor.cache);
         type.generics = new ArrayList<Instance>();
         type.generics.add(fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type(), visitor));
         type.isOptional = isOptional;
         type.isGetterSetter = isGetterSetter;
+        type.isInout = isInout;
         return type;
     }
 
-    private static FunctionDefinition fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, Visitor visitor) {
-        LinkedHashMap<String, Instance> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list());
+    private static Instance fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, Visitor visitor) {
+        LinkedHashMap<String, Instance> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list(), visitor);
         ArrayList<String> parameterExternalNames = new ArrayList<String>();
         ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
         for(Map.Entry<String, Instance> iterator:params.entrySet()) {
@@ -100,7 +101,7 @@ public class Type {
             parameterExternalNames.add(externalName.matches("^\\d+$") ? "" : externalName);
             parameterTypes.add(iterator.getValue());
         }
-        return new FunctionDefinition(null, parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), new ArrayList<String>());
+        return new Instance(new FunctionDefinition(null, parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), new ArrayList<String>()));
     }
 
     public static Instance fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {
@@ -109,11 +110,11 @@ public class Type {
         for(int i = 0; i < statements.getChildCount(); i++) {
             if(WalkerUtil.has(SwiftParser.Return_statementContext.class, statements.getChild(i))) {
                 SwiftParser.ExpressionContext expression = ((SwiftParser.StatementContext)statements.getChild(i)).control_transfer_statement().return_statement().expression();
-                return expression != null ? infer(expression, visitor) : new Instance("Void");
+                return expression != null ? infer(expression, visitor) : new Instance("Void", statements, visitor.cache);
             }
         }
         if(isClosure && statements.getChildCount() > 0) return infer((SwiftParser.ExpressionContext) statements.getChild(statements.getChildCount() - 1), visitor);
-        return new Instance("Void");
+        return new Instance("Void", statements, visitor.cache);
     }
 
     public static Instance infer(SwiftParser.ExpressionContext ctx, Visitor visitor) {

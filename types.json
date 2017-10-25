@@ -31,6 +31,7 @@
       }
     }, {
       "name": "count",
+      "type": "Int",
       "codeReplacement": {
         "ts": "#L.length",
         "java": "#L.length()"
@@ -40,9 +41,9 @@
   "Dictionary": {
     "generics": ["Key", "Value"],
     "typeReplacement": {
-      "ts": "Dictionary<Value>",
-      "java": "InitializableHashMap<Key, Value>",
-      "javaProtocol": "Map<Key, Value>"
+      "ts": "Dictionary<#G1>",
+      "java": "InitializableHashMap<#G0, #G1>",
+      "javaProtocol": "Map<#G0, #G1>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -76,9 +77,9 @@
   "Array": {
     "generics": ["T"],
     "typeReplacement": {
-      "ts": "Array<T>",
-      "java": "ArrayList<T>",
-      "javaProtocol": "List<T>"
+      "ts": "Array<#G0>",
+      "java": "ArrayList<#G0>",
+      "javaProtocol": "List<#G0>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,
@@ -90,8 +91,8 @@
       "parameters": [],
       "type": "[T]",
       "codeReplacement": {
-        "java": "new Array<T>()",
-        "java": "new ArrayList<T>()"
+        "ts": "new Array<#G0>()",
+        "java": "new ArrayList<#G0>()"
       }
     }, {
       "name": "init",
@@ -100,7 +101,7 @@
       "type": "[T]",
       "codeReplacement": {
         "ts": "new Array(#A1).fill(#A0)",
-        "java": "new ArrayList<T>(Collections.nCopies(#A1, #A0))"
+        "java": "new ArrayList<#G0>(Collections.nCopies(#A1, #A0))"
       }
     }, {
       "name": "[]",
@@ -237,9 +238,9 @@
   "Set": {
     "generics": ["T"],
     "typeReplacement": {
-      "ts": "Set<T>",
-      "java": "HashSet<T>",
-      "javaProtocol": "Set<T>"
+      "ts": "Set<#G0>",
+      "java": "HashSet<#G0>",
+      "javaProtocol": "Set<#G0>"
     },
     "cloneOnAssignmentReplacement": {
       "ts": true,

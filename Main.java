@@ -27,6 +27,9 @@ public class Main {
 
         EntityCache cache = new EntityCache();
 
+        TypeLoader.load(cache, tree);
+        OperatorLoader.load(cache, tree);
+
         CacheVisitor cacheVisitor = new CacheVisitor(cache, targetLanguage);
         cacheVisitor.visit(tree);
 

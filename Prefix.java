@@ -1,39 +1,18 @@
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.apache.commons.io.IOUtils;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-
-class Replacement {
-    public boolean skip;
-    public PrefixElem elem;
-    public Replacement(PrefixElem elem, boolean skip) {
-        this.elem = elem;
-        this.skip = skip;
-    }
-}
+import java.util.Map;
 
 //stuff like a.b.c or a[1] or a(), with optional prefix operator
 public class Prefix implements PrefixOrExpression {
-    static private JSONObject definitions;
-    static {
-        InputStream is = Prefix.class.getResourceAsStream("prefix-elems.json");
-        String jsonTxt = null;
-        try { jsonTxt = IOUtils.toString(is); } catch (IOException e) { }
-        try { definitions = new JSONObject(jsonTxt); } catch (JSONException e) { }
-    }
 
     private ParserRuleContext originalCtx;
     private SwiftParser.Prefix_operatorContext prefixOperatorContext;
     public ArrayList<PrefixElem> elems = new ArrayList<PrefixElem>();
     public ParserRuleContext originalCtx() {return originalCtx;}
 
-    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Instance type, Visitor visitor) {
+    public Prefix(SwiftParser.Prefix_expressionContext prefixCtx, Instance knownType, Visitor visitor) {
         ArrayList<ParserRuleContext> chain = flattenChain(prefixCtx);
         originalCtx = prefixCtx;
         prefixOperatorContext = prefixCtx.prefix_operator();
@@ -57,16 +36,8 @@ public class Prefix implements PrefixOrExpression {
                 functionCallParams.add(functionCall.trailing_closure().explicit_closure_expression());
             }
 
-            PrefixElem elem;
-            boolean skip = false;
-            Replacement replacement = Prefix.replacement(currType, ctx instanceof SwiftParser.Explicit_member_expressionContext ? ((SwiftParser.Explicit_member_expressionContext) ctx).identifier().getText() : ctx.getText(), functionCallParams, visitor);
-            if(replacement != null) {
-                elem = replacement.elem;
-                if(replacement.skip) skip = true;
-            }
-            else {
-                elem = PrefixElem.get(ctx, functionCallParams, chain, chainPos, currType, (chainPos + (functionCallParams != null ? 1 : 0) >= chain.size() - 1) ? type : null, visitor);
-            }
+            PrefixElem elem = PrefixElem.get(ctx, functionCallParams, chain, chainPos, currType, (chainPos + (functionCallParams != null ? 1 : 0) >= chain.size() - 1) ? knownType : null, visitor);
+            boolean skip = elem.type.codeReplacement != null && elem.type.codeReplacement.containsKey(visitor.targetLanguage) && elem.type.codeReplacement.get(visitor.targetLanguage).equals("");
 
             if(functionCallParams != null) chainPos++;
 
@@ -86,45 +57,60 @@ public class Prefix implements PrefixOrExpression {
         }
     }
 
-    public String code() {
-        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
+    public String code(Visitor visitor) {
+        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide) {
-        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
+    public String code(boolean onAssignmentLeftHandSide, Visitor visitor) {
+        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide, int limit) {
-        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"));
+    public String code(boolean onAssignmentLeftHandSide, int limit, Visitor visitor) {
+        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), visitor);
     }
     private String initString() {
         return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
     }
-    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression) {
+    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression, Visitor visitor) {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
-        String LR = elem.accessor.equals("_.()") ? "_." + elem.code + "(" + L + (elem.functionCallParams != null ? "," + elem.functionCallParams : "") + ")"
-                  : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? L + ".put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + elem.code + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
-                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter != null ? L + (chainPos == 0 ? "" : ".") + elem.code + elem.type.isGetterSetter + "set("
-                  : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + L + ".get(\"" + elem.code.trim() + "\"))"
-                  : L + (chainPos == 0 ? elem.code : elem.accessor.equals(".") ? "." + elem.code : elem.accessor.equals(".get()") ? ".get(" + elem.code + ")" : "[" + elem.code + "]") + (elem.functionCallParams != null ? "(" + elem.functionCallParams + ")" : "");
+        Map<String, String> codeReplacement = elem.type.codeReplacement != null ? elem.type.codeReplacement : elem.definitionBeforeCallParams instanceof FunctionDefinition ? ((FunctionDefinition)elem.definitionBeforeCallParams).codeReplacement : null;
+
+        String LR = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) ? codeReplacement.get(visitor.targetLanguage)
+                  : elem.accessor.equals("_.()") ? "_.#R(#L" + (elem.functionCallParams != null ? ",#A" : "") + ")"
+                  : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? "#L.put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + "#R" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
+                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? "#L" + (chainPos == 0 ? "" : ".") + "#R$set("
+                  : onAssignmentLeftHandSide && isLast && elem.type.isInout ? "#L" + (chainPos == 0 ? "" : ".") + "#R.set("
+                  : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + "#L.get(\"#R\"))"
+                  : "#L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + (elem.functionCallParams != null ? "(#A)" : "");
+
+        LR = LR.replaceAll("#L", L).replaceAll("#R", elem.code);
+        if(elem.functionCallParams != null) {
+            String paramsJoined = "";
+            for(int i = 0; i < elem.functionCallParams.size(); i++) paramsJoined += (i > 0 ? ", " : "") + elem.functionCallParams.get(i);
+            LR = LR.replaceAll("#A", paramsJoined);
+            for(int i = 0; i < elem.functionCallParams.size(); i++) LR = LR.replaceAll("#A" + i, elem.functionCallParams.get(i));
+        }
+        if(elem.type.generics != null) {
+            for(int i = 0; i < elem.type.generics.size(); i++) LR = LR.replaceAll("#G" + i, elem.type.generics.get(i).targetType(visitor.targetLanguage, false, true));
+        }
 
         String nextCode =
-                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression)
+                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression, visitor)
                 : LR;
 
         if(elem.isOptional && !onAssignmentLeftHandSide) {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
-        if(isLast && elem.functionCallParams != null && elem.type instanceof FunctionDefinition/*if Class()*/) {
+        if(isLast && elem.functionCallParams != null && elem.definitionBeforeCallParams instanceof ClassDefinition) {
             nextCode = "new " + nextCode;
             if(Initializer.isFailable(elem)) {
                 nextCode = "_.failableInit(" + nextCode + ")";
             }
         }
 
-        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter != null) {
-            nextCode += elem.type.isGetterSetter + "get()";
+        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter) {
+            nextCode += "$get()";
         }
 
         if(isLast && isInOutExpression) {
@@ -132,71 +118,6 @@ public class Prefix implements PrefixOrExpression {
         }
 
         return nextCode;
-    }
-
-    static private Replacement replacement(Instance lType, String R, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
-        if(R == null) return null;
-        if(definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()) == null) return null;
-
-        JSONObject definition = null;
-        JSONArray possibleDefinitions = definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()).optJSONArray(R);
-        if(possibleDefinitions != null) {
-            ArrayList<String> parameterExternalNames = FunctionUtil.parameterExternalNames(functionCallParams);
-            ArrayList<Instance> parameterTypes = FunctionUtil.parameterTypes(functionCallParams, visitor);
-            for(int i = 0; i < possibleDefinitions.length(); i++) {
-                JSONArray signature = possibleDefinitions.optJSONObject(i).optJSONArray("signature");
-                if(functionCallParams.size() != signature.length()) continue;
-                boolean signatureConforms = true;
-                for(int j = 0; j < signature.length(); j++) {
-                    JSONObject param = signature.optJSONObject(j);
-                    String expectedExternalName = param.optString("externalName") == null ? "" : param.optString("externalName");
-                    if(!parameterExternalNames.get(j).equals(expectedExternalName)) { signatureConforms = false; break; }
-                    Instance expectedType = Type.fromDefinition(param.optString("type"), lType);
-                    if(!parameterTypes.get(j).uniqueId().equals(expectedType.uniqueId())) { signatureConforms = false; break; }
-                }
-                if(signatureConforms) {
-                    definition = possibleDefinitions.optJSONObject(i);
-                    break;
-                }
-            }
-        }
-        else {
-            definition = definitions.optJSONObject(lType == null ? "top-level" : lType.uniqueId()).optJSONObject(R);
-        }
-        if(definition == null) return null;
-
-        if(definition.optBoolean(visitor.targetLanguage + "Skip")) return new Replacement(null, true);
-
-        String strFunctionCallParams = null;
-        if(functionCallParams != null) {
-            JSONArray signature = definition.optJSONArray("signature");
-            JSONArray defaultParams = definition.optJSONArray(visitor.targetLanguage + "DefaultParams");
-            String[] strArrFunctionCallParams = new String[functionCallParams.size() + (defaultParams != null ? defaultParams.length() : 0)];
-            for(int i = 0; i < functionCallParams.size(); i++) {
-                int paramOutputIndex = definition.optJSONArray(visitor.targetLanguage + "ParamsOrder") != null ? definition.optJSONArray(visitor.targetLanguage + "ParamsOrder").optInt(i, i) : i;
-                Instance type = Type.fromDefinition(signature != null ? signature.optJSONObject(i).optString("type") : null, lType);
-                strArrFunctionCallParams[paramOutputIndex] = (functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext ? FunctionUtil.explicitClosureExpression((SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), (FunctionDefinition) type, visitor) : new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), type, visitor).code);
-            }
-            if(defaultParams != null) {
-                for(int i = 0; i < defaultParams.length(); i++) {
-                    strArrFunctionCallParams[defaultParams.optJSONObject(i).optInt("index", i)] = defaultParams.optJSONObject(i).optString("value");
-                }
-            }
-            strFunctionCallParams = "";
-            for(int i = 0; i < strArrFunctionCallParams.length; i++) strFunctionCallParams += (i > 0 ? ", " : "") + strArrFunctionCallParams[i];
-        }
-
-        String definitionCode = definition.optString(visitor.targetLanguage + "Code", R), code, accessor;
-        if(definitionCode.startsWith("_.")) {
-            code = definitionCode.substring(2, definitionCode.length() - 2);
-            accessor = "_.()";
-        }
-        else {
-            code = definitionCode;
-            accessor = lType == null ? "" : ".";
-        }
-        Instance type = Type.fromDefinition(definition.optString("returnType"), lType);
-        return new Replacement(new PrefixElem(code, accessor, type, strFunctionCallParams), false);
     }
 
     public Instance type() {

@@ -7,7 +7,7 @@ public class AssignmentUtil {
     static public String augment(String code, Instance type, ParserRuleContext originalCtx, Visitor visitor) {
 
         boolean isCopied =
-            type.definition().cloneOnAssignmentReplacement.get(visitor.targetLanguage) &&
+            type.definition.cloneOnAssignmentReplacement != null && type.definition.cloneOnAssignmentReplacement.get(visitor.targetLanguage) &&
             !WalkerUtil.isDirectDescendant(SwiftParser.Literal_expressionContext.class, originalCtx) &&
             !code.startsWith("new ");
 
@@ -20,8 +20,8 @@ public class AssignmentUtil {
     static public String handleInitializer(SwiftParser.Pattern_initializerContext ctx, Visitor visitor) {
         String varName = ctx.pattern().identifier_pattern().getText();
         EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, ctx);
-        Instance varType = cache != null && cache.object instanceof Instance ? (Instance)cache.object : null;
-        if(varType instanceof FunctionDefinition) varName += FunctionUtil.nameAugment((FunctionDefinition)varType);
+        Instance varType = cache != null ? cache.object instanceof FunctionDefinition ? new Instance((FunctionDefinition)cache.object) : (Instance)cache.object : null;
+        if(varType.definition instanceof FunctionDefinition) varName += FunctionUtil.nameAugment(((FunctionDefinition) varType.definition).parameterExternalNames, ((FunctionDefinition) varType.definition).parameterTypes);
 
         String transpiled =
             visitor.targetLanguage.equals("ts") ? varName + ":" + varType.targetType(visitor.targetLanguage)

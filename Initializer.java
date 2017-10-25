@@ -52,23 +52,23 @@ public class Initializer {
         return initializers;
     }
 
-    static public void addMemberwiseInitializer(ClassDefinition classDefinition) {
+    static public void addMemberwiseInitializer(ClassDefinition classDefinition, ParseTree ctx, Visitor visitor) {
         if(!initializers(classDefinition).isEmpty()) return;
 
         String nameAugment = "";
         ArrayList<String> parameterNames = new ArrayList<String>();
         ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
         for(Map.Entry<String, Instance> entry : classDefinition.properties.entrySet()) {
-            if(entry.getValue().isMethod) continue;
-            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().typeName.uniqueId();
+            if(entry.getValue().definition instanceof FunctionDefinition) continue;
+            nameAugment += "$" + entry.getKey() + "_" + entry.getValue().uniqueId();
             parameterNames.add(entry.getKey());
             parameterTypes.add(entry.getValue());
         }
 
         if(!parameterNames.isEmpty()) {
-            FunctionDefinition function = new FunctionDefinition(null, parameterNames, parameterTypes, 0, new Instance("Void"), null);
+            FunctionDefinition function = new FunctionDefinition(null, parameterNames, parameterTypes, 0, new Instance("Void", ctx, visitor.cache), null);
             Instance initializer = new Instance(function);
-            initializer.isMethod = initializer.isInitializer = initializer.isMemberwiseInitializer = true;
+            initializer.isInitializer = initializer.isMemberwiseInitializer = true;
             classDefinition.properties.put("init" + nameAugment, initializer);
         }
     }
@@ -86,9 +86,10 @@ public class Initializer {
 
     static public boolean isFailable(PrefixElem elem) {
         //BODGE: we're retrieving the initializerSignature (i.e. what argument names/types it's using)
-        //by slicing the functionCallParams string (i.e. "$quantity_Int", 2 --> $quantity_Int)
-        //that's the simplest way of getting what we want for now, but it'd be better if the signature was passed somehow
-        String initializerSignature = elem.functionCallParams.substring(1, elem.functionCallParams.indexOf('"', 1));
+        //by removing quotes from the first functionCallParam string (i.e. "$quantity_Int" --> $quantity_Int)
+        //that's slightly bodgy, but the simplest way to retrieve it for now
+        String initializerSignature = elem.functionCallParams.get(0);
+        initializerSignature = initializerSignature.substring(1, initializerSignature.length() - 1);
         Instance initializer = elem.type.getProperty("init" + initializerSignature);
         return initializer != null && initializer.isFailableInitializer;
     }

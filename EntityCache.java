@@ -4,7 +4,7 @@ import java.util.*;
 
 public class EntityCache {
 
-    class CacheBlockAndObject {
+    static class CacheBlockAndObject {
         public ParseTree block;
         public Object object;//Operator/Definition/Instance
 
@@ -13,7 +13,7 @@ public class EntityCache {
             this.object = object;
         }
     }
-    class CacheBlockAndExpression {
+    static class CacheBlockAndExpression {
         public ParseTree block;
         public Expression expression;
 
@@ -89,54 +89,35 @@ public class EntityCache {
         if(varName.equals("super")) return ((ClassDefinition)findNearestAncestorStructure(node).object).superClass;
 
         CacheBlockAndObject blockAndObject = find(varName, node);
+
         if(blockAndObject == null) {
-            Map<String, CacheBlockAndObject> candidates = getFunctionsStartingWith(varName, node);
+            Map<String, CacheBlockAndObject> allProperties = getAllTypes(node);
+            Map<String, CacheBlockAndObject> candidates = FunctionUtil.getFunctionTypesStartingWith(varName, allProperties);
             if(candidates.size() == 0) {
-                CacheBlockAndExpression variadicFunction = getFunctionEndingWithVariadic(varName, node);
+                CacheBlockAndExpression variadicFunction = FunctionUtil.getFunctionEndingWithVariadic(varName, allProperties);
                 if(variadicFunction == null) return null;
                 return new CacheBlockAndObject(variadicFunction.block, variadicFunction.expression.type);
             }
             if(candidates.size() > 1) System.out.println("//Found more than 1 candidate for " + varName);
             return candidates.get(candidates.keySet().toArray()[0]);
         }
+
         return blockAndObject;
     }
 
-    public Map<String, CacheBlockAndObject> getFunctionsStartingWith(String varName, ParseTree node) {
-        Map<String, CacheBlockAndObject> matches = new HashMap<String, CacheBlockAndObject>();
+    public Map<String, CacheBlockAndObject> getAllTypes(ParseTree node) {
+        Map<String, CacheBlockAndObject> allTypes = new HashMap<String, CacheBlockAndObject>();
 
         while((node = findNearestAncestorBlock(node.getParent())) != null) {
             Map<String, Object> blockTypeCache = cache.get(node);
             if(blockTypeCache == null) continue;
             for(Map.Entry<String, Object> iterator:blockTypeCache.entrySet()) {
-                if(FunctionUtil.functionStartsWith(iterator.getKey(), (Instance)iterator.getValue(), varName)) {
-                    matches.put(iterator.getKey(), new CacheBlockAndObject(node, iterator.getValue()));
-                }
+                if(allTypes.containsKey(iterator.getKey())) continue;
+                allTypes.put(iterator.getKey(), new CacheBlockAndObject(node, iterator.getValue()));
             }
             if(node instanceof SwiftParser.Top_levelContext) break;
         }
-        return matches;
-    }
-    public Map<String, FunctionDefinition> getFunctionTypesStartingWith(String varName, ParseTree node) {
-        Map<String, FunctionDefinition> types = new HashMap<String, FunctionDefinition>();
-        Map<String, CacheBlockAndObject> objects = getFunctionsStartingWith(varName.trim(), node);
-        for(Map.Entry<String, CacheBlockAndObject> iterator:objects.entrySet()) {
-            types.put(iterator.getKey(), (FunctionDefinition)iterator.getValue().object);
-        }
-        return types;
-    }
-
-    public CacheBlockAndExpression getFunctionEndingWithVariadic(String varName, ParseTree node) {
-        ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
-        for(int i = 0; i < variadicNames.size(); i+=2) {
-            CacheBlockAndObject cache = find(variadicNames.get(i), node);
-            if(cache != null && cache.object instanceof FunctionDefinition) {
-                List<Instance> parameterTypes = ((FunctionDefinition)cache.object).parameterTypes;
-                if(!parameterTypes.get(parameterTypes.size() - 1)/*.resulting(null)*/.uniqueId().equals(variadicNames.get(i + 1).split("_")[1])) continue;
-                return new CacheBlockAndExpression(cache.block, new Expression(variadicNames.get(i), (Instance)cache.object));
-            }
-        }
-        return null;
+        return allTypes;
     }
 
     public void cacheOne(String identifier, Object object/*Operator/Definition/Instance*/, ParseTree ctx) {

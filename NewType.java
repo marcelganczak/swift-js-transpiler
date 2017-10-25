@@ -1,7 +1,7 @@
 import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.List;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 class Operator {
@@ -41,7 +41,7 @@ class FunctionDefinition extends Definition {
 
         this.result =
             ctx instanceof SwiftParser.Function_declarationContext ? Type.fromFunction(((SwiftParser.Function_declarationContext)ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext)ctx).function_body().code_block().statements(), false, visitor) :
-            new Instance("Void");
+            new Instance("Void", ctx, visitor.cache);
     }
 }
 
@@ -52,13 +52,12 @@ class ParameterReplacement {
 }
 
 class Instance {
-    public String typeName;//this might be a string - name/generic
-    public Definition definition;//or an 'ad-hoc definition' (e.g. function)
+    public Definition definition;
+    public String genericDefinition;
     //declaration modifiers
     public boolean isOptional = false;
     public boolean isInout = false;
     //class property modifiers
-    public boolean isMethod = false;
     public boolean isStatic = false;
     public boolean isOperator = false;
     public boolean isInitializer = false;
@@ -68,14 +67,14 @@ class Instance {
     public Map<String, String> codeReplacement;//ts->tsCode, java->javaCode
     public List<Instance> generics;
     //utils
-    public Definition definition() {
-        //TODO if declaration.typeName, find name in cache (and compute according to generics)
-        return definition;
+    public String typeName() {
+        //just definition name, e.g. dictionary
+        return definition.name;
     }
     public String uniqueId() {
         //TODO something that will allow us to uniquely identify type, e.g. to figure out which overloaded function to use
         //TODO include scope if it's a name that's duplicated in the code
-        return definition().name;
+        return definition.name;
     }
     public Instance copy() {
         //TODO
@@ -84,19 +83,23 @@ class Instance {
     public String targetType(String language) { return targetType(language, false, false); }
     public String targetType(String language, boolean notProtocol) { return targetType(language, notProtocol, false); }
     public String targetType(String language, boolean notProtocol, boolean baseIfInout) {
-        String type = definition().name;
-        if(definition().typeReplacement != null && definition().typeReplacement.containsKey(language)) {
-            if(language.equals("java") && !notProtocol && definition().typeReplacement.containsKey(language + "Protocol")) type = definition().typeReplacement.get(language + "Protocol");
-            else type = definition().typeReplacement.get(language);
+        String type = definition.name;
+        if(definition.typeReplacement != null && definition.typeReplacement.containsKey(language)) {
+            if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
+            else type = definition.typeReplacement.get(language);
         }
         //TODO might be different based on specified generics too
         if(!isInout || baseIfInout) return type;
         return "{get: () => " + type + ", set: (val: " + type + ") => void}";
     }
-    //TODO probably should return Property & Instance (definition() accounted for generics)
+    //TODO probably should return Property & Instance (definition accounted for generics)
     public Instance getProperty(String name) {
-        return ((ClassDefinition)definition()).properties.get(name);
+        return ((ClassDefinition)definition).properties.get(name);
     }
-    public Instance(String typeName){ this.typeName = typeName; }
+    public Instance(String typeName, ParseTree ctx, EntityCache cache){
+        EntityCache.CacheBlockAndObject definition = cache.find(typeName, ctx);
+        if(definition != null) this.definition = (Definition)definition.object;
+        else this.genericDefinition = typeName;
+    }
     public Instance(Definition definition){ this.definition = definition; }
 }

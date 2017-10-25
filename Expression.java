@@ -9,7 +9,7 @@ public class Expression implements PrefixOrExpression {
     String code;
     Instance type;
     ParserRuleContext originalCtx;
-    public String code() {return code;}
+    public String code(Visitor visitor) {return code;}
     public Instance type() {return type;}
     public ParserRuleContext originalCtx() {return originalCtx;}
 
@@ -17,7 +17,7 @@ public class Expression implements PrefixOrExpression {
         this(ctx, type, false, visitor);
     }
 
-    public Expression(SwiftParser.ExpressionContext ctx, Instance type, boolean skipFirst, Visitor visitor) {
+    public Expression(SwiftParser.ExpressionContext ctx, Instance knownType, boolean skipFirst, Visitor visitor) {
         originalCtx = ctx;
 
         List<SwiftParser.Binary_expressionContext> binaries = ctx.binary_expressions() != null ? ctx.binary_expressions().binary_expression() : new ArrayList<SwiftParser.Binary_expressionContext>();
@@ -38,7 +38,7 @@ public class Expression implements PrefixOrExpression {
         for(int priority = BinaryExpression.minOperatorPriority; priority <= BinaryExpression.maxOperatorPriority; priority++) {
             for(int i = 0; i < operators.size(); i++) {
                 ParserRuleContext operator = operators.get(i);
-                if(BinaryExpression.priorityForOperator(operator, visitor) != priority) continue;
+                if(BinaryExpression.priorityForOperator(operator, ctx, visitor) != priority) continue;
                 Object L = ctxs.get(i);
                 Object R = ctxs.get(i + 1);
                 BinaryExpression LR = new BinaryExpression(L, R, operator);
@@ -51,13 +51,13 @@ public class Expression implements PrefixOrExpression {
         }
 
         if(ctxs.get(0) instanceof SwiftParser.Prefix_expressionContext) {
-            Prefix prefix = new Prefix((SwiftParser.Prefix_expressionContext)ctxs.get(0), type, visitor);
-            this.code = prefix.code();
+            Prefix prefix = new Prefix((SwiftParser.Prefix_expressionContext)ctxs.get(0), knownType, visitor);
+            this.code = prefix.code(visitor);
             this.type = prefix.type();
         }
         else {
             BinaryExpression top = (BinaryExpression)ctxs.get(0);
-            top.compute(type, visitor);
+            top.compute(knownType, ctx, visitor);
             this.code = top.code;
             this.type = top.type;
         }

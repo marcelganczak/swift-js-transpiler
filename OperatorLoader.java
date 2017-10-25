@@ -9,7 +9,7 @@ import java.util.HashMap;
 public class OperatorLoader {
 
     static public void load(EntityCache cache, SwiftParser.Top_levelContext topLevel) {
-        InputStream is = Prefix.class.getResourceAsStream("types.json");
+        InputStream is = Prefix.class.getResourceAsStream("operators.json");
         String jsonTxt = null;
         JSONObject definitions = null;
         try { jsonTxt = IOUtils.toString(is); } catch(IOException e) {}
@@ -30,7 +30,7 @@ public class OperatorLoader {
 
         definition.priority = src.optInt("priority");
 
-        if(src.optString("result") != null) {
+        if(src.has("result")) {
             definition.result = (Definition)cache.find(src.optString("result"), topLevel).object;
         }
 

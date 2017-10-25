@@ -24,10 +24,27 @@ public class TypeLoader {
             JSONObject src = definitions.optJSONObject(className);
 
             Definition definition =
-                    src.optBoolean("function") ? parseFunction(className, src, true) :
+                    src.optBoolean("function") ? parseFunction(className, src, true, cache, topLevel) :
                     parseClass(className, src);
 
             cache.cacheOne(className, definition, topLevel);
+        }
+
+        for(int i = 0; i < definitions.names().length(); i++) {
+            String className = definitions.names().optString(i);
+            JSONObject src = definitions.optJSONObject(className);
+            if(src.optBoolean("function")) continue;
+            ClassDefinition definition = (ClassDefinition)cache.find(className, topLevel).object;
+
+            if(src.optJSONArray("properties") == null) continue;
+            for(int j = 0; j < src.optJSONArray("properties").length(); j++) {
+                JSONObject propertySrc = src.optJSONArray("properties").optJSONObject(j);
+
+                Instance property = parseProperty(propertySrc, cache, topLevel);
+                String name = propertySrc.optString("name");
+
+                definition.properties.put(name, property);
+            }
         }
     }
 
@@ -57,28 +74,19 @@ public class TypeLoader {
             }
         }
 
-        for(int i = 0; i < src.optJSONArray("properties").length(); i++) {
-            JSONObject propertySrc = src.optJSONArray("properties").optJSONObject(i);
-
-            Instance property = parseProperty(propertySrc);
-            String name = src.optString("name");
-
-            definition.properties.put(name, property);
-        }
-
         return definition;
     }
 
-    static private Instance parseProperty(JSONObject src) {
+    static private Instance parseProperty(JSONObject src, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
 
         Instance property;
 
         if(src.optBoolean("isFunction")) {
-            property = new Instance(parseFunction(src.optString("name"), src, false));
+            property = new Instance(parseFunction(src.optString("name"), src, false, cache, topLevel));
             //TODO amend name
         }
         else {
-            property = new Instance(src.optString("type"));
+            property = new Instance(src.optString("type"), topLevel, cache);
         }
 
         if(src.optJSONObject("codeReplacement") != null) {
@@ -95,7 +103,7 @@ public class TypeLoader {
         return property;
     }
 
-    static private FunctionDefinition parseFunction(String name, JSONObject src, boolean isTopLevel) {
+    static private FunctionDefinition parseFunction(String name, JSONObject src, boolean isTopLevel, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
 
         List<String> parameterExternalNames = new ArrayList<String>();
         List<Instance> parameterTypes = new ArrayList<Instance>();
@@ -104,11 +112,11 @@ public class TypeLoader {
                 JSONObject parameter = src.optJSONArray("parameters").optJSONObject(i);
                 parameterExternalNames.add(parameter.optString("externalName"));
                 String parameterType = parameter.optString("type");
-                parameterTypes.add(new Instance(parameterType));
+                parameterTypes.add(new Instance(parameterType, topLevel, cache));
             }
         }
 
-        FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, new Instance(src.optString("type")), null);
+        FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, new Instance(src.optString("type"), topLevel, cache), null);
 
         if(src.optJSONObject("parameterReplacement") != null) {
             definition.parameterReplacement = new HashMap<String, ParameterReplacement>();
