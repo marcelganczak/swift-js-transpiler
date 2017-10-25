@@ -1,2 +1,2 @@
-var a = "elo"
-print(a.characters.count)
+var a = [1]
+var b = a[0]

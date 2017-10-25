@@ -308,6 +308,9 @@ public class PrefixElem {
                     code = "this";
                 }
             }
+            else if(accessor.equals("[]")) {
+                instanceOrDefinition = lType.getProperty("[]");
+            }
             else {
                 instanceOrDefinition = lType.getProperty(varName);
             }

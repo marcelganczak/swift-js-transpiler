@@ -87,6 +87,9 @@ class Instance {
         if(definition.typeReplacement != null && definition.typeReplacement.containsKey(language)) {
             if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
             else type = definition.typeReplacement.get(language);
+            if(generics != null) {
+                for(int i = 0; i < generics.size(); i++) type = type.replaceAll("#G" + i, generics.get(i).targetType(language, false, true));
+            }
         }
         //TODO might be different based on specified generics too
         if(!isInout || baseIfInout) return type;
