@@ -69,6 +69,9 @@ public class FunctionUtil {
             if(parameter instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)parameter).type_annotation() != null) {
                 parameterType = TypeUtil.fromDefinition(((SwiftParser.ParameterContext) parameter).type_annotation().type(), visitor);
             }
+            else if(parameter instanceof SwiftParser.Explicit_closure_expressionContext) {
+                parameterType = null;
+            }
             else {
                 parameterType = TypeUtil.infer(parameter instanceof SwiftParser.ParameterContext ? ((SwiftParser.ParameterContext) parameter).default_argument_clause().expression() : ((SwiftParser.Expression_elementContext) parameter).expression(), visitor);
             }
@@ -150,12 +153,12 @@ public class FunctionUtil {
                     expectedParameterType = functionType.parameterTypes.get(i);
                 }
                 if(
-                    !expectedParameterExternalName.equals(parameterExternalNames.get(i)) || (
+                    !expectedParameterExternalName.equals(parameterExternalNames.get(i)) || (parameterTypes.get(i) != null && (
                         //if parameter is of known type, compare its uniqueId with supplied parameter's uniqueId
                         expectedParameterType.definition != null ? !expectedParameterType.uniqueId().equals(parameterTypes.get(i).uniqueId()) :
                         //if parameter is of a generic type, check if our lType has that generic defined and then compare that definition's uniqueId
                         !lType.generics.get(expectedParameterType.genericDefinition).uniqueId().equals(parameterTypes.get(i).uniqueId())
-                    )
+                    ))
                 ) parametersMatch = false;
             }
             if(!parametersMatch) continue;
