@@ -1,17 +1,5 @@
-class StepCounter {
-    var totalSteps: Int = 0 {
-        willSet(newTotalSteps) {
-            print("About to set totalSteps to \(newTotalSteps)")
-        }
-        didSet {
-            if totalSteps > oldValue  {
-                print("Added \(totalSteps - oldValue) steps")
-            }
-        }
-    }
+let multiples = [1].filter { $0 % 3 == 0 }
+
+for multiple in multiples {
+    print(multiple)
 }
-let stepCounter = StepCounter()
-stepCounter.totalSteps = 200
-stepCounter.totalSteps = 360
-stepCounter.totalSteps = 896
-stepCounter.totalSteps = 500

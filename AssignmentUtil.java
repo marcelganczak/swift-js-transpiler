@@ -120,9 +120,9 @@ public class AssignmentUtil {
         SwiftParser.Variable_declarationContext varCtx = (SwiftParser.Variable_declarationContext)ctx.parent.parent;
         boolean isOverride = varCtx.variable_declaration_head().attributes() != null && varCtx.variable_declaration_head().attributes().getText().contains("override");
         if(isOverride) {
-            Cache.CacheBlockAndObject classDefinition = visitor.cache.findNearestAncestorStructure(ctx);
-            //Instance superPropertyType = ((NestedByIndexType) classDefinition.object).superClass.object.getProperty(propertyName);
-            //TODO if(superPropertyType.isGetterSetter == null) internalVar = "this." + propertyName;
+            ClassDefinition classDefinition = (ClassDefinition)visitor.cache.findNearestAncestorStructure(ctx).object;
+            Instance superPropertyType = new Instance((ClassDefinition)classDefinition.superClass.object).getProperty(propertyName);
+            if(!superPropertyType.isGetterSetter) internalVar = "this." + propertyName;
         }
 
         return

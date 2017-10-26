@@ -72,7 +72,7 @@ public class CacheVisitor extends Visitor {
     }
     private void visitPropertyClause(ParserRuleContext ctx) {
         SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
-        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object).copy();
+        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object).withoutPropertyInfo();
         //propertyType.isGetterSetter = null;
         SwiftParser.Code_blockContext blockContext =
             ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :

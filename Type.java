@@ -65,27 +65,21 @@ class Instance {
     //utils
     public String typeName() {
         //just definition name, e.g. dictionary
-        return definition.name;
+        return definition != null ? definition.name : genericDefinition;
     }
     public String uniqueId() {
-        //TODO something that will allow us to uniquely identify type, e.g. to figure out which overloaded function to use
+        //something that will allow us to uniquely identify type, e.g. to figure out which overloaded function to use
         //TODO include scope if it's a name that's duplicated in the code
-        return definition != null ? definition.name != null ? definition.name : "any" : genericDefinition;
-    }
-    public Instance copy() {
-        //TODO
-        return withoutPropertyInfo();
+        return definition instanceof ClassDefinition ? definition.name != null ? definition.name : "any" : genericDefinition != null ? genericDefinition : "any";
     }
     public Instance withoutPropertyInfo() {
         Instance instance = new Instance(this.definition, this.genericDefinition, this.generics);
         instance.isOptional = isOptional;
-        instance.isInout = isInout;
-        instance.isVariadicParameter = isVariadicParameter;
         return instance;
     }
     public String targetType(String language) { return targetType(language, false, false); }
-    public String targetType(String language, boolean notProtocol) { return targetType(language, notProtocol, false); }
     public String targetType(String language, boolean notProtocol, boolean baseIfInout) {
+        if(definition == null) return genericDefinition;
         String type = definition.name;
         if(definition.typeReplacement != null && definition.typeReplacement.containsKey(language)) {
             if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
@@ -100,9 +94,8 @@ class Instance {
         return "{get: () => " + type + ", set: (val: " + type + ") => void}";
     }
     public Instance getProperty(String name) {
-        //TODO probably should return Property & Instance
         ClassDefinition classDefinition = (ClassDefinition)definition;
-        Instance property = null;
+        Instance property;
         do {
             property = classDefinition.properties.get(name);
             classDefinition = classDefinition.superClass != null ? (ClassDefinition)classDefinition.superClass.object : null;

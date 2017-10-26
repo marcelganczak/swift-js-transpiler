@@ -76,10 +76,10 @@ public class BinaryExpression implements PrefixOrExpression {
                     }
                     else if(R.type().isOptional) {
                         ifCode1 = "(" + rCode + ") != null";
-                        if(((Prefix) L).endsWithGetAccessor()) definitionCode = "#A0 #A1)";
+                        if(((Prefix) L).isAssignmentReplacement()) definitionCode = "#A0 #A1)";
                         elseCode1 = visitor.targetLanguage.equals("ts") ? "delete " + lCode : ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, ctx, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")";
                     }
-                    else if(((Prefix) L).endsWithGetAccessor()) {
+                    else if(((Prefix) L).isAssignmentReplacement()) {
                         definitionCode = "#A0 #A1)";
                     }
                 }
@@ -88,11 +88,7 @@ public class BinaryExpression implements PrefixOrExpression {
                     ifCode0 = optionalsGuardingIf(((Prefix) L), ctx, visitor);
                 }
 
-                if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).endsWithGetAccessor()) {
-                    definitionCode = "#A0 #A1)";
-                }
-
-                if(L.type().isGetterSetter || L.type().isInout) {
+                if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).isAssignmentReplacement()) {
                     definitionCode = "#A0 #A1)";
                 }
 

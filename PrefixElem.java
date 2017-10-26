@@ -316,7 +316,6 @@ public class PrefixElem {
                 }
             }
             else {
-                //TODO amend varName if needed?
                 instanceOrDefinition = lType.getProperty(varName);
             }
             if(functionCallParams != null) {
@@ -330,7 +329,10 @@ public class PrefixElem {
                 }
             }
             else {
-                type = (Instance)instanceOrDefinition;
+                if(instanceOrDefinition instanceof Definition) {
+                    type = new Instance((Definition)instanceOrDefinition);
+                }
+                else type = (Instance)instanceOrDefinition;
             }
         }
 

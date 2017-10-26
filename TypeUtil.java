@@ -120,21 +120,21 @@ public class TypeUtil {
     public static Instance alternative(PrefixOrExpression L, PrefixOrExpression R) {
         Instance type;
         if(L.type().uniqueId().equals(R.type().uniqueId())) {
-            type = L.type().copy();
+            type = L.type();
         }
         else if(L.type().uniqueId().equals("Void")) {
-            Instance rClone = R.type().copy();
+            Instance rClone = R.type();
             rClone.isOptional = true;
             return rClone;
         }
         else if(R.type().uniqueId().equals("Void")) {
-            Instance lClone = L.type().copy();
+            Instance lClone = L.type();
             lClone.isOptional = true;
             return lClone;
         }
         else {
             System.out.println("//Ambiguous return type: " + L.type().uniqueId() + " || " + R.type().uniqueId());
-            type = L.type().copy();
+            type = L.type();
         }
         return type;
     }

@@ -39,7 +39,8 @@ public class Prefix implements PrefixOrExpression {
             }
 
             PrefixElem elem = PrefixElem.get(ctx, functionCallParams, chain, chainPos, currType, (chainPos + (functionCallParams != null ? 1 : 0) >= chain.size() - 1) ? knownType : null, visitor);
-            boolean skip = elem.type.codeReplacement != null && elem.type.codeReplacement.containsKey(visitor.targetLanguage) && elem.type.codeReplacement.get(visitor.targetLanguage).equals("");
+            Map<String, String> codeReplacement = elem.type.codeReplacement != null ? elem.type.codeReplacement : elem.typeBeforeCallParams instanceof Instance ? ((Instance) elem.typeBeforeCallParams).codeReplacement : null;
+            boolean skip = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) && codeReplacement.get(visitor.targetLanguage).equals("");
 
             if(functionCallParams != null) chainPos++;
 
@@ -67,6 +68,10 @@ public class Prefix implements PrefixOrExpression {
     }
     public String code(boolean onAssignmentLeftHandSide, int limit, ParseTree ctx, Visitor visitor) {
         return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
+    }
+    public boolean isAssignmentReplacement() {
+        PrefixElem lastElem = elems.get(elems.size() - 1);
+        return isGetAccessor(lastElem.accessor) || lastElem.type.isGetterSetter || lastElem.type.isInout;
     }
     private String initString() {
         return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
@@ -149,9 +154,6 @@ public class Prefix implements PrefixOrExpression {
     }
     static private boolean isGetAccessor(String accessor) {
         return accessor.equals(".get()") || isCastGetAccessor(accessor);
-    }
-    public boolean endsWithGetAccessor() {
-        return isGetAccessor(this.elems.get(this.elems.size() - 1).accessor);
     }
 
     static private ArrayList<ParserRuleContext> flattenChain(SwiftParser.Prefix_expressionContext ctx) {
