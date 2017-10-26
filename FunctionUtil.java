@@ -67,10 +67,10 @@ public class FunctionUtil {
             ParserRuleContext parameter = parameters.get(i);
             Instance parameterType;
             if(parameter instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)parameter).type_annotation() != null) {
-                parameterType = Type.fromDefinition(((SwiftParser.ParameterContext)parameter).type_annotation().type(), visitor);
+                parameterType = TypeUtil.fromDefinition(((SwiftParser.ParameterContext) parameter).type_annotation().type(), visitor);
             }
             else {
-                parameterType = Type.infer(parameter instanceof SwiftParser.ParameterContext ? ((SwiftParser.ParameterContext)parameter).default_argument_clause().expression() : ((SwiftParser.Expression_elementContext)parameter).expression(), visitor);
+                parameterType = TypeUtil.infer(parameter instanceof SwiftParser.ParameterContext ? ((SwiftParser.ParameterContext) parameter).default_argument_clause().expression() : ((SwiftParser.Expression_elementContext) parameter).expression(), visitor);
             }
             parameterTypes.add(parameterType);
         }
@@ -89,56 +89,78 @@ public class FunctionUtil {
         return numParametersWithDefaultValue;
     }
 
-    static public Map<String, EntityCache.CacheBlockAndObject> getFunctionTypesStartingWith(String varName, Map<String, EntityCache.CacheBlockAndObject> allProperties) {
-        Map<String, EntityCache.CacheBlockAndObject> matches = new HashMap<String, EntityCache.CacheBlockAndObject>();
+    static public Map<String, Cache.CacheBlockAndObject> getFunctionTypesStartingWith(String varName, Map<String, Cache.CacheBlockAndObject> allProperties) {
+        Map<String, Cache.CacheBlockAndObject> matches = new HashMap<String, Cache.CacheBlockAndObject>();
         varName = varName.trim();
 
-        for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:allProperties.entrySet()) {
-            if(!(iterator.getValue().object instanceof Instance)) continue;
-            if(functionStartsWith(iterator.getKey(), (Instance)iterator.getValue().object, varName)) {
+        for(Map.Entry<String, Cache.CacheBlockAndObject> iterator:allProperties.entrySet()) {
+            boolean passes = (
+                (iterator.getValue().object instanceof Instance && ((Instance) iterator.getValue().object).definition instanceof FunctionDefinition) ||
+                iterator.getValue().object instanceof FunctionDefinition
+            ) && functionStartsWith(iterator.getKey(), varName);
+            if(passes) {
                 matches.put(iterator.getKey(), iterator.getValue());
             }
         }
         return matches;
     }
-    static public EntityCache.CacheBlockAndExpression getFunctionEndingWithVariadic(String varName, Map<String, EntityCache.CacheBlockAndObject> allProperties) {
+    static public Cache.CacheBlockAndExpression getFunctionEndingWithVariadic(String varName, Map<String, Cache.CacheBlockAndObject> allProperties) {
         ArrayList<String> variadicNames = FunctionUtil.getVariadicNames(varName);
         for(int i = 0; i < variadicNames.size(); i+=2) {
-            EntityCache.CacheBlockAndObject resulting = allProperties.get(variadicNames.get(i));
+            Cache.CacheBlockAndObject resulting = allProperties.get(variadicNames.get(i));
             if(resulting != null && resulting.object instanceof Instance && ((Instance)resulting.object).definition instanceof FunctionDefinition) {
                 List<Instance> parameterTypes = ((FunctionDefinition)((Instance)resulting.object).definition).parameterTypes;
                 if(!parameterTypes.get(parameterTypes.size() - 1)/*.resulting(null)*/.uniqueId().equals(variadicNames.get(i + 1).split("_")[1])) continue;
-                return new EntityCache.CacheBlockAndExpression(resulting.block, new Expression(variadicNames.get(i), (Instance)resulting.object));
+                return new Cache.CacheBlockAndExpression(resulting.block, new Expression(variadicNames.get(i), (Instance)resulting.object));
             }
         }
         return null;
     }
 
-    static public String augmentFromCall(String swiftFunctionName, List<Instance> parameterTypes, List<String> parameterExternalNames, ParseTree ctx, ClassDefinition lType, boolean isInitializer, Visitor visitor) {
-        String defaultAugment = nameAugment(parameterExternalNames, parameterTypes);
-        String defaultFunctionName = isInitializer ? "init" : swiftFunctionName;
-        Object function =
-                lType != null ? lType.properties.get(defaultFunctionName + defaultAugment) :
-                visitor.cache.find(defaultFunctionName + defaultAugment, ctx);
-        if(function != null) return defaultAugment;
+    static public String augmentFromCall(String swiftFunctionName, List<Instance> parameterTypes, List<String> parameterExternalNames, ParseTree ctx, ClassDefinition classDefinition, Instance lType, boolean isInitializer, Visitor visitor) {
 
-        Map<String, EntityCache.CacheBlockAndObject> allProperties;
-        if(lType != null) {
-            allProperties = new HashMap<String, EntityCache.CacheBlockAndObject>();
-            for(Map.Entry<String, Instance> iterator:lType.properties.entrySet()) {
-                allProperties.put(iterator.getKey(), new EntityCache.CacheBlockAndObject(null, iterator.getValue()));
+        String defaultFunctionName = isInitializer ? "init" : swiftFunctionName;
+
+        Map<String, Cache.CacheBlockAndObject> allProperties;
+        if(classDefinition != null) {
+            allProperties = new HashMap<String, Cache.CacheBlockAndObject>();
+            for(Map.Entry<String, Instance> iterator:classDefinition.properties.entrySet()) {
+                allProperties.put(iterator.getKey(), new Cache.CacheBlockAndObject(null, iterator.getValue()));
             }
         }
         else allProperties = visitor.cache.getAllTypes(ctx);
-        Map<String, EntityCache.CacheBlockAndObject> candidates = getFunctionTypesStartingWith(defaultFunctionName + defaultAugment, allProperties);
-        int numUsedParameters = parameterTypes != null ? parameterTypes.size() : 0;
-        for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
-            FunctionDefinition functionType = (FunctionDefinition)((Instance)iterator.getValue().object).definition;
-            if(numUsedParameters >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey().substring(defaultFunctionName.length());
-        }
 
-        EntityCache.CacheBlockAndExpression variadicFunction = getFunctionEndingWithVariadic(defaultFunctionName + defaultAugment, allProperties);
-        if(variadicFunction != null) return variadicFunction.expression.code.substring(defaultFunctionName.length());
+        Map<String, Cache.CacheBlockAndObject> candidates = getFunctionTypesStartingWith(defaultFunctionName, allProperties);
+        for(Map.Entry<String, Cache.CacheBlockAndObject> iterator:candidates.entrySet()) {
+            FunctionDefinition functionType =
+                iterator.getValue().object instanceof FunctionDefinition ? (FunctionDefinition)iterator.getValue().object :
+                (FunctionDefinition)((Instance)iterator.getValue().object).definition;
+            boolean parametersMatch = true;
+            Instance lastParameterType = functionType.parameterTypes.size() > 0 ? functionType.parameterTypes.get(functionType.parameterTypes.size() - 1) : null;
+            for(int i = 0; i < parameterTypes.size() && parametersMatch; i++) {
+                Instance expectedParameterType;
+                String expectedParameterExternalName;
+                if(lastParameterType != null && lastParameterType.isVariadicParameter && i >= functionType.parameterTypes.size() - 1) {
+                    expectedParameterType = lastParameterType.generics.get("Value");
+                    expectedParameterExternalName = "";
+                }
+                else {
+                    if(i >= functionType.parameterExternalNames.size()){ parametersMatch = false; break; }
+                    expectedParameterExternalName = functionType.parameterExternalNames.get(i);
+                    expectedParameterType = functionType.parameterTypes.get(i);
+                }
+                if(
+                    !expectedParameterExternalName.equals(parameterExternalNames.get(i)) || (
+                        //if parameter is of known type, compare its uniqueId with supplied parameter's uniqueId
+                        expectedParameterType.definition != null ? !expectedParameterType.uniqueId().equals(parameterTypes.get(i).uniqueId()) :
+                        //if parameter is of a generic type, check if our lType has that generic defined and then compare that definition's uniqueId
+                        !lType.generics.get(expectedParameterType.genericDefinition).uniqueId().equals(parameterTypes.get(i).uniqueId())
+                    )
+                ) parametersMatch = false;
+            }
+            if(!parametersMatch) continue;
+            if(parameterTypes.size() >= functionType.parameterTypes.size() - functionType.numParametersWithDefaultValue) return iterator.getKey().substring(defaultFunctionName.length());
+        }
 
         return null;
     }
@@ -163,8 +185,8 @@ public class FunctionUtil {
     }
 
     static public String augmentFromCall(String swiftFunctionName, FunctionDefinition type, ParserRuleContext ctx, Visitor visitor) {
-        Map<String, EntityCache.CacheBlockAndObject> candidates = getFunctionTypesStartingWith(swiftFunctionName, visitor.cache.getAllTypes(ctx));
-        for(Map.Entry<String, EntityCache.CacheBlockAndObject> iterator:candidates.entrySet()) {
+        Map<String, Cache.CacheBlockAndObject> candidates = getFunctionTypesStartingWith(swiftFunctionName, visitor.cache.getAllTypes(ctx));
+        for(Map.Entry<String, Cache.CacheBlockAndObject> iterator:candidates.entrySet()) {
             FunctionDefinition functionType = (FunctionDefinition)((Instance)iterator.getValue().object).definition;
             if(identicalSignatures(functionType, type)) return iterator.getKey().substring(swiftFunctionName.length());
         }
@@ -178,8 +200,8 @@ public class FunctionUtil {
         return true;
     }
 
-    static public boolean functionStartsWith(String name, Instance type, String varName) {
-        return name.startsWith(varName) && type.definition instanceof FunctionDefinition && (name.length() == varName.length() || name.startsWith(varName + "$"));
+    static public boolean functionStartsWith(String name, String varName) {
+        return name.startsWith(varName) && (name.length() == varName.length() || name.startsWith(varName + "$"));
     }
 
     static public String functionDeclaration(ParserRuleContext ctx, Visitor visitor) {
@@ -214,7 +236,7 @@ public class FunctionUtil {
     }
 
     static public String explicitClosureExpression(SwiftParser.Explicit_closure_expressionContext ctx, Instance type, Visitor visitor) {
-        if(type.definition instanceof FunctionDefinition) {
+        if(type != null && type.definition instanceof FunctionDefinition) {
             FunctionDefinition functionType = (FunctionDefinition)type.definition;
             for(int i = 0; i < functionType.parameterTypes.size(); i++) {
                 visitor.cache.cacheOne("$" + i, functionType.parameterTypes.get(i), ctx);

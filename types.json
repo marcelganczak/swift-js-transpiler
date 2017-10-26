@@ -54,7 +54,7 @@
       "function": true,
       "type": "Value",
       "codeReplacement": {
-        "java": "#L.get(#A)"
+        "java": "#L.get(#AA)"
       }
     }, {
       "name": "count",
@@ -69,7 +69,7 @@
       "parameters": [{"type": "Value"}, {"type": "Key", "externalName": "forKey"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "_.updateValue(#L, #A)",
+        "ts": "_.updateValue(#L, #AA)",
         "java": "put"
       }
     }]
@@ -108,7 +108,7 @@
       "function": true,
       "type": "Value",
       "codeReplacement": {
-        "java": "#L.get(#A)"
+        "java": "#L.get(#AA)"
       }
     }, {
       "name": "+",
@@ -147,8 +147,8 @@
       "parameters": [{"type": "Value"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.push(#A)",
-        "java": "#L.add(#A)"
+        "ts": "#L.push(#AA)",
+        "java": "#L.add(#AA)"
       }
     }, {
       "name": "append",
@@ -156,8 +156,8 @@
       "parameters": [{"type": "[Value]", "externalName": "contentsOf"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.pushMany(#A)",
-        "java": "#L.addAll(#A)"
+        "ts": "#L.pushMany(#AA)",
+        "java": "#L.addAll(#AA)"
       }
     }, {
       "name": "insert",
@@ -165,17 +165,8 @@
       "parameters": [{"type": "Value"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.splice(#A)",
-        "java": "#L.add(#A)"
-      },
-      "parameterReplacement": {
-        "ts": {
-          "order": [2, 0],
-          "default": [{"value": "0", "index": 1}]
-        },
-        "java": {
-          "order": [1, 0]
-        }
+        "ts": "#L.splice(#A1, 0, #A0)",
+        "java": "#L.add(#A1, #A0)"
       }
     }, {
       "name": "insert",
@@ -183,27 +174,17 @@
       "parameters": [{"type": "[Value]", "externalName": "contentsOf"}, {"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.pushManyAt(#A)",
-        "java": "#L.addAll(#A)"
-      },
-      "parameterReplacement": {
-        "java": {
-          "order": [1, 0]
-        }
+        "ts": "#L.pushManyAt(#AA)",
+        "java": "#L.addAll(#A1, #A0)"
       }
     }, {
       "name": "remove",
       "function": true,
-      "parameters": [{"type": "Int"}],
+      "parameters": [{"type": "Int", "externalName": "at"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.splice(#A)",
-        "java": "#L.remove(#A)"
-      },
-      "parameterReplacement": {
-        "ts": {
-          "default": [{"value": "1", "index": 1}]
-        }
+        "ts": "#L.splice(#AA, 1)",
+        "java": "#L.remove(#AA)"
       }
     }, {
       "name": "filter",
@@ -216,7 +197,7 @@
       "parameters": [{"type": "(Value,Value)->Bool", "externalName": "by"}],
       "type": "[Value]",
       "codeReplacement": {
-        "ts": "#L.sortBool(#A)"
+        "ts": "#L.sortBool(#AA)"
       }
     }, {
       "name": "map",
@@ -228,10 +209,8 @@
       "function": true,
       "parameters": [{"type": "Value"}, {"type": "(Value,Value)->Value"}],
       "type": "Value",
-      "parameterReplacement": {
-        "ts": {
-          "order": [1, 0]
-        }
+      "codeReplacement": {
+        "ts": "#L.reduce(#A1, #A0)"
       }
     }]
   },
@@ -256,11 +235,11 @@
     }, {
       "name": "insert",
       "function": true,
-      "parameters": [{"type": "#valueType"}],
+      "parameters": [{"type": "Value"}],
       "type": "Void",
       "codeReplacement": {
-        "ts": "#L.add(#A)",
-        "java": "#L.add(#A)"
+        "ts": "#L.add(#AA)",
+        "java": "#L.add(#AA)"
       }
     }]
   },
@@ -274,8 +253,8 @@
       "function": true,
       "type": "Int",
       "codeReplacement": {
-        "ts": "parseInt(#A)",
-        "java": "Integer.parseInt(#A)"
+        "ts": "parseInt(#AA)",
+        "java": "Integer.parseInt(#AA)"
       }
     }, {
       "name": "/",
@@ -305,8 +284,8 @@
       "function": true,
       "type": "Double",
       "codeReplacement": {
-        "ts": "parseFloat(#A)",
-        "java": "Double.parseDouble(#A)"
+        "ts": "parseFloat(#AA)",
+        "java": "Double.parseDouble(#AA)"
       }
     }, {
       "name": "+",
@@ -376,8 +355,8 @@
     "function": true,
     "type": "Void",
     "codeReplacement": {
-      "ts": "console.log(#A)",
-      "java": "System.out.println(#A)"
+      "ts": "console.log(#AA)",
+      "java": "System.out.println(#AA)"
     }
   }
 }

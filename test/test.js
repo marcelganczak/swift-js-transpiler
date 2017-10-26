@@ -7,7 +7,7 @@ var assert = require('assert'),
     javaHeader = fs.readFileSync(__dirname + '/java-header.txt'),
     javaFooter = fs.readFileSync(__dirname + '/java-footer.txt'),
     todo = {
-        ts: {dirs: [], files: ['functions-as-vars', 'tuple-enums-1',  'tuple-enums-2', 'strings-5', 'functions-16', 'functions-17']},
+        ts: {dirs: [], files: ['functions-as-vars', 'tuple-enums-1',  'tuple-enums-2', 'strings-5', 'functions-16', 'functions-17', 'custom-operators']},
         java: {dirs: ['functions', 'classes', 'weheartswift'], files: []}
     },
     only = {

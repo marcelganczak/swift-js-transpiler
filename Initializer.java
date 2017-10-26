@@ -15,6 +15,7 @@ public class Initializer {
         String constructorCode = "constructor(signature: string, ...params: any[]) {\n";
         if(classDefinition.superClass != null) constructorCode += "super(null);\n";
         for(Map.Entry<String, Instance> entry : initializers.entrySet()) {
+            if(entry.getValue().isDefaultInitializer) continue;
             constructorCode += "if(signature === '" + entry.getKey().substring(4) + "') return this." + entry.getKey() + ".apply(this, params);\n";
             if(entry.getValue().isMemberwiseInitializer) memberwiseInitializerSignature = entry.getKey();
         }
@@ -50,6 +51,16 @@ public class Initializer {
             }
         }
         return initializers;
+    }
+
+    static public void addDefaultInitializer(ClassDefinition classDefinition, ParseTree ctx, Visitor visitor) {
+        //theoretically should be added only if all properties are initialized by default, but fuck it
+        if(classDefinition.properties.containsKey("init")) return;
+
+        FunctionDefinition function = new FunctionDefinition(null, new ArrayList<String>(), new ArrayList<Instance>(), 0, new Instance("Void", ctx, visitor.cache), null);
+        Instance initializer = new Instance(function);
+        initializer.isInitializer = initializer.isDefaultInitializer = true;
+        classDefinition.properties.put("init", initializer);
     }
 
     static public void addMemberwiseInitializer(ClassDefinition classDefinition, ParseTree ctx, Visitor visitor) {

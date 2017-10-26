@@ -10,9 +10,9 @@ public class PrefixElem {
     public String accessor;
     public Instance type;
     public List<String> functionCallParams;
-    public Definition definitionBeforeCallParams;
+    public Object/*Defintion/Instance*/ typeBeforeCallParams;
     public boolean isOptional;
-    public PrefixElem(String code, String accessor, Instance type, List<String> functionCallParams, Definition definitionBeforeCallParams) { this.code = code; this.accessor = accessor; this.type = type; this.functionCallParams = functionCallParams; this.definitionBeforeCallParams = definitionBeforeCallParams; this.isOptional = false; }
+    public PrefixElem(String code, String accessor, Instance type, List<String> functionCallParams, Object typeBeforeCallParams) { this.code = code; this.accessor = accessor; this.type = type; this.functionCallParams = functionCallParams; this.typeBeforeCallParams = typeBeforeCallParams; this.isOptional = false; }
 
     static public PrefixElem get(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, Instance lType, Instance rType, Visitor visitor) {
 
@@ -55,13 +55,13 @@ public class PrefixElem {
         LinkedHashMap<String, Instance> types = new LinkedHashMap<String, Instance>();
 
         ArrayList<String> keys = null;
-        keys = new ArrayList<String>(((ClassDefinition)type.definition).properties.keySet());
+        if(type != null) keys = new ArrayList<String>(((ClassDefinition)type.definition).properties.keySet());
 
         for(int i = 0, elementI = 0; i < tupleLiteral.getChildCount(); i++) {
             if(!(tupleLiteral.getChild(i) instanceof SwiftParser.Expression_elementContext)) continue;
             SwiftParser.Expression_elementContext child = (SwiftParser.Expression_elementContext) tupleLiteral.getChild(i);
             String index = child.identifier() != null ? child.identifier().getText() : Integer.toString(elementI);
-            if(type == null) types.put(index, Type.infer(child.expression(), visitor));
+            if(type == null) types.put(index, TypeUtil.infer(child.expression(), visitor));
             elementI++;
         }
 
@@ -104,7 +104,7 @@ public class PrefixElem {
 
         if(arrayLiteral.array_literal_items() != null && type == null) {
             SwiftParser.ExpressionContext wrappedExpression = arrayLiteral.array_literal_items().array_literal_item(0).expression();
-            Instance wrappedType = functionCallParams != null ? new Instance(wrappedExpression.getText(), rChild, visitor.cache) : Type.infer(wrappedExpression, visitor);
+            Instance wrappedType = functionCallParams != null ? new Instance(wrappedExpression.getText(), rChild, visitor.cache) : TypeUtil.infer(wrappedExpression, visitor);
             type = new Instance("Array", rChild, visitor.cache);
             type.generics = new HashMap<String, Instance>();
             type.generics.put("Value", wrappedType);
@@ -169,8 +169,8 @@ public class PrefixElem {
             if(type == null) {
                 type = new Instance("Dictionary", rChild, visitor.cache);
                 type.generics = new HashMap<String, Instance>();
-                type.generics.put("Key", Type.infer(keyVal.get(0), visitor));
-                type.generics.put("Value", Type.infer(keyVal.get(1), visitor));
+                type.generics.put("Key", TypeUtil.infer(keyVal.get(0), visitor));
+                type.generics.put("Value", TypeUtil.infer(keyVal.get(1), visitor));
             }
             code = getDictionaryInitializerCode(dictionaryLiteral, type, visitor);
         }
@@ -234,7 +234,7 @@ public class PrefixElem {
         String code = null, accessor = ".";
         List<String> functionCallParamsStr = null;
         Instance type = null;
-        Definition definitionBeforeCallParams = null;
+        Object typeBeforeCallParams = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
             code = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
             accessor = ".";
@@ -249,7 +249,7 @@ public class PrefixElem {
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
-            definitionBeforeCallParams = lType.getProperty("[]").definition;
+            typeBeforeCallParams = lType.getProperty("[]");
             type = lType.getProperty("[]").result();
             accessor = "[]";
         }
@@ -278,11 +278,11 @@ public class PrefixElem {
         }
 
         if(functionCallParams != null) {
-            EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(code, rChild);
+            Cache.CacheBlockAndObject classDefinition = visitor.cache.find(code, rChild);
             boolean isInitializer = lType == null && classDefinition != null && classDefinition.object instanceof ClassDefinition;
             functionCallParamsStr = new ArrayList<String>();
 
-            String augment = FunctionUtil.augmentFromCall(code, FunctionUtil.parameterTypes(functionCallParams, visitor), FunctionUtil.parameterExternalNames(functionCallParams), rChild, isInitializer ? (ClassDefinition)classDefinition.object : lType != null && lType.definition instanceof ClassDefinition ? (ClassDefinition)lType.definition : null, isInitializer, visitor);
+            String augment = FunctionUtil.augmentFromCall(code, FunctionUtil.parameterTypes(functionCallParams, visitor), FunctionUtil.parameterExternalNames(functionCallParams), rChild, isInitializer ? (ClassDefinition)classDefinition.object : lType != null && lType.definition instanceof ClassDefinition ? (ClassDefinition)lType.definition : null, lType, isInitializer, visitor);
             if(isInitializer) {
                 functionCallParamsStr.add('"' + (augment == null ? "" : augment) + '"');
             }
@@ -302,36 +302,42 @@ public class PrefixElem {
             String varName = code.trim();
             Object/*Instance/Definition*/ instanceOrDefinition;
             if(lType == null) {
-                EntityCache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, chain.get(0));
+                Cache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, chain.get(0));
                 instanceOrDefinition = cache.object;
-                if(EntityCache.isStructureBlock(cache.block)) {
+                if(Cache.isStructureBlock(cache.block)) {
                     code = "this." + code;
                 }
                 else if(varName.equals("self")) {
                     code = "this";
+                    instanceOrDefinition = new Instance((ClassDefinition)instanceOrDefinition);
+                }
+                else if(varName.equals("super")) {
+                    instanceOrDefinition = new Instance((ClassDefinition)instanceOrDefinition);
                 }
             }
             else {
+                //TODO amend varName if needed?
                 instanceOrDefinition = lType.getProperty(varName);
             }
             if(functionCallParams != null) {
+                typeBeforeCallParams = instanceOrDefinition;
                 if(instanceOrDefinition instanceof Definition) {
-                    definitionBeforeCallParams = (Definition)instanceOrDefinition;
                     if(instanceOrDefinition instanceof FunctionDefinition) type = ((FunctionDefinition)instanceOrDefinition).result;
                     else type = new Instance((Definition)instanceOrDefinition);
                 }
                 else {
-                    definitionBeforeCallParams = ((Instance)instanceOrDefinition).definition;
                     type = ((Instance)instanceOrDefinition).result();
                 }
             }
-            else type = (Instance)instanceOrDefinition;
+            else {
+                type = (Instance)instanceOrDefinition;
+            }
         }
 
         if(WalkerUtil.isDirectDescendant(SwiftParser.Implicit_parameterContext.class, rChild)) {
             code = "arguments[" + code.substring(1) + "]";
         }
 
-        return new PrefixElem(code, accessor, type, functionCallParamsStr, definitionBeforeCallParams);
+        return new PrefixElem(code, accessor, type, functionCallParamsStr, typeBeforeCallParams);
     }
 }

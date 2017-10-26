@@ -3,6 +3,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 
 public class BinaryExpression implements PrefixOrExpression {
 
@@ -43,13 +44,13 @@ public class BinaryExpression implements PrefixOrExpression {
         if(operator instanceof SwiftParser.Conditional_operatorContext) {
             //TODO should be grouping conditionals from right to left, e.g. true ? 1 : true ? 2 : 3 to true ? 1 : (true ? 2 : 3), currently that would be evaluated as 'true ? 1 : true'
             SwiftParser.Conditional_operatorContext conditionalOperator = (SwiftParser.Conditional_operatorContext)operator;
-            Instance passType = Type.infer(conditionalOperator.expression(), visitor);
+            Instance passType = TypeUtil.infer(conditionalOperator.expression(), visitor);
             Expression passExpression = new Expression(conditionalOperator.expression(), passType, visitor);
-            this.type = Type.alternative(passExpression, R);
+            this.type = TypeUtil.alternative(passExpression, R);
             this.code = L.code(ctx, visitor) + " ? " + passExpression.code + " : " + R.code(ctx, visitor);
         }
         else if(operator instanceof SwiftParser.Type_casting_operatorContext) {
-            Instance castType = Type.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
+            Instance castType = TypeUtil.fromDefinition(((SwiftParser.Type_casting_operatorContext) operator).type(), visitor);
             if(operator.getChild(0).getText().equals("as")) {
                 this.type = castType;
                 this.code = L.code(ctx, visitor);// + " as " + this.type.jsType();
@@ -91,9 +92,9 @@ public class BinaryExpression implements PrefixOrExpression {
                     definitionCode = "#A0 #A1)";
                 }
 
-//                if(L.type().isGetterSetter) {
-//                    definitionCode = "#A0 #A1)";
-//                }
+                if(L.type().isGetterSetter || L.type().isInout) {
+                    definitionCode = "#A0 #A1)";
+                }
 
                 if(lCode.equals("this")) {
                     definitionCode = "Object.assign(#A0, #A1)";
@@ -113,24 +114,25 @@ public class BinaryExpression implements PrefixOrExpression {
                 parameterExternalNames.add("");
             }
             Instance functionOwner = null;
-            String augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)L.type().definition, false, visitor);
+            String augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)L.type().definition, L.type(), false, visitor);
             if(augment != null) functionOwner = L.type();
             else {
-                augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)R.type().definition, false, visitor);
+                augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)R.type().definition, R.type(), false, visitor);
                 if(augment != null) functionOwner = R.type();
             }
 
             Operator operator = (Operator)visitor.cache.find(alias, ctx).object;
             
-            this.type = augment != null ? functionOwner.getProperty(alias + augment).result() : operator.result != null ? new Instance(operator.result) : Type.alternative(L, R);
+            this.type = augment != null ? functionOwner.getProperty(alias + augment).result() : operator.result != null ? new Instance(operator.result) : TypeUtil.alternative(L, R);
 
             if(definitionCode == null) {
                 definitionCode =
-                    augment != null ? functionOwner.targetType(visitor.targetLanguage, true, true) + "." + alias + "(#A0, #A1)" :
+                    augment != null && functionOwner.getProperty(alias + augment).codeReplacement != null ? functionOwner.getProperty(alias + augment).codeReplacement.get(visitor.targetLanguage) :
+                    //TODO perhaps add that later; currently screws with native operations, e.g. "" + "": augment != null ? functionOwner.targetType(visitor.targetLanguage, true, true) + "." + alias + "(#A0, #A1)" :
                     operator.codeReplacement != null ? operator.codeReplacement.get(visitor.targetLanguage) :
                     "#A0 " + alias + " #A1";
             }
-            this.code = definitionCode.replaceAll("#A0", lCode.replaceAll("\\$", "\\\\\\$")).replaceAll("#A1", rCode.replaceAll("\\$", "\\\\\\$"));
+            this.code = definitionCode.replaceAll("#A0", Matcher.quoteReplacement(lCode)).replaceAll("#A1", Matcher.quoteReplacement(rCode));
             if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + "; } else { " + elseCode1 + "; }";
             if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + "; }";
         }

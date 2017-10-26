@@ -25,7 +25,7 @@ public class Main {
         SwiftParser parser = new SwiftParser(tokens);
         SwiftParser.Top_levelContext tree = parser.top_level();
 
-        EntityCache cache = new EntityCache();
+        Cache cache = new Cache();
 
         TypeLoader.load(cache, tree);
         OperatorLoader.load(cache, tree);

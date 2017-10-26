@@ -1,6 +1,6 @@
 public class TranspilerVisitor extends Visitor {
 
-    public TranspilerVisitor(EntityCache cache, String targetLanguage) {
+    public TranspilerVisitor(Cache cache, String targetLanguage) {
         super();
         this.cache = cache;
         this.targetLanguage = targetLanguage;
@@ -34,7 +34,7 @@ public class TranspilerVisitor extends Visitor {
     }
 
     @Override public String visitType(SwiftParser.TypeContext ctx) {
-        return Type.fromDefinition(ctx, this).targetType(targetLanguage);
+        return TypeUtil.fromDefinition(ctx, this).targetType(targetLanguage);
     }
 
     @Override public String visitExpression(SwiftParser.ExpressionContext ctx) {

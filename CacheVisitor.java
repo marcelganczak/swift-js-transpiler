@@ -4,11 +4,10 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 
 public class CacheVisitor extends Visitor {
 
-    public CacheVisitor(EntityCache cache, String targetLanguage) {
+    public CacheVisitor(Cache cache, String targetLanguage) {
         super();
         this.cache = cache;
         this.targetLanguage = targetLanguage;
@@ -17,8 +16,8 @@ public class CacheVisitor extends Visitor {
     @Override public String visitPattern_initializer(SwiftParser.Pattern_initializerContext ctx) {
         String varName = ctx.pattern().identifier_pattern().getText();
         Instance varType =
-                ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? Type.fromDefinition(ctx.pattern().type_annotation().type(), this)
-                : Type.infer(ctx.initializer().expression(), this);
+                ctx.pattern().type_annotation() != null && ctx.pattern().type_annotation().type() != null ? TypeUtil.fromDefinition(ctx.pattern().type_annotation().type(), this)
+                : TypeUtil.infer(ctx.initializer().expression(), this);
         cache(varName, varType, ctx);
         visitChildren(ctx.initializer());
         return null;
@@ -26,7 +25,7 @@ public class CacheVisitor extends Visitor {
 
     @Override public String visitProperty_declaration(SwiftParser.Property_declarationContext ctx) {
         String varName = ctx.variable_name().getText();
-        Instance varType = Type.fromDefinition(ctx.type_annotation().type(), this);
+        Instance varType = TypeUtil.fromDefinition(ctx.type_annotation().type(), this);
         cache(varName, varType, ctx);
         visit(ctx.property_declaration_body());
         return null;
@@ -73,7 +72,7 @@ public class CacheVisitor extends Visitor {
     }
     private void visitPropertyClause(ParserRuleContext ctx) {
         SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
-        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object);
+        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object).copy();
         //propertyType.isGetterSetter = null;
         SwiftParser.Code_blockContext blockContext =
             ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :
@@ -113,7 +112,7 @@ public class CacheVisitor extends Visitor {
                 ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_name().getText() :
                 ((SwiftParser.Struct_declarationContext)ctx).struct_name().getText();
 
-        EntityCache.CacheBlockAndObject superClass = null;
+        Cache.CacheBlockAndObject superClass = null;
         SwiftParser.Type_inheritance_clauseContext typeInheritanceClauseCtx =
                 ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).type_inheritance_clause() :
                 ((SwiftParser.Struct_declarationContext)ctx).type_inheritance_clause();
@@ -133,6 +132,7 @@ public class CacheVisitor extends Visitor {
         visit(ctx instanceof SwiftParser.Class_declarationContext ? ((SwiftParser.Class_declarationContext)ctx).class_body() : ((SwiftParser.Struct_declarationContext)ctx).struct_body());
 
         if(ctx instanceof SwiftParser.Struct_declarationContext) Initializer.addMemberwiseInitializer(classDefinition, ctx, this);
+        Initializer.addDefaultInitializer(classDefinition, ctx, this);
     }
 
     @Override public String visitFor_in_statement(SwiftParser.For_in_statementContext ctx) {

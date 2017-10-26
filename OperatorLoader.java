@@ -8,7 +8,7 @@ import java.util.HashMap;
 
 public class OperatorLoader {
 
-    static public void load(EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static public void load(Cache cache, SwiftParser.Top_levelContext topLevel) {
         InputStream is = Prefix.class.getResourceAsStream("operators.json");
         String jsonTxt = null;
         JSONObject definitions = null;
@@ -25,7 +25,7 @@ public class OperatorLoader {
         }
     }
 
-    static private Operator parseDefinition(JSONObject src, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static private Operator parseDefinition(JSONObject src, Cache cache, SwiftParser.Top_levelContext topLevel) {
         Operator definition = new Operator();
 
         definition.priority = src.optInt("priority");

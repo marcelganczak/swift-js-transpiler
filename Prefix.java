@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 
 //stuff like a.b.c or a[1] or a(), with optional prefix operator
 public class Prefix implements PrefixOrExpression {
@@ -74,25 +75,29 @@ public class Prefix implements PrefixOrExpression {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
-        Map<String, String> codeReplacement = elem.type.codeReplacement != null ? elem.type.codeReplacement : elem.definitionBeforeCallParams instanceof FunctionDefinition ? ((FunctionDefinition)elem.definitionBeforeCallParams).codeReplacement : null;
+        Map<String, String> codeReplacement =
+            elem.type.codeReplacement != null ? elem.type.codeReplacement :
+            elem.typeBeforeCallParams instanceof Instance ? ((Instance)elem.typeBeforeCallParams).codeReplacement :
+            elem.typeBeforeCallParams instanceof FunctionDefinition ? ((FunctionDefinition)elem.typeBeforeCallParams).codeReplacement :
+            null;
 
         String LR = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) ? codeReplacement.get(visitor.targetLanguage)
-                  : elem.accessor.equals("_.()") ? "_.#R(#L" + (elem.functionCallParams != null ? ",#A" : "") + ")"
+                  : elem.accessor.equals("_.()") ? "_.#R(#L" + (elem.functionCallParams != null ? ",#AA" : "") + ")"
                   : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? "#L.put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + "#R" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
                   : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? "#L" + (chainPos == 0 ? "" : ".") + "#R$set("
                   : onAssignmentLeftHandSide && isLast && elem.type.isInout ? "#L" + (chainPos == 0 ? "" : ".") + "#R.set("
                   : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + "#L.get(\"#R\"))"
-                  : "#L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + (elem.functionCallParams != null ? "(#A)" : "");
+                  : "#L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + (elem.functionCallParams != null ? "(#AA)" : "");
 
-        LR = LR.replaceAll("#L", L).replaceAll("#R", elem.code);
+        LR = LR.replaceAll("#L", Matcher.quoteReplacement(L)).replaceAll("#R", Matcher.quoteReplacement(elem.code));
         if(elem.functionCallParams != null) {
             String paramsJoined = "";
             for(int i = 0; i < elem.functionCallParams.size(); i++) paramsJoined += (i > 0 ? ", " : "") + elem.functionCallParams.get(i);
-            LR = LR.replaceAll("#A", paramsJoined);
-            for(int i = 0; i < elem.functionCallParams.size(); i++) LR = LR.replaceAll("#A" + i, elem.functionCallParams.get(i));
+            LR = LR.replaceAll("#AA", Matcher.quoteReplacement(paramsJoined));
+            for(int i = 0; i < elem.functionCallParams.size(); i++) LR = LR.replaceAll("#A" + i, Matcher.quoteReplacement(elem.functionCallParams.get(i)));
         }
         if(elem.type.generics != null) {
-            for(String key : elem.type.generics.keySet()) LR = LR.replaceAll("#" + key, elem.type.generics.get(key).targetType(visitor.targetLanguage, false, true));
+            for(String key : elem.type.generics.keySet()) LR = LR.replaceAll("#" + key, Matcher.quoteReplacement(elem.type.generics.get(key).targetType(visitor.targetLanguage, false, true)));
         }
 
         String nextCode =
@@ -103,7 +108,7 @@ public class Prefix implements PrefixOrExpression {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
-        if(isLast && elem.functionCallParams != null && elem.definitionBeforeCallParams instanceof ClassDefinition) {
+        if(isLast && elem.functionCallParams != null && elem.typeBeforeCallParams instanceof ClassDefinition) {
             nextCode = "new " + nextCode;
             if(Initializer.isFailable(elem, ctx, visitor)) {
                 nextCode = "_.failableInit(" + nextCode + ")";
@@ -112,6 +117,9 @@ public class Prefix implements PrefixOrExpression {
 
         if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter) {
             nextCode += "$get()";
+        }
+        if(!onAssignmentLeftHandSide && isLast && elem.type.isInout) {
+            nextCode += ".get()";
         }
 
         if(isLast && isInOutExpression) {
@@ -122,7 +130,7 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public Instance type() {
-        return elems.get(elems.size() - 1).type;
+        return elems.get(elems.size() - 1).type.withoutPropertyInfo();
     }
 
     public boolean isDictionaryIndex() {

@@ -14,7 +14,7 @@ import java.util.List;
 //loads in native data types (e.g. String, Array) and caches them as Definitions
 public class TypeLoader {
 
-    static public void load(EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static public void load(Cache cache, SwiftParser.Top_levelContext topLevel) {
         InputStream is = Prefix.class.getResourceAsStream("types.json");
         String jsonTxt = null;
         JSONObject definitions = null;
@@ -42,10 +42,7 @@ public class TypeLoader {
             for(int j = 0; j < src.optJSONArray("properties").length(); j++) {
                 JSONObject propertySrc = src.optJSONArray("properties").optJSONObject(j);
 
-                Instance property = parseProperty(propertySrc, cache, topLevel);
-                String name = propertySrc.optString("name");
-
-                definition.properties.put(name, property);
+                addProperty(definition, propertySrc, cache, topLevel);
             }
         }
     }
@@ -79,13 +76,14 @@ public class TypeLoader {
         return definition;
     }
 
-    static private Instance parseProperty(JSONObject src, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static private void addProperty(ClassDefinition classDefinition, JSONObject src, Cache cache, SwiftParser.Top_levelContext topLevel) {
 
         Instance property;
+        String name = src.optString("name");
 
         if(src.optBoolean("function")) {
             property = new Instance(parseFunction(src.optString("name"), src, false, cache, topLevel));
-            //TODO amend name
+            name += FunctionUtil.nameAugment(((FunctionDefinition)property.definition).parameterExternalNames, ((FunctionDefinition)property.definition).parameterTypes);
         }
         else {
             property = parseType(src.optString("type"), cache, topLevel);
@@ -102,10 +100,10 @@ public class TypeLoader {
         //TODO property.isOperator = src.optBoolean("operator");
         property.isInitializer = src.optString("name").equals("init");
 
-        return property;
+        classDefinition.properties.put(name, property);
     }
 
-    static private FunctionDefinition parseFunction(String name, JSONObject src, boolean isTopLevel, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static private FunctionDefinition parseFunction(String name, JSONObject src, boolean isTopLevel, Cache cache, SwiftParser.Top_levelContext topLevel) {
 
         List<String> parameterExternalNames = new ArrayList<String>();
         List<Instance> parameterTypes = new ArrayList<Instance>();
@@ -113,35 +111,11 @@ public class TypeLoader {
             for(int i = 0; i < src.optJSONArray("parameters").length(); i++) {
                 JSONObject parameter = src.optJSONArray("parameters").optJSONObject(i);
                 parameterExternalNames.add(parameter.optString("externalName"));
-                String parameterType = parameter.optString("type");
-                parameterTypes.add(new Instance(parameterType, topLevel, cache));
+                parameterTypes.add(parseType(parameter.optString("type"), cache, topLevel));
             }
         }
 
         FunctionDefinition definition = new FunctionDefinition(name, parameterExternalNames, parameterTypes, 0, parseType(src.optString("type"), cache, topLevel), null);
-
-        if(src.optJSONObject("parameterReplacement") != null) {
-            definition.parameterReplacement = new HashMap<String, ParameterReplacement>();
-            for(int i = 0; i < src.optJSONObject("parameterReplacement").names().length(); i++) {
-                String language = src.optJSONObject("parameterReplacement").names().optString(i);
-                ParameterReplacement parameterReplacement = new ParameterReplacement();
-                if(src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("order") != null) {
-                    parameterReplacement.order = new ArrayList<Integer>();
-                    for(int j = 0; j < src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("order").length(); j++) {
-                        parameterReplacement.order.add(src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("order").optInt(i));
-                    }
-                }
-                if(src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("default") != null) {
-                    parameterReplacement.defaultValues = new ArrayList<String>();
-                    parameterReplacement.defaultIndices = new ArrayList<Integer>();
-                    for(int j = 0; j < src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("default").length(); j++) {
-                        parameterReplacement.defaultValues.add(src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("default").optJSONObject(i).optString("value"));
-                        parameterReplacement.defaultIndices.add(src.optJSONObject("parameterReplacement").optJSONObject(language).optJSONArray("default").optJSONObject(i).optInt("index"));
-                    }
-                }
-                definition.parameterReplacement.put(language, parameterReplacement);
-            }
-        }
 
         if(src.optJSONObject("codeReplacement") != null && isTopLevel) {
             definition.codeReplacement = new HashMap<String, String>();
@@ -154,7 +128,7 @@ public class TypeLoader {
         return definition;
     }
 
-    static private Instance parseType(String type, EntityCache cache, SwiftParser.Top_levelContext topLevel) {
+    static private Instance parseType(String type, Cache cache, SwiftParser.Top_levelContext topLevel) {
         if(type.equals("")) return new Instance(type, topLevel, cache);
 
         SwiftLexer lexer = new SwiftLexer(new ANTLRInputStream("let a:" + type));
@@ -165,6 +139,6 @@ public class TypeLoader {
         //we arrive at the same topLevel that the cache uses
         typeContext.parent = topLevel;
         //TODO refactor so that we don't have to create a dummy Visitor
-        return Type.fromDefinition(typeContext, new TranspilerVisitor(cache, null));
+        return TypeUtil.fromDefinition(typeContext, new TranspilerVisitor(cache, null));
     }
 }

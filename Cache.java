@@ -2,7 +2,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.*;
 
-public class EntityCache {
+public class Cache {
 
     static class CacheBlockAndObject {
         public ParseTree block;
@@ -128,7 +128,12 @@ public class EntityCache {
         if(isStructureBlock(nearestAncestorBlock)) {
             //save the variable under class definition too
             CacheBlockAndObject classDefinition = getClassDefinition(nearestAncestorBlock);
-            ((ClassDefinition)classDefinition.object).properties.put(identifier, (Instance) object);
+            Instance property = object instanceof FunctionDefinition ? new Instance((FunctionDefinition)object) : (Instance)object;
+            if(identifier.equals("init") || identifier.startsWith("init$")) {
+                property.isInitializer = true;
+                if(((SwiftParser.Initializer_declarationContext)ctx).initializer_head().getText().contains("?")) property.isFailableInitializer = true;
+            }
+            ((ClassDefinition)classDefinition.object).properties.put(identifier, property);
         }
 
         if(!cache.containsKey(nearestAncestorBlock)) {

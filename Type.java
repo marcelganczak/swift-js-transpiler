@@ -1,146 +1,134 @@
-import java.util.*;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
 
-public class Type {
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
 
-    public static Instance fromDefinition(SwiftParser.TypeContext ctx, Visitor visitor) {
-        boolean isOptional = false;
-        if(ctx.optional_type() != null) {
-            isOptional = true;
-            ctx = ctx.type(0);
-        }
+class Operator {
+    public int priority;
+    public Definition result;
+    public Map<String, String> codeReplacement;
+}
 
-        boolean isGetterSetter = ctx.parent != null && ctx.parent.parent instanceof SwiftParser.Property_declarationContext;
-        boolean isInout = ctx.parent instanceof SwiftParser.Type_annotationContext && ((SwiftParser.Type_annotationContext)ctx.parent).inout() != null;
+abstract class Definition {
+    public String name;
+    public List<String> generics;
+    public Map<String, String> typeReplacement;//ts, java, javaProtocol(e.g. Map for HashMap) -- string with generics
+    public Map<String, Boolean> cloneOnAssignmentReplacement;//ts->boolean, java->boolean
+}
 
-        Instance type;
-        if(WalkerUtil.isDirectDescendant(SwiftParser.Dictionary_definitionContext.class, ctx)) type = fromDictionaryDefinition(ctx.dictionary_definition(), isOptional, isGetterSetter, isInout, visitor);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Array_definitionContext.class, ctx)) type = fromArrayDefinition(ctx.array_definition(), isOptional, isGetterSetter, isInout, visitor);
-        else if(WalkerUtil.isDirectDescendant(SwiftParser.Tuple_typeContext.class, ctx)) type = fromTupleDefinition(ctx.tuple_type().tuple_type_body().tuple_type_element_list(), isOptional, isGetterSetter, isInout, visitor);
-        else if(ctx.type_identifier() != null && ctx.type_identifier().type_name() != null && ctx.type_identifier().type_name().getText().equals("Set")) type = fromSetDefinition(ctx.type_identifier(), isOptional, isGetterSetter, isInout, visitor);
-        else if(WalkerUtil.has(SwiftParser.Arrow_operatorContext.class, ctx)) type = fromFunctionDefinition(ctx.type(0), ctx.type(1), visitor);
-        else {
-            String typeName = ctx.getText();
-            EntityCache.CacheBlockAndObject classDefinition = visitor.cache.find(typeName, ctx);
-            if(classDefinition != null) {
-                type = new Instance(typeName, ctx, visitor.cache);
-                //type = (ClassDefinition)classDefinition.object;
-            }
-            else {
-                type = new Instance(typeName, ctx, visitor.cache);
-                type.isOptional = isOptional;
-                type.isGetterSetter = isGetterSetter;
-            }
-        }
+class ClassDefinition extends Definition {
+    public Cache.CacheBlockAndObject superClass;
+    public Map<String, Instance> properties;
+    public ClassDefinition(String name, Cache.CacheBlockAndObject superClass, Map<String, Instance> properties, List<String> generics){ this.name = name; this.superClass = superClass; this.properties = properties; this.generics = generics; }
+}
 
-        if(ctx.getParent().getParent() instanceof SwiftParser.ParameterContext && ((SwiftParser.ParameterContext)ctx.getParent().getParent()).range_operator() != null) {
-            type = new Instance("Array", ctx, visitor.cache);
-            type.generics = new HashMap<String, Instance>();
-            type.generics.put("Value", type);
-        }
+class FunctionDefinition extends Definition {
+    public List<String> parameterExternalNames;
+    public List<Instance> parameterTypes;
+    public int numParametersWithDefaultValue = 0;
+    public Instance result;
+    public Map<String, String> codeReplacement;//ts->tsCode, java->javaCode; if you can, rather keep it in Property, but sometimes needed for top-level funcs
+    public FunctionDefinition(String name, List<String> parameterExternalNames, List<Instance> parameterTypes, int numParametersWithDefaultValue, Instance result, List<String> generics){ this.name = name; this.parameterExternalNames = parameterExternalNames; this.parameterTypes = parameterTypes; this.numParametersWithDefaultValue = numParametersWithDefaultValue; this.result = result; this.generics = generics; }
+    public FunctionDefinition(ParserRuleContext ctx, Visitor visitor) {
+        List<SwiftParser.ParameterContext> parameters = FunctionUtil.parameters(ctx);
 
-        return type;
+        this.parameterExternalNames = FunctionUtil.parameterExternalNames(parameters);
+        this.parameterTypes = FunctionUtil.parameterTypes(parameters, visitor);
+        this.numParametersWithDefaultValue = FunctionUtil.numParametersWithDefaultValue(parameters);
+        this.name = FunctionUtil.functionName(ctx, parameterExternalNames, parameterTypes);
+
+        this.result =
+            ctx instanceof SwiftParser.Function_declarationContext ? TypeUtil.fromFunction(((SwiftParser.Function_declarationContext) ctx).function_signature().function_result(), ((SwiftParser.Function_declarationContext) ctx).function_body().code_block().statements(), false, visitor) :
+            new Instance("Void", ctx, visitor.cache);
     }
+}
 
-    private static Instance fromDictionaryDefinition(SwiftParser.Dictionary_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
-        List<SwiftParser.TypeContext> types = ctx.type();
-        Instance type = new Instance("Dictionary", ctx, visitor.cache);
-        type.generics = new HashMap<String, Instance>();
-        type.generics.put("Key", fromDefinition(types.get(0), visitor));
-        type.generics.put("Value", fromDefinition(types.get(1), visitor));
-        type.isOptional = isOptional;
-        type.isGetterSetter = isGetterSetter;
-        type.isInout = isInout;
-        return type;
+class Instance {
+    public Definition definition;
+    public String genericDefinition;
+    //declaration modifiers
+    public boolean isOptional = false;
+    public boolean isInout = false;
+    public boolean isVariadicParameter = false;
+    //class property modifiers
+    public boolean isStatic = false;
+    public boolean isOperator = false;
+    public boolean isInitializer = false;
+    public boolean isDefaultInitializer = false;
+    public boolean isMemberwiseInitializer = false;
+    public boolean isFailableInitializer = false;
+    public boolean isGetterSetter = false;
+    public Map<String, String> codeReplacement;//ts->tsCode, java->javaCode
+    public Map<String, Instance> generics;
+    //utils
+    public String typeName() {
+        //just definition name, e.g. dictionary
+        return definition.name;
     }
-
-    private static Instance fromArrayDefinition(SwiftParser.Array_definitionContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
-        Instance type = new Instance("Array", ctx, visitor.cache);
-        type.generics = new HashMap<String, Instance>();
-        type.generics.put("Value", fromDefinition(ctx.type(), visitor));
-        type.isOptional = isOptional;
-        type.isGetterSetter = isGetterSetter;
-        type.isInout = isInout;
-        return type;
+    public String uniqueId() {
+        //TODO something that will allow us to uniquely identify type, e.g. to figure out which overloaded function to use
+        //TODO include scope if it's a name that's duplicated in the code
+        return definition != null ? definition.name != null ? definition.name : "any" : genericDefinition;
     }
-
-    private static LinkedHashMap<String, Instance> flattenTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, Visitor visitor) {
-        int elementI = 0;
-        LinkedHashMap<String, Instance> flattened = new LinkedHashMap<String, Instance>();
-        while(ctx != null) {
-            SwiftParser.Tuple_type_elementContext tupleTypeElement = ctx.tuple_type_element();
-            if(tupleTypeElement != null) {
-                String index = tupleTypeElement.element_name() != null ? tupleTypeElement.element_name().getText() : Integer.toString(elementI);
-                flattened.put(index, new Instance(tupleTypeElement.type() != null ? tupleTypeElement.type().getText() : tupleTypeElement.type_annotation().type().getText(), ctx, visitor.cache));
-                elementI++;
-            }
-            ctx = ctx.tuple_type_element_list();
-        }
-        return flattened;
+    public Instance copy() {
+        //TODO
+        return withoutPropertyInfo();
     }
-    private static Instance fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
-        LinkedHashMap<String, Instance> elems = flattenTupleDefinition(ctx, visitor);
-        ClassDefinition tupleDefinition = new ClassDefinition(null, null, elems, new ArrayList<String>());
-        return new Instance(tupleDefinition);
+    public Instance withoutPropertyInfo() {
+        Instance instance = new Instance(this.definition, this.genericDefinition, this.generics);
+        instance.isOptional = isOptional;
+        instance.isInout = isInout;
+        instance.isVariadicParameter = isVariadicParameter;
+        return instance;
     }
-
-    private static Instance fromSetDefinition(SwiftParser.Type_identifierContext ctx, boolean isOptional, boolean isGetterSetter, boolean isInout, Visitor visitor) {
-        Instance type = new Instance("Set", ctx, visitor.cache);
-        type.generics = new HashMap<String, Instance>();
-        type.generics.put("Value", fromDefinition(ctx.generic_argument_clause().generic_argument_list().generic_argument(0).type(), visitor));
-        type.isOptional = isOptional;
-        type.isGetterSetter = isGetterSetter;
-        type.isInout = isInout;
-        return type;
-    }
-
-    private static Instance fromFunctionDefinition(SwiftParser.TypeContext paramTuple, SwiftParser.TypeContext returnType, Visitor visitor) {
-        LinkedHashMap<String, Instance> params = flattenTupleDefinition(paramTuple.tuple_type().tuple_type_body().tuple_type_element_list(), visitor);
-        ArrayList<String> parameterExternalNames = new ArrayList<String>();
-        ArrayList<Instance> parameterTypes = new ArrayList<Instance>();
-        for(Map.Entry<String, Instance> iterator:params.entrySet()) {
-            String externalName = iterator.getKey();
-            parameterExternalNames.add(externalName.matches("^\\d+$") ? "" : externalName);
-            parameterTypes.add(iterator.getValue());
-        }
-        return new Instance(new FunctionDefinition(null, parameterExternalNames, parameterTypes, 0, fromDefinition(returnType, visitor), new ArrayList<String>()));
-    }
-
-    public static Instance fromFunction(SwiftParser.Function_resultContext functionResult, SwiftParser.StatementsContext statements, boolean isClosure, Visitor visitor) {
-        if(functionResult != null) return fromDefinition(functionResult.type(), visitor);
-        visitor.visitChildren(statements);
-        for(int i = 0; i < statements.getChildCount(); i++) {
-            if(WalkerUtil.has(SwiftParser.Return_statementContext.class, statements.getChild(i))) {
-                SwiftParser.ExpressionContext expression = ((SwiftParser.StatementContext)statements.getChild(i)).control_transfer_statement().return_statement().expression();
-                return expression != null ? infer(expression, visitor) : new Instance("Void", statements, visitor.cache);
+    public String targetType(String language) { return targetType(language, false, false); }
+    public String targetType(String language, boolean notProtocol) { return targetType(language, notProtocol, false); }
+    public String targetType(String language, boolean notProtocol, boolean baseIfInout) {
+        String type = definition.name;
+        if(definition.typeReplacement != null && definition.typeReplacement.containsKey(language)) {
+            if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
+            else type = definition.typeReplacement.get(language);
+            if(generics != null) {
+                for(String key : generics.keySet()) type = type.replaceAll("#" + key, Matcher.quoteReplacement(generics.get(key).targetType(language, false, true)));
             }
         }
-        if(isClosure && statements.getChildCount() > 0) return infer((SwiftParser.ExpressionContext) statements.getChild(statements.getChildCount() - 1), visitor);
-        return new Instance("Void", statements, visitor.cache);
+        if(type == null) type = "any";
+        //TODO might be different based on specified generics too
+        if(!isInout || baseIfInout) return type;
+        return "{get: () => " + type + ", set: (val: " + type + ") => void}";
     }
-
-    public static Instance infer(SwiftParser.ExpressionContext ctx, Visitor visitor) {
-        return new Expression(ctx, null, visitor).type;
+    public Instance getProperty(String name) {
+        //TODO probably should return Property & Instance
+        ClassDefinition classDefinition = (ClassDefinition)definition;
+        Instance property = null;
+        do {
+            property = classDefinition.properties.get(name);
+            classDefinition = classDefinition.superClass != null ? (ClassDefinition)classDefinition.superClass.object : null;
+        } while(property == null && classDefinition != null);
+        return specifyGenerics(property);
     }
-
-    public static Instance alternative(PrefixOrExpression L, PrefixOrExpression R) {
-        Instance type;
-        if(L.type().uniqueId().equals(R.type().uniqueId())) {
-            type = L.type().copy();
-        }
-        else if(L.type().uniqueId().equals("Void")) {
-            Instance rClone = R.type().copy();
-            rClone.isOptional = true;
-            return rClone;
-        }
-        else if(R.type().uniqueId().equals("Void")) {
-            Instance lClone = L.type().copy();
-            lClone.isOptional = true;
-            return lClone;
+    public Instance result() {
+        Instance result = ((FunctionDefinition)definition).result;
+        return specifyGenerics(result);
+    }
+    private Instance specifyGenerics(Instance instance) {
+        if(instance.definition == null) {
+            if(generics != null && generics.containsKey(instance.genericDefinition)) {
+                instance.definition = generics.get(instance.genericDefinition).definition;
+            }
         }
         else {
-            System.out.println("//Ambiguous return type: " + L.type().uniqueId() + " || " + R.type().uniqueId());
-            type = L.type().copy();
+            instance.generics = generics;
         }
-        return type;
+        return instance;
     }
+    public Instance(String typeName, ParseTree ctx, Cache cache){
+        Cache.CacheBlockAndObject definition = cache.find(typeName, ctx);
+        if(definition != null) this.definition = (Definition)definition.object;
+        else this.genericDefinition = typeName;
+    }
+    public Instance(Definition definition){ this.definition = definition; }
+    private Instance(Definition definition, String genericDefinition, Map<String, Instance> generics){ this.definition = definition; this.genericDefinition = genericDefinition; this.generics = generics; }
 }
