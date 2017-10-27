@@ -34,6 +34,7 @@ public class Cache {
                 node instanceof SwiftParser.Top_levelContext ||
                 node instanceof SwiftParser.Code_blockContext ||
                 node instanceof SwiftParser.Closure_expressionContext ||
+                node instanceof SwiftParser.Explicit_closure_expressionContext ||
                 isStructureBlock(node);
         if(isBlock) return node;
         if(node == null || node.getParent() == null || node.getParent() == node) return null;
@@ -80,29 +81,6 @@ public class Cache {
         while((node = findNearestAncestorBlock(node.getParent())) != null);
 
         return null;
-    }
-
-    public CacheBlockAndObject findLoose(String varName, ParseTree node) {
-
-        if(varName.equals("self")) return findNearestAncestorStructure(node);
-
-        if(varName.equals("super")) return ((ClassDefinition)findNearestAncestorStructure(node).object).superClass;
-
-        CacheBlockAndObject blockAndObject = find(varName, node);
-
-        if(blockAndObject == null) {
-            Map<String, CacheBlockAndObject> allProperties = getAllTypes(node);
-            Map<String, CacheBlockAndObject> candidates = FunctionUtil.getFunctionTypesStartingWith(varName, allProperties);
-            if(candidates.size() == 0) {
-                CacheBlockAndExpression variadicFunction = FunctionUtil.getFunctionEndingWithVariadic(varName, allProperties);
-                if(variadicFunction == null) return null;
-                return new CacheBlockAndObject(variadicFunction.block, variadicFunction.expression.type);
-            }
-            if(candidates.size() > 1) System.out.println("//Found more than 1 candidate for " + varName);
-            return candidates.get(candidates.keySet().toArray()[0]);
-        }
-
-        return blockAndObject;
     }
 
     public Map<String, CacheBlockAndObject> getAllTypes(ParseTree node) {

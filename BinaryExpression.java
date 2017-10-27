@@ -110,10 +110,10 @@ public class BinaryExpression implements PrefixOrExpression {
                 parameterExternalNames.add("");
             }
             Instance functionOwner = null;
-            String augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)L.type().definition, L.type(), false, visitor);
+            String augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, L.type(), false, ((ClassDefinition)L.type().definition).getAllProperties());
             if(augment != null) functionOwner = L.type();
             else {
-                augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, ctx, (ClassDefinition)R.type().definition, R.type(), false, visitor);
+                augment = FunctionUtil.augmentFromCall(alias, parameterTypes, parameterExternalNames, R.type(), false, ((ClassDefinition)L.type().definition).getAllProperties());
                 if(augment != null) functionOwner = R.type();
             }
 

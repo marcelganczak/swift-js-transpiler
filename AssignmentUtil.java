@@ -19,7 +19,7 @@ public class AssignmentUtil {
 
     static public String handleInitializer(SwiftParser.Pattern_initializerContext ctx, Visitor visitor) {
         String varName = ctx.pattern().identifier_pattern().getText();
-        Cache.CacheBlockAndObject cache = visitor.cache.findLoose(varName, ctx);
+        Cache.CacheBlockAndObject cache = visitor.cache.find(varName, ctx);
         Instance varType = cache != null ? cache.object instanceof FunctionDefinition ? new Instance((FunctionDefinition)cache.object) : (Instance)cache.object : null;
         if(varType.definition instanceof FunctionDefinition) varName += FunctionUtil.nameAugment(((FunctionDefinition) varType.definition).parameterExternalNames, ((FunctionDefinition) varType.definition).parameterTypes);
 
@@ -82,7 +82,7 @@ public class AssignmentUtil {
         SwiftParser.Getter_setter_blockContext getterSetterBlock = ((SwiftParser.Computed_property_declarationContext)ctx.property_declaration_body()).getter_setter_block();
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
         String setterArgument = setterArgumentName(getterSetterBlock.setter_clause());
-        Cache.CacheBlockAndObject property = visitor.cache.findLoose(setterArgument, getterSetterBlock.setter_clause().code_block());
+        Cache.CacheBlockAndObject property = visitor.cache.find(setterArgument, getterSetterBlock.setter_clause().code_block());
         String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
 
         return
@@ -95,7 +95,7 @@ public class AssignmentUtil {
 
         SwiftParser.Read_only_computed_property_declarationContext declarationCtx = ((SwiftParser.Read_only_computed_property_declarationContext)ctx.property_declaration_body());
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
-        Cache.CacheBlockAndObject property = visitor.cache.findLoose(propertyName, ctx);
+        Cache.CacheBlockAndObject property = visitor.cache.find(propertyName, ctx);
         String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
 
         return propertyName + "$get(): " + propertyType + " " + visitor.visit(declarationCtx.code_block());
@@ -110,7 +110,7 @@ public class AssignmentUtil {
 
         SwiftParser.WillSet_didSet_property_declarationContext declarationCtx = ((SwiftParser.WillSet_didSet_property_declarationContext)ctx.property_declaration_body());
         String propertyName = visitor.visitChildren(ctx.variable_name()).trim();
-        Cache.CacheBlockAndObject property = visitor.cache.findLoose(propertyName, ctx);
+        Cache.CacheBlockAndObject property = visitor.cache.find(propertyName, ctx);
         String propertyType = ((Instance)property.object).targetType(visitor.targetLanguage, false, true);
         String internalVar = "this." + propertyName + "$val";
 

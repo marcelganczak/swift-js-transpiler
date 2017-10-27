@@ -84,6 +84,7 @@ public class TypeLoader {
         if(src.optBoolean("function")) {
             property = new Instance(parseFunction(src.optString("name"), src, false, cache, topLevel));
             name += FunctionUtil.nameAugment(((FunctionDefinition)property.definition).parameterExternalNames, ((FunctionDefinition)property.definition).parameterTypes);
+            property.definition.name = name;
         }
         else {
             property = parseType(src.optString("type"), cache, topLevel);

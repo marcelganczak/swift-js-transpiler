@@ -39,10 +39,19 @@ public class Prefix implements PrefixOrExpression {
             }
 
             PrefixElem elem = PrefixElem.get(ctx, functionCallParams, chain, chainPos, currType, (chainPos + (functionCallParams != null ? 1 : 0) >= chain.size() - 1) ? knownType : null, visitor);
-            Map<String, String> codeReplacement = elem.type.codeReplacement != null ? elem.type.codeReplacement : elem.typeBeforeCallParams instanceof Instance ? ((Instance) elem.typeBeforeCallParams).codeReplacement : null;
+            Map<String, String> codeReplacement = elem.codeReplacement();
             boolean skip = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) && codeReplacement.get(visitor.targetLanguage).equals("");
 
-            if(functionCallParams != null) chainPos++;
+            if(functionCallParams != null) {
+                chainPos++;
+                if(visitor instanceof CacheVisitor) {
+                    for(int i = 0; i < functionCallParams.size(); i++) {
+                        if(functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext) {
+                            ((CacheVisitor)visitor).visitExplicit_closure_expression(elem, (SwiftParser.Explicit_closure_expressionContext)functionCallParams.get(i), i);
+                        }
+                    }
+                }
+            }
 
             if(!skip) {
                 elems.add(elem);
@@ -80,11 +89,7 @@ public class Prefix implements PrefixOrExpression {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
-        Map<String, String> codeReplacement =
-            elem.type.codeReplacement != null ? elem.type.codeReplacement :
-            elem.typeBeforeCallParams instanceof Instance ? ((Instance)elem.typeBeforeCallParams).codeReplacement :
-            elem.typeBeforeCallParams instanceof FunctionDefinition ? ((FunctionDefinition)elem.typeBeforeCallParams).codeReplacement :
-            null;
+        Map<String, String> codeReplacement = elem.codeReplacement();
 
         String LR = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) ? codeReplacement.get(visitor.targetLanguage)
                   : elem.accessor.equals("_.()") ? "_.#R(#L" + (elem.functionCallParams != null ? ",#AA" : "") + ")"
@@ -92,6 +97,7 @@ public class Prefix implements PrefixOrExpression {
                   : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? "#L" + (chainPos == 0 ? "" : ".") + "#R$set("
                   : onAssignmentLeftHandSide && isLast && elem.type.isInout ? "#L" + (chainPos == 0 ? "" : ".") + "#R.set("
                   : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + "#L.get(\"#R\"))"
+                  : elem.initializerSignature != null ? "new #L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + "(\"" + elem.initializerSignature + "\",#AA)"
                   : "#L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + (elem.functionCallParams != null ? "(#AA)" : "");
 
         LR = LR.replaceAll("#L", Matcher.quoteReplacement(L)).replaceAll("#R", Matcher.quoteReplacement(elem.code));
@@ -113,9 +119,9 @@ public class Prefix implements PrefixOrExpression {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
-        if(isLast && elem.functionCallParams != null && elem.typeBeforeCallParams instanceof ClassDefinition) {
-            nextCode = "new " + nextCode;
-            if(Initializer.isFailable(elem, ctx, visitor)) {
+        if(elem.initializerSignature != null) {
+            Instance initializer = elem.type.getProperty("init" + elem.initializerSignature);
+            if(initializer != null && initializer.isFailableInitializer) {
                 nextCode = "_.failableInit(" + nextCode + ")";
             }
         }

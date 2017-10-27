@@ -4,6 +4,7 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 public class CacheVisitor extends Visitor {
 
@@ -58,6 +59,14 @@ public class CacheVisitor extends Visitor {
         visit(codeBlockCtx);
     }
 
+    public void visitExplicit_closure_expression(PrefixElem elem, SwiftParser.Explicit_closure_expressionContext ctx, int paramPos) {
+
+        List<Instance> parameterTypes = FunctionUtil.closureParameterTypes(elem.type, elem.typeBeforeCallParams, paramPos);
+        List<String> parameterNames = FunctionUtil.closureParameterNames(parameterTypes, ctx);
+
+        for(int i = 0; i < parameterNames.size(); i++) cache.cacheOne(parameterNames.get(i), parameterTypes.get(i), ctx);
+    }
+
     @Override public String visitSetter_clause(SwiftParser.Setter_clauseContext ctx) {
         this.visitPropertyClause(ctx);
         return null;
@@ -72,7 +81,7 @@ public class CacheVisitor extends Visitor {
     }
     private void visitPropertyClause(ParserRuleContext ctx) {
         SwiftParser.Property_declarationContext propertyDeclaration = (SwiftParser.Property_declarationContext) ctx.parent.parent.parent;
-        Instance propertyType = ((Instance)cache.findLoose(propertyDeclaration.variable_name().getText(), ctx).object).withoutPropertyInfo();
+        Instance propertyType = ((Instance)cache.find(propertyDeclaration.variable_name().getText(), ctx).object).withoutPropertyInfo();
         //propertyType.isGetterSetter = null;
         SwiftParser.Code_blockContext blockContext =
             ctx instanceof SwiftParser.Setter_clauseContext ? ((SwiftParser.Setter_clauseContext)ctx).code_block() :

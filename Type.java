@@ -1,6 +1,7 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -22,6 +23,14 @@ class ClassDefinition extends Definition {
     public Cache.CacheBlockAndObject superClass;
     public Map<String, Instance> properties;
     public ClassDefinition(String name, Cache.CacheBlockAndObject superClass, Map<String, Instance> properties, List<String> generics){ this.name = name; this.superClass = superClass; this.properties = properties; this.generics = generics; }
+    public Map<String, Cache.CacheBlockAndObject> getAllProperties() {
+        Map<String, Cache.CacheBlockAndObject> allProperties = new HashMap<String, Cache.CacheBlockAndObject>();
+        //TODO superClass too
+        for(Map.Entry<String, Instance> iterator:properties.entrySet()) {
+            allProperties.put(iterator.getKey(), new Cache.CacheBlockAndObject(null, iterator.getValue()));
+        }
+        return allProperties;
+    }
 }
 
 class FunctionDefinition extends Definition {
@@ -100,16 +109,18 @@ class Instance {
             property = classDefinition.properties.get(name);
             classDefinition = classDefinition.superClass != null ? (ClassDefinition)classDefinition.superClass.object : null;
         } while(property == null && classDefinition != null);
+        if(property == null) return null;
         return specifyGenerics(property);
     }
     public Instance result() {
         Instance result = ((FunctionDefinition)definition).result;
         return specifyGenerics(result);
     }
-    private Instance specifyGenerics(Instance instance) {
+    public Instance specifyGenerics(Instance instance) {
         if(instance.definition == null) {
             if(generics != null && generics.containsKey(instance.genericDefinition)) {
                 instance.definition = generics.get(instance.genericDefinition).definition;
+                instance.generics = generics.get(instance.genericDefinition).generics;
             }
         }
         else {

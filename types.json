@@ -191,7 +191,10 @@
       "name": "filter",
       "function": true,
       "parameters": [{"type": "(Value)->Bool"}],
-      "type": "[Value]"
+      "type": "[Value]",
+      "codeReplacement": {
+        "ts": "#L.filter(#AA)"
+      }
     }, {
       "name": "sort",
       "function": true,
@@ -204,7 +207,10 @@
       "name": "map",
       "function": true,
       "parameters": [{"type": "(Value)->Value"}],
-      "type": "[Value]"
+      "type": "[Value]",
+      "codeReplacement": {
+        "ts": "#L.map(#AA)"
+      }
     }, {
       "name": "reduce",
       "function": true,
@@ -283,10 +289,20 @@
     "properties": [{
       "name": "init",
       "function": true,
+      "parameters": [{"type": "String"}],
       "type": "Double",
       "codeReplacement": {
         "ts": "parseFloat(#AA)",
         "java": "Double.parseDouble(#AA)"
+      }
+    }, {
+      "name": "init",
+      "function": true,
+      "parameters": [{"type": "Int"}],
+      "type": "Double",
+      "codeReplacement": {
+        "ts": "#AA",
+        "java": "#AA"
       }
     }, {
       "name": "+",
@@ -344,6 +360,12 @@
     "typeReplacement": {
       "ts": "void",
       "java": "void"
+    }
+  },
+  "Any": {
+    "typeReplacement": {
+      "ts": "any",
+      "java": "any"
     }
   },
   "Bool": {
