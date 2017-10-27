@@ -1,1 +1,5 @@
-[1].sort(by: <)
+struct Chessboard {
+    let boardColors: Int = {
+        return 2
+    }()
+}

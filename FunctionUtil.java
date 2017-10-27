@@ -180,7 +180,7 @@ public class FunctionUtil {
             closureExpression = "(a, b) => a " + ctx.operator().getText() + " b";
         }
         else if(ctx.explicit_closure_expression() != null) {
-            //closureExpression = explicitClosureExpression(ctx.explicit_closure_expression(), visitor);
+            closureExpression = explicitClosureExpression("", ctx.explicit_closure_expression(), visitor);
         }
         if(functionCallParams != null) {
             closureExpression = "(" + closureExpression + ")(";
@@ -192,12 +192,16 @@ public class FunctionUtil {
         return closureExpression;
     }
 
-    static public String explicitClosureExpression(Instance elemType, Object elemTypeBeforeCallParams, SwiftParser.Explicit_closure_expressionContext ctx, int paramPos, Visitor visitor) {
+    static public String explicitParamClosureExpression(Instance elemType, Object elemTypeBeforeCallParams, SwiftParser.Explicit_closure_expressionContext ctx, int paramPos, Visitor visitor) {
 
         List<Instance> parameterTypes = FunctionUtil.closureParameterTypes(elemType, elemTypeBeforeCallParams, paramPos);
         List<String> parameterNames = FunctionUtil.closureParameterNames(parameterTypes, ctx);
         String parameterStr = "";
         for(int i = 0; i < parameterNames.size(); i++) parameterStr += (i > 0 ? ", " : "") + parameterNames.get(i) + ": " + parameterTypes.get(i).targetType(visitor.targetLanguage);
+
+        return explicitClosureExpression(parameterStr, ctx, visitor);
+    }
+    static private String explicitClosureExpression(String parameterStr, SwiftParser.Explicit_closure_expressionContext ctx, Visitor visitor) {
 
         SwiftParser.StatementsContext statements = ctx.statements();
 

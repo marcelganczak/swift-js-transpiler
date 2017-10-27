@@ -1,6 +1,5 @@
 import org.antlr.v4.runtime.ParserRuleContext;
 
-import javax.swing.text.html.parser.Entity;
 import java.util.*;
 
 public class PrefixElem {
@@ -354,7 +353,7 @@ public class PrefixElem {
             for(int i = 0; i < functionCallParams.size(); i++) {
                 String paramStr;
                 if(functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext) {
-                    paramStr = FunctionUtil.explicitClosureExpression(type, typeBeforeCallParams, (SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), i, visitor);
+                    paramStr = FunctionUtil.explicitParamClosureExpression(type, typeBeforeCallParams, (SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), i, visitor);
                 }
                 else {
                     FunctionDefinition functionDefinition =
