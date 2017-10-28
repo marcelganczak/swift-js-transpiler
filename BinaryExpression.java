@@ -5,6 +5,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 
+//deals with binary operations (e.g. a + b) -- tries to work out in which class the operation is defined
+//(could be either first or second element, e.g. 1 + "2" could be defined either in Int or String)
+//also has some hardcoded functionality for the conditional operator ?: and casting operator "as"
+//handles some logic around assignments, e.g. optional assignment dictionary?["key"] = "val", but the bulk of that is done by Prefix
 public class BinaryExpression implements PrefixOrExpression {
 
     static public int minOperatorPriority = 4;

@@ -61,7 +61,7 @@ public class CacheVisitor extends Visitor {
 
     public void visitExplicit_closure_expression(PrefixElem elem, SwiftParser.Explicit_closure_expressionContext ctx, int paramPos) {
 
-        List<Instance> parameterTypes = FunctionUtil.closureParameterTypes(elem.type, elem.typeBeforeCallParams, paramPos);
+        List<Instance> parameterTypes = FunctionUtil.closureParameterTypes(elem.type, elem.typeBeforeCall, paramPos);
         List<String> parameterNames = FunctionUtil.closureParameterNames(parameterTypes, ctx);
 
         for(int i = 0; i < parameterNames.size(); i++) cache.cacheOne(parameterNames.get(i), parameterTypes.get(i), ctx);

@@ -7,7 +7,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 
-//stuff like a.b.c or a[1] or a(), with optional prefix operator
+//deals with prefix_expression context (as defined in Swift.g4), e.g instance.method() or instance[2]
+//breaks up the chain into PrefixElems, e.g.:
+// - [{code: "instance", type: "Class"}, {code: "method", functionCallParams: [], typeBeforeCall: "Function", type: "Void"}]
+// - [{code: "instance", type: "Class"}, {code: "2", isSubscript: true, typeBeforeCall: "Function", type: "String"}]
+//computes the code by running through the PrefixElems and joining them
+//in the process, works out code replacement:
+// - for native classes (e.g. string.characters.count -> string.length)
+// - for assignments (e.g. dictionary["key"] = null -> delete dictionary["key"])
 public class Prefix implements PrefixOrExpression {
 
     private ParserRuleContext originalCtx;

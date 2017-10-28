@@ -4,7 +4,11 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import java.util.ArrayList;
 import java.util.List;
 
-//stuff like a + b, c / d
+//deals with expression context (as defined in Swift.g4), which is a basic code building block
+//breaks the expression up into binary operations (e.g. instance.method() + 1) and arranges them in the order of priority
+//then delegates the calculations to BinaryExpression (e.g. instance.method() + 1) and Prefix (e.g. instance.method())
+//perhaps it might be worth it to join BinaryExpression & Prefix into one module, s binary expressions are really just static functions
+//(e.g. 1 + 2 is Int.add(1, 2), but that's some major refactoring, so let's leave it as is for now
 public class Expression implements PrefixOrExpression {
 
     String code;

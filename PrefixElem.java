@@ -2,15 +2,20 @@ import org.antlr.v4.runtime.ParserRuleContext;
 
 import java.util.*;
 
+//deals with primary_expression and chain_postfix_expression context (as defined in Swift.g4), e.g instance.method() or instance[2]
+//primary_expression is always the first element in the chain and can be an identifier (varA) or a literal ([] or 1)
+//works out the type from the identifier/literal
+//also has some hardcoded functionality for more complicated literals such as ["key": "val"] or [Int](repeating: 0, count: 3)
+//chain_postfix_expression are the successive elements in the chain, such as .methodCall() or [2]
 public class PrefixElem {
     public String code;
     public boolean isSubscript;
     public Instance type;
     public List<String> functionCallParams;
-    public Object/*Defintion/Instance*/ typeBeforeCallParams;
+    public Object/*Defintion/Instance*/ typeBeforeCall;
     public String initializerSignature;
     public boolean isOptional;
-    public PrefixElem(String code, boolean isSubscript, Instance type, List<String> functionCallParams, Object typeBeforeCallParams, String initializerSignature) { this.code = code; this.isSubscript = isSubscript; this.type = type; this.functionCallParams = functionCallParams; this.typeBeforeCallParams = typeBeforeCallParams; this.initializerSignature = initializerSignature; this.isOptional = false; }
+    public PrefixElem(String code, boolean isSubscript, Instance type, List<String> functionCallParams, Object typeBeforeCall, String initializerSignature) { this.code = code; this.isSubscript = isSubscript; this.type = type; this.functionCallParams = functionCallParams; this.typeBeforeCall = typeBeforeCall; this.initializerSignature = initializerSignature; this.isOptional = false; }
 
     static public PrefixElem get(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, Instance lType, Instance rType, Visitor visitor) {
 
@@ -233,7 +238,7 @@ public class PrefixElem {
         boolean isSubscript = false;
         List<String> functionCallParamsStr = null;
         Instance type = null;
-        Object typeBeforeCallParams = null;
+        Object typeBeforeCall = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
             code = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
         }
@@ -245,8 +250,8 @@ public class PrefixElem {
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
-            typeBeforeCallParams = lType.getProperty("[]");
-            type = ((Instance)typeBeforeCallParams).result();
+            typeBeforeCall = lType.getProperty("[]");
+            type = ((Instance)typeBeforeCall).result();
             isSubscript = true;
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
@@ -320,7 +325,7 @@ public class PrefixElem {
                 instanceOrDefinition = new Instance((ClassDefinition)instanceOrDefinition);
             }
             if(functionCallParams != null) {
-                typeBeforeCallParams = instanceOrDefinition;
+                typeBeforeCall = instanceOrDefinition;
                 if(instanceOrDefinition instanceof Definition) {
                     if(instanceOrDefinition instanceof FunctionDefinition) type = ((FunctionDefinition)instanceOrDefinition).result;
                     else type = new Instance((Definition)instanceOrDefinition);
@@ -342,13 +347,13 @@ public class PrefixElem {
             for(int i = 0; i < functionCallParams.size(); i++) {
                 String paramStr;
                 if(functionCallParams.get(i) instanceof SwiftParser.Explicit_closure_expressionContext) {
-                    paramStr = FunctionUtil.explicitParamClosureExpression(type, typeBeforeCallParams, (SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), i, visitor);
+                    paramStr = FunctionUtil.explicitParamClosureExpression(type, typeBeforeCall, (SwiftParser.Explicit_closure_expressionContext) functionCallParams.get(i), i, visitor);
                 }
                 else {
                     FunctionDefinition functionDefinition =
                         isInitializer ? (FunctionDefinition)type.getProperty("init" + augment).definition :
-                        typeBeforeCallParams instanceof FunctionDefinition ? (FunctionDefinition)typeBeforeCallParams :
-                        typeBeforeCallParams instanceof Instance ? (FunctionDefinition)((Instance)typeBeforeCallParams).definition :
+                        typeBeforeCall instanceof FunctionDefinition ? (FunctionDefinition)typeBeforeCall :
+                        typeBeforeCall instanceof Instance ? (FunctionDefinition)((Instance)typeBeforeCall).definition :
                         null;
                     Instance knownType = functionDefinition != null && functionDefinition.parameterTypes.size() >= i + 1 ? type.specifyGenerics(functionDefinition.parameterTypes.get(i).withoutPropertyInfo()) : null;
                     paramStr = new Expression(((SwiftParser.Expression_elementContext)functionCallParams.get(i)).expression(), knownType, visitor).code;
@@ -357,14 +362,14 @@ public class PrefixElem {
             }
         }
 
-        return new PrefixElem(code, isSubscript, type, functionCallParamsStr, typeBeforeCallParams, isInitializer ? augment : null);
+        return new PrefixElem(code, isSubscript, type, functionCallParamsStr, typeBeforeCall, isInitializer ? augment : null);
     }
 
     public Map<String, String> codeReplacement() {
         return (
             type.codeReplacement != null ? type.codeReplacement :
-            typeBeforeCallParams instanceof Instance ? ((Instance) typeBeforeCallParams).codeReplacement :
-            typeBeforeCallParams instanceof FunctionDefinition ? ((FunctionDefinition)typeBeforeCallParams).codeReplacement :
+            typeBeforeCall instanceof Instance ? ((Instance) typeBeforeCall).codeReplacement :
+            typeBeforeCall instanceof FunctionDefinition ? ((FunctionDefinition)typeBeforeCall).codeReplacement :
             initializerSignature != null ? type.getProperty("init" + initializerSignature).codeReplacement :
             null
         );
