@@ -54,7 +54,10 @@
       "function": true,
       "type": "Value",
       "codeReplacement": {
-        "java": "#L.get(#AA)"
+        "java": "#L.get(#R)",
+        "javaAssignment": "#L.put(#R, #ASS)",
+        "tsAssignmentNil": "delete #L[#R]",
+        "javaAssignmentNil": "#L.remove(#R)"
       }
     }, {
       "name": "count",
@@ -108,7 +111,10 @@
       "function": true,
       "type": "Value",
       "codeReplacement": {
-        "java": "#L.get(#AA)"
+        "java": "#L.get(#R)",
+        "javaAssignment": "#L.put(#R, #ASS)",
+        "tsAssignmentNil": "#L.splice(#R, 1)",
+        "javaAssignmentNil": "#L.remove(#R)"
       }
     }, {
       "name": "+",

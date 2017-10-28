@@ -61,43 +61,14 @@ public class BinaryExpression implements PrefixOrExpression {
             }
         }
         else {
-            String lCode = isAssignment(alias) ? ((Prefix)L).code(true, ctx, visitor) : L.code(ctx, visitor), rCode = R.code(ctx, visitor),
-                   ifCode0 = null, ifCode1 = null, elseCode1 = null;
+            String assignment = isAssignment(alias) ? R.type().uniqueId().equals("Void") ? "N" : R.type().isOptional ? "TN" : "T" : null,
+                   lCode = isAssignment(alias) ? ((Prefix)L).code(assignment, ctx, visitor) : L.code(ctx, visitor), rCode = R.code(ctx, visitor);
 
-            if(isAssignment(alias)) {
-                if(((Prefix) L).isDictionaryIndex()) {
-                    if(R.type().uniqueId().equals("Void")) {
-                        if(visitor.targetLanguage.equals("ts")) {
-                            lCode = "delete " + lCode; rCode = ""; definitionCode = "#A0";
-                        }
-                        else {
-                            lCode = ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, ctx, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")"; rCode = ""; definitionCode = "#A0";
-                        }
-                    }
-                    else if(R.type().isOptional) {
-                        ifCode1 = "(" + rCode + ") != null";
-                        if(((Prefix) L).isAssignmentReplacement()) definitionCode = "#A0 #A1)";
-                        elseCode1 = visitor.targetLanguage.equals("ts") ? "delete " + lCode : ((Prefix)L).code(false, ((Prefix)L).elems.size() - 1, ctx, visitor) + ".remove(" + ((Prefix)L).elems.get(((Prefix)L).elems.size() - 1).code + ")";
-                    }
-                    else if(((Prefix) L).isAssignmentReplacement()) {
-                        definitionCode = "#A0 #A1)";
-                    }
-                }
-
-                if(((Prefix) L).hasOptionals()) {
-                    ifCode0 = optionalsGuardingIf(((Prefix) L), ctx, visitor);
-                }
-
-                if(!((Prefix) L).isDictionaryIndex() && !((Prefix) L).hasOptionals() && ((Prefix) L).isAssignmentReplacement()) {
-                    definitionCode = "#A0 #A1)";
-                }
-
+            if(assignment != null) {
                 if(lCode.equals("this")) {
                     definitionCode = "Object.assign(#A0, #A1)";
                 }
 
-                //not sure what that bit does :(
-                //if(type instanceof FunctionDefinition && R.type() != null) type = R.type();
                 rCode = AssignmentUtil.augment(rCode, type, R.originalCtx(), visitor);
             }
 
@@ -128,9 +99,12 @@ public class BinaryExpression implements PrefixOrExpression {
                     operator.codeReplacement != null ? operator.codeReplacement.get(visitor.targetLanguage) :
                     "#A0 " + alias + " #A1";
             }
-            this.code = definitionCode.replaceAll("#A0", Matcher.quoteReplacement(lCode)).replaceAll("#A1", Matcher.quoteReplacement(rCode));
-            if(ifCode1 != null) this.code = "if(" + ifCode1 + ") { " + this.code + "; } else { " + elseCode1 + "; }";
-            if(ifCode0 != null) this.code = "if(" + ifCode0 + ") { " + this.code + "; }";
+            this.code =
+                    assignment != null && (Prefix.replacements(((Prefix) L).elems.get(((Prefix) L).elems.size() - 1), true, assignment, visitor).containsKey("T") || Prefix.replacements(((Prefix) L).elems.get(((Prefix) L).elems.size() - 1), true, assignment, visitor).containsKey("N")) ? lCode.replaceAll("#ASS", Matcher.quoteReplacement(rCode)) :
+                    definitionCode.replaceAll("#A0", Matcher.quoteReplacement(lCode)).replaceAll("#A1", Matcher.quoteReplacement(rCode));
+            if(assignment != null && ((Prefix) L).hasOptionals()) {
+                this.code = "if(" + optionalsGuardingIf(((Prefix) L), assignment, ctx, visitor) + "){" + this.code + ";}";
+            }
         }
     }
 
@@ -148,10 +122,10 @@ public class BinaryExpression implements PrefixOrExpression {
         return alias.equals("=") || alias.equals("+=") || alias.equals("-=") || alias.equals("*=") || alias.equals("/=") || alias.equals("%=");
     }
 
-    static private String optionalsGuardingIf(Prefix L, ParseTree ctx, Visitor visitor) {
+    static private String optionalsGuardingIf(Prefix L, String assignment, ParseTree ctx, Visitor visitor) {
         String ifCode = "";
         for(int i = 0; i < L.elems.size(); i++) {
-            if(L.elems.get(i).isOptional) ifCode += (ifCode.length() > 0 ? " && " : "") + L.code(true, i, ctx, visitor) + " != null";
+            if(L.elems.get(i).isOptional) ifCode += (ifCode.length() > 0 ? " && " : "") + "(" + L.code(assignment, i, ctx, visitor) + ") != null";
         }
         return ifCode;
     }

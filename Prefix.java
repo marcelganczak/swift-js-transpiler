@@ -2,6 +2,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.tree.ParseTree;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -70,35 +71,53 @@ public class Prefix implements PrefixOrExpression {
     }
 
     public String code(ParseTree ctx, Visitor visitor) {
-        return elemCode(elems, 0, initString(), false, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
+        return elemCode(elems, 0, initString(), null, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide, ParseTree ctx, Visitor visitor) {
-        return elemCode(elems, 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
+    public String code(String assignment, ParseTree ctx, Visitor visitor) {
+        return elemCode(elems, 0, initString(), assignment, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
-    public String code(boolean onAssignmentLeftHandSide, int limit, ParseTree ctx, Visitor visitor) {
-        return elemCode(elems.subList(0, limit), 0, initString(), onAssignmentLeftHandSide, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
-    }
-    public boolean isAssignmentReplacement() {
-        PrefixElem lastElem = elems.get(elems.size() - 1);
-        return isGetAccessor(lastElem.accessor) || lastElem.type.isGetterSetter || lastElem.type.isInout;
+    public String code(String assignment, int limit, ParseTree ctx, Visitor visitor) {
+        return elemCode(elems.subList(0, limit), 0, initString(), assignment, prefixOperatorContext != null && prefixOperatorContext.getText().equals("&"), ctx, visitor);
     }
     private String initString() {
         return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
     }
-    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, boolean onAssignmentLeftHandSide, boolean isInOutExpression, ParseTree ctx, Visitor visitor) {
+    static public Map<String, String> replacements(PrefixElem elem, boolean isLast, String assignment, Visitor visitor) {
+        Map<String, String> codeReplacement = elem.codeReplacement();
+        Map<String, String> replacements = new HashMap<String, String>();
+        if(codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage)) replacements.put("", codeReplacement.get(visitor.targetLanguage));
+        if(codeReplacement != null && isLast && assignment != null && assignment.contains("T") && codeReplacement.containsKey(visitor.targetLanguage + "Assignment")) replacements.put("T", codeReplacement.get(visitor.targetLanguage + "Assignment"));
+        if(codeReplacement != null && isLast && assignment != null && assignment.contains("N") && codeReplacement.containsKey(visitor.targetLanguage + "AssignmentNil")) replacements.put("N", codeReplacement.get(visitor.targetLanguage + "AssignmentNil"));
+        return replacements;
+    }
+    static private String elemCode(List<PrefixElem> elems, int chainPos, String L, String assignment/*null/"T"/"N"/"TN"*/, boolean isInOutExpression, ParseTree ctx, Visitor visitor) {
         PrefixElem elem = elems.get(chainPos);
         boolean isLast = chainPos + 1 >= elems.size();
 
-        Map<String, String> codeReplacement = elem.codeReplacement();
-
-        String LR = codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage) ? codeReplacement.get(visitor.targetLanguage)
-                  : elem.accessor.equals("_.()") ? "_.#R(#L" + (elem.functionCallParams != null ? ",#AA" : "") + ")"
-                  : onAssignmentLeftHandSide && isLast && isGetAccessor(elem.accessor) ? "#L.put(" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + "#R" + (isCastGetAccessor(elem.accessor) ? "\"" : "") + ","
-                  : onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter ? "#L" + (chainPos == 0 ? "" : ".") + "#R$set("
-                  : onAssignmentLeftHandSide && isLast && elem.type.isInout ? "#L" + (chainPos == 0 ? "" : ".") + "#R.set("
-                  : isCastGetAccessor(elem.accessor) ? elem.accessor.substring(0, elem.accessor.length() - 9) + "#L.get(\"#R\"))"
-                  : elem.initializerSignature != null ? "new #L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + "(\"" + elem.initializerSignature + "\",#AA)"
-                  : "#L" + (chainPos == 0 ? "#R" : elem.accessor.equals(".") ? ".#R" : elem.accessor.equals(".get()") ? ".get(#R)" : "[#R]") + (elem.functionCallParams != null ? "(#AA)" : "");
+        String LR;
+        Map<String, String> replacement = replacements(elem, isLast, assignment, visitor);
+        if(!replacement.isEmpty()) {
+            LR =
+                replacement.containsKey("T") && replacement.containsKey("N") ? "if((#ASS) != null) { " + replacement.get("T") + "; } else { " + replacement.get("N") + "; }" :
+                replacement.containsKey("T") ? replacement.get("T") :
+                replacement.containsKey("N") ? replacement.get("N") :
+                replacement.get("");
+        }
+        else {
+            LR = "#L" + (chainPos == 0 ? "#R" : elem.isSubscript ? "[#R]" : ".#R");
+            if(isLast) {
+                if(assignment != null) {
+                    if(elem.type.isGetterSetter) LR += "#R$set(";
+                    else if(elem.type.isInout) LR += "#R.set(";
+                }
+                else {
+                    if(elem.type.isGetterSetter) LR += "$get()";
+                    else if(elem.type.isInout) LR += ".get()";
+                }
+            }
+            if(elem.initializerSignature != null) LR = "new " + LR + "(\"" + elem.initializerSignature + "\",#AA)";
+            else if(elem.functionCallParams != null) LR += "(#AA)";
+        }
 
         LR = LR.replaceAll("#L", Matcher.quoteReplacement(L)).replaceAll("#R", Matcher.quoteReplacement(elem.code));
         if(elem.functionCallParams != null) {
@@ -112,10 +131,10 @@ public class Prefix implements PrefixOrExpression {
         }
 
         String nextCode =
-                !isLast ? elemCode(elems, chainPos + 1, LR, onAssignmentLeftHandSide, isInOutExpression, ctx, visitor)
+                !isLast ? elemCode(elems, chainPos + 1, LR, assignment, isInOutExpression, ctx, visitor)
                 : LR;
 
-        if(elem.isOptional && !onAssignmentLeftHandSide) {
+        if(elem.isOptional && assignment == null) {
             nextCode = "(" + L + "!= null ? " + nextCode + " : null )";
         }
 
@@ -124,13 +143,6 @@ public class Prefix implements PrefixOrExpression {
             if(initializer != null && initializer.isFailableInitializer) {
                 nextCode = "_.failableInit(" + nextCode + ")";
             }
-        }
-
-        if(!onAssignmentLeftHandSide && isLast && elem.type.isGetterSetter) {
-            nextCode += "$get()";
-        }
-        if(!onAssignmentLeftHandSide && isLast && elem.type.isInout) {
-            nextCode += ".get()";
         }
 
         if(isLast && isInOutExpression) {
@@ -144,22 +156,11 @@ public class Prefix implements PrefixOrExpression {
         return elems.get(elems.size() - 1).type.withoutPropertyInfo();
     }
 
-    public boolean isDictionaryIndex() {
-        return elems.size() >= 2 && elems.get(elems.size() - 2).type.uniqueId().equals("Dictionary") && (elems.get(elems.size() - 1).accessor.equals("[]") || isGetAccessor(elems.get(elems.size() - 1).accessor));
-    }
-
     public boolean hasOptionals() {
         for(int i = 0; i < elems.size(); i++) {
             if(elems.get(i).isOptional) return true;
         }
         return false;
-    }
-
-    static private boolean isCastGetAccessor(String accessor) {
-        return accessor.startsWith("((") && accessor.endsWith(")).get(\"\")");
-    }
-    static private boolean isGetAccessor(String accessor) {
-        return accessor.equals(".get()") || isCastGetAccessor(accessor);
     }
 
     static private ArrayList<ParserRuleContext> flattenChain(SwiftParser.Prefix_expressionContext ctx) {

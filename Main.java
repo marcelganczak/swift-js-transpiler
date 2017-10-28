@@ -8,7 +8,7 @@ public class Main {
     public static void main(String [] args) {
 
         String srcFile = args.length > 0 ? args[0] : "./example.swift";
-        String targetLanguage = args.length > 1 ? args[1] : "ts";
+        String targetLanguage = args.length > 1 ? args[1] : "java";
 
         StringInterpolation.breakUp(srcFile);
 

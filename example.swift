@@ -1,5 +1,2 @@
-struct Chessboard {
-    let boardColors: Int = {
-        return 2
-    }()
-}
+var dictionary: [String:String]?
+dictionary?["key"] = "val"

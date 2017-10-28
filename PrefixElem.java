@@ -4,13 +4,13 @@ import java.util.*;
 
 public class PrefixElem {
     public String code;
-    public String accessor;
+    public boolean isSubscript;
     public Instance type;
     public List<String> functionCallParams;
     public Object/*Defintion/Instance*/ typeBeforeCallParams;
     public String initializerSignature;
     public boolean isOptional;
-    public PrefixElem(String code, String accessor, Instance type, List<String> functionCallParams, Object typeBeforeCallParams, String initializerSignature) { this.code = code; this.accessor = accessor; this.type = type; this.functionCallParams = functionCallParams; this.typeBeforeCallParams = typeBeforeCallParams; this.initializerSignature = initializerSignature; this.isOptional = false; }
+    public PrefixElem(String code, boolean isSubscript, Instance type, List<String> functionCallParams, Object typeBeforeCallParams, String initializerSignature) { this.code = code; this.isSubscript = isSubscript; this.type = type; this.functionCallParams = functionCallParams; this.typeBeforeCallParams = typeBeforeCallParams; this.initializerSignature = initializerSignature; this.isOptional = false; }
 
     static public PrefixElem get(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, Instance lType, Instance rType, Visitor visitor) {
 
@@ -20,7 +20,7 @@ public class PrefixElem {
             }
             else {
                 Expression parenthesized = new Expression(((SwiftParser.Primary_expressionContext) rChild).parenthesized_expression().expression_element_list().expression_element(0).expression(), rType, visitor);
-                return new PrefixElem("(" + parenthesized.code + ")", "", parenthesized.type, null, null, null);
+                return new PrefixElem("(" + parenthesized.code + ")", false, parenthesized.type, null, null, null);
             }
         }
         if(chainPos == 0 && WalkerUtil.isDirectDescendant(SwiftParser.Array_literalContext.class, rChild)) {
@@ -69,7 +69,7 @@ public class PrefixElem {
         }
         String code = getTupleCode(keys, elementList, type, rChild, visitor);
 
-        return new PrefixElem(code, "", type, null, null, null);
+        return new PrefixElem(code, false, type, null, null, null);
     }
     static public String getTupleCode(ArrayList<String> keys, List<SwiftParser.Expression_elementContext> elementList, Instance type, ParserRuleContext ctx, Visitor visitor) {
         String code = "";
@@ -110,7 +110,7 @@ public class PrefixElem {
 
         String code = getArrayCode(arrayLiteral, rChild, type, functionCallParams, visitor);
 
-        return new PrefixElem(code, "", type, null, null, null);
+        return new PrefixElem(code, false, type, null, null, null);
     }
 
     static private String getArrayCode(SwiftParser.Array_literalContext arrayLiteral, ParserRuleContext rChild, Instance type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
@@ -173,7 +173,7 @@ public class PrefixElem {
             code = getDictionaryInitializerCode(dictionaryLiteral, type, visitor);
         }
 
-        return new PrefixElem(code, "", type, null, null, null);
+        return new PrefixElem(code, false, type, null, null, null);
     }
 
     static private String getDictionaryInitializerCode(SwiftParser.Dictionary_literalContext dictionaryLiteral, Instance dictionaryType, Visitor visitor) {
@@ -203,7 +203,7 @@ public class PrefixElem {
                 type.generics = new HashMap<String, Instance>();
                 type.generics.put("Value", new Instance(template.generic_argument_list().generic_argument(0).getText(), rChild, visitor.cache));
             }
-            return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", "", type, null, null, null);
+            return new PrefixElem(visitor.targetLanguage.equals("ts") ? "new Set()" : "new " + type.targetType(visitor.targetLanguage, true, false) + "()", false, type, null, null, null);
         }
 
         return null;
@@ -221,58 +221,47 @@ public class PrefixElem {
             else if(WalkerUtil.isDirectDescendant(SwiftParser.String_literalContext.class, rChild)) type = new Instance("String", rChild, visitor.cache);
             else if(WalkerUtil.isDirectDescendant(SwiftParser.Boolean_literalContext.class, rChild)) type = new Instance("Bool", rChild, visitor.cache);
         }
-        return new PrefixElem(code, "", type, null, null, null);
+        return new PrefixElem(code, false, type, null, null, null);
     }
 
     static private PrefixElem getClosure(ParserRuleContext rChild, Instance type, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, Visitor visitor) {
-        return new PrefixElem(FunctionUtil.closureExpression(((SwiftParser.Primary_expressionContext) rChild).closure_expression(), type, functionCallParams, visitor), "", type, null, null, null);
+        return new PrefixElem(FunctionUtil.closureExpression(((SwiftParser.Primary_expressionContext) rChild).closure_expression(), type, functionCallParams, visitor), false, type, null, null, null);
     }
 
     static private PrefixElem getBasic(ParserRuleContext rChild, List<ParserRuleContext/*Expression_elementContext or Closure_expressionContext*/> functionCallParams, ArrayList<ParserRuleContext> chain, int chainPos, Instance lType, Instance rType, Visitor visitor) {
-        String code = null, accessor = ".";
+        String code = null;
+        boolean isSubscript = false;
         List<String> functionCallParamsStr = null;
         Instance type = null;
         Object typeBeforeCallParams = null;
         if(rChild instanceof SwiftParser.Explicit_member_expressionContext) {
             code = ((SwiftParser.Explicit_member_expressionContext) rChild).identifier().getText();
-            accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Primary_expressionContext) {
             code = ((SwiftParser.Primary_expressionContext) rChild).identifier() != null ? ((SwiftParser.Primary_expressionContext) rChild).identifier().getText() : visitor.visit(rChild);
-            accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Initializer_expressionContext) {
             code = "init";
-            accessor = ".";
         }
         else if(rChild instanceof SwiftParser.Subscript_expressionContext) {
             code = visitor.visit(((SwiftParser.Subscript_expressionContext) rChild).expression_list());
             typeBeforeCallParams = lType.getProperty("[]");
             type = ((Instance)typeBeforeCallParams).result();
-            accessor = "[]";
+            isSubscript = true;
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_numberContext) {
             code = visitor.visitWithoutStrings(rChild, "?.");
-            accessor = "[]";
+            isSubscript = true;
         }
         else if(rChild instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {
             String[] split = visitor.visit(rChild).split("\\.");
             int pos = 1, i = chainPos;
             while(i > 0 && chain.get(i - 1) instanceof SwiftParser.Explicit_member_expression_number_doubleContext) {i--; pos = pos == 1 ? 2 : 1;}
             code = split[pos].replaceAll("\\?", "");
-            accessor = "[]";
+            isSubscript = true;
         }
         else {
             code = visitor.visit(rChild);
-        }
-
-        if(visitor.targetLanguage.equals("java") && lType != null && (lType.typeName().equals("Array") || lType.typeName().equals("Dictionary") || lType.typeName().equals("Tuple"))) {
-            if(lType.typeName().equals("Tuple")) {
-                accessor = "((" + lType.getProperty(code.trim()).targetType(visitor.targetLanguage) + ")).get(\"\")";
-            }
-            else {
-                accessor = ".get()";
-            }
         }
 
         String augment = null;
@@ -368,7 +357,7 @@ public class PrefixElem {
             }
         }
 
-        return new PrefixElem(code, accessor, type, functionCallParamsStr, typeBeforeCallParams, isInitializer ? augment : null);
+        return new PrefixElem(code, isSubscript, type, functionCallParamsStr, typeBeforeCallParams, isInitializer ? augment : null);
     }
 
     public Map<String, String> codeReplacement() {
