@@ -64,7 +64,7 @@ public class PrefixElem {
         }
 
         if(type == null) {
-            ClassDefinition tupleDefinition = new ClassDefinition(null, null, types, new ArrayList<String>());
+            ClassDefinition tupleDefinition = new ClassDefinition(null, visitor.cache.find("Tuple", rChild), types, new ArrayList<String>());
             type = new Instance(tupleDefinition);
         }
         String code = getTupleCode(keys, elementList, type, rChild, visitor);

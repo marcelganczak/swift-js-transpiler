@@ -15,19 +15,25 @@ class Operator {
 abstract class Definition {
     public String name;
     public List<String> generics;
-    public Map<String, String> typeReplacement;//ts, java, javaProtocol(e.g. Map for HashMap) -- string with generics
     public Map<String, Boolean> cloneOnAssignmentReplacement;//ts->boolean, java->boolean
 }
 
 class ClassDefinition extends Definition {
+    public Map<String, String> typeReplacement;//ts, java, javaProtocol(e.g. Map for HashMap) -- string with generics
     public Cache.CacheBlockAndObject superClass;
     public Map<String, Instance> properties;
     public ClassDefinition(String name, Cache.CacheBlockAndObject superClass, Map<String, Instance> properties, List<String> generics){ this.name = name; this.superClass = superClass; this.properties = properties; this.generics = generics; }
     public Map<String, Cache.CacheBlockAndObject> getAllProperties() {
         Map<String, Cache.CacheBlockAndObject> allProperties = new HashMap<String, Cache.CacheBlockAndObject>();
-        //TODO superClass too
-        for(Map.Entry<String, Instance> iterator:properties.entrySet()) {
-            allProperties.put(iterator.getKey(), new Cache.CacheBlockAndObject(null, iterator.getValue()));
+        ClassDefinition classDefinition = this;
+        while(classDefinition != null) {
+            for(Map.Entry<String, Instance> iterator:properties.entrySet()) {
+                if(!allProperties.containsKey(iterator.getKey())) {
+                    allProperties.put(iterator.getKey(), new Cache.CacheBlockAndObject(null, iterator.getValue()));
+                }
+            }
+            Cache.CacheBlockAndObject superClass = classDefinition.superClass;
+            classDefinition = superClass != null ? (ClassDefinition)superClass.object : null;
         }
         return allProperties;
     }
@@ -90,11 +96,19 @@ class Instance {
     public String targetType(String language, boolean notProtocol, boolean baseIfInout) {
         if(definition == null) return genericDefinition;
         String type = definition.name;
-        if(definition.typeReplacement != null && definition.typeReplacement.containsKey(language)) {
-            if(language.equals("java") && !notProtocol && definition.typeReplacement.containsKey(language + "Protocol")) type = definition.typeReplacement.get(language + "Protocol");
-            else type = definition.typeReplacement.get(language);
-            if(generics != null) {
-                for(String key : generics.keySet()) type = type.replaceAll("#" + key, Matcher.quoteReplacement(generics.get(key).targetType(language, false, true)));
+        if(definition instanceof ClassDefinition) {
+            ClassDefinition classDefinition = (ClassDefinition)definition;
+            while(classDefinition != null) {
+                if(classDefinition.typeReplacement != null && classDefinition.typeReplacement.containsKey(language)) {
+                    if(language.equals("java") && !notProtocol && classDefinition.typeReplacement.containsKey(language + "Protocol")) type = classDefinition.typeReplacement.get(language + "Protocol");
+                    else type = classDefinition.typeReplacement.get(language);
+                    if(generics != null) {
+                        for(String key : generics.keySet()) type = type.replaceAll("#" + key, Matcher.quoteReplacement(generics.get(key).targetType(language, false, true)));
+                    }
+                    break;
+                }
+                Cache.CacheBlockAndObject superClass = classDefinition.superClass;
+                classDefinition = superClass != null ? (ClassDefinition)superClass.object : null;
             }
         }
         if(type == null) type = "any";

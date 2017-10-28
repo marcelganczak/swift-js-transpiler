@@ -77,7 +77,7 @@ public class TypeUtil {
     }
     private static Instance fromTupleDefinition(SwiftParser.Tuple_type_element_listContext ctx, Visitor visitor) {
         LinkedHashMap<String, Instance> elems = flattenTupleDefinition(ctx, visitor);
-        ClassDefinition tupleDefinition = new ClassDefinition(null, null, elems, new ArrayList<String>());
+        ClassDefinition tupleDefinition = new ClassDefinition(null, visitor.cache.find("Tuple", ctx), elems, new ArrayList<String>());
         return new Instance(tupleDefinition);
     }
 

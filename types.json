@@ -380,6 +380,13 @@
       "java": "Boolean"
     }
   },
+  "Tuple": {
+    "typeReplacement": {
+      "ts": "Dictionary<any>",
+      "java": "InitializableHashMap<String, Object>",
+      "javaProtocol": "Map<String, ?>"
+    }
+  },
   "print": {
     "function": true,
     "type": "Void",

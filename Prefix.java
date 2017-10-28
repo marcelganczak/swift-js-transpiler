@@ -82,8 +82,14 @@ public class Prefix implements PrefixOrExpression {
     private String initString() {
         return prefixOperatorContext != null && !prefixOperatorContext.getText().equals("&") ? prefixOperatorContext.getText() : "";
     }
-    static public Map<String, String> replacements(PrefixElem elem, boolean isLast, String assignment, Visitor visitor) {
+    static public Map<String, String> replacements(List<PrefixElem> elems, int chainPos, boolean isLast, String assignment, Visitor visitor) {
+        PrefixElem elem = elems.get(chainPos);
         Map<String, String> codeReplacement = elem.codeReplacement();
+        if(chainPos > 0 && elems.get(chainPos - 1).type.definition instanceof ClassDefinition && ((ClassDefinition) elems.get(chainPos - 1).type.definition).superClass != null && ((ClassDefinition)((ClassDefinition) elems.get(chainPos - 1).type.definition).superClass.object).name.equals("Tuple")) {
+            codeReplacement = new HashMap<String, String>();
+            codeReplacement.put("java", "((" + elem.type.targetType(visitor.targetLanguage) + ")#L.get(\"#R\"))");
+            codeReplacement.put("javaAssignment", "#L.put(\"#R\", #ASS)");
+        }
         Map<String, String> replacements = new HashMap<String, String>();
         if(codeReplacement != null && codeReplacement.containsKey(visitor.targetLanguage)) replacements.put("", codeReplacement.get(visitor.targetLanguage));
         if(codeReplacement != null && isLast && assignment != null && assignment.contains("T") && codeReplacement.containsKey(visitor.targetLanguage + "Assignment")) replacements.put("T", codeReplacement.get(visitor.targetLanguage + "Assignment"));
@@ -95,7 +101,7 @@ public class Prefix implements PrefixOrExpression {
         boolean isLast = chainPos + 1 >= elems.size();
 
         String LR;
-        Map<String, String> replacement = replacements(elem, isLast, assignment, visitor);
+        Map<String, String> replacement = replacements(elems, chainPos, isLast, assignment, visitor);
         if(!replacement.isEmpty()) {
             LR =
                 replacement.containsKey("T") && replacement.containsKey("N") ? "if((#ASS) != null) { " + replacement.get("T") + "; } else { " + replacement.get("N") + "; }" :
@@ -107,8 +113,8 @@ public class Prefix implements PrefixOrExpression {
             LR = "#L" + (chainPos == 0 ? "#R" : elem.isSubscript ? "[#R]" : ".#R");
             if(isLast) {
                 if(assignment != null) {
-                    if(elem.type.isGetterSetter) LR += "#R$set(";
-                    else if(elem.type.isInout) LR += "#R.set(";
+                    if(elem.type.isGetterSetter) LR += "$set(#ASS)";
+                    else if(elem.type.isInout) LR += ".set(#ASS)";
                 }
                 else {
                     if(elem.type.isGetterSetter) LR += "$get()";
@@ -119,7 +125,7 @@ public class Prefix implements PrefixOrExpression {
             else if(elem.functionCallParams != null) LR += "(#AA)";
         }
 
-        LR = LR.replaceAll("#L", Matcher.quoteReplacement(L)).replaceAll("#R", Matcher.quoteReplacement(elem.code));
+        LR = LR.replaceAll("#L", Matcher.quoteReplacement(L)).replaceAll("#R", Matcher.quoteReplacement(elem.code.trim()));
         if(elem.functionCallParams != null) {
             String paramsJoined = "";
             for(int i = 0; i < elem.functionCallParams.size(); i++) paramsJoined += (i > 0 ? ", " : "") + elem.functionCallParams.get(i);

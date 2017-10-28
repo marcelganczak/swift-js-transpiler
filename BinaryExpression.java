@@ -94,13 +94,18 @@ public class BinaryExpression implements PrefixOrExpression {
 
             if(definitionCode == null) {
                 definitionCode =
-                    augment != null && functionOwner.getProperty(alias + augment).codeReplacement != null ? functionOwner.getProperty(alias + augment).codeReplacement.get(visitor.targetLanguage) :
+                    augment != null && functionOwner.getProperty(alias + augment).codeReplacement != null && functionOwner.getProperty(alias + augment).codeReplacement.get(visitor.targetLanguage) != null ? functionOwner.getProperty(alias + augment).codeReplacement.get(visitor.targetLanguage) :
                     //TODO perhaps add that later; currently screws with native operations, e.g. "" + "": augment != null ? functionOwner.targetType(visitor.targetLanguage, true, true) + "." + alias + "(#A0, #A1)" :
                     operator.codeReplacement != null ? operator.codeReplacement.get(visitor.targetLanguage) :
                     "#A0 " + alias + " #A1";
             }
+            boolean assignmentIsReplaced = assignment != null && (
+                ((Prefix.replacements(((Prefix) L).elems, ((Prefix) L).elems.size() - 1, true, assignment, visitor).containsKey("T") || Prefix.replacements(((Prefix) L).elems, ((Prefix) L).elems.size() - 1, true, assignment, visitor).containsKey("N"))) ||
+                ((Prefix) L).elems.get(((Prefix) L).elems.size() - 1).type.isGetterSetter ||
+                ((Prefix) L).elems.get(((Prefix) L).elems.size() - 1).type.isInout
+            );
             this.code =
-                    assignment != null && (Prefix.replacements(((Prefix) L).elems.get(((Prefix) L).elems.size() - 1), true, assignment, visitor).containsKey("T") || Prefix.replacements(((Prefix) L).elems.get(((Prefix) L).elems.size() - 1), true, assignment, visitor).containsKey("N")) ? lCode.replaceAll("#ASS", Matcher.quoteReplacement(rCode)) :
+                    assignmentIsReplaced ? lCode.replaceAll("#ASS", Matcher.quoteReplacement(rCode)) :
                     definitionCode.replaceAll("#A0", Matcher.quoteReplacement(lCode)).replaceAll("#A1", Matcher.quoteReplacement(rCode));
             if(assignment != null && ((Prefix) L).hasOptionals()) {
                 this.code = "if(" + optionalsGuardingIf(((Prefix) L), assignment, ctx, visitor) + "){" + this.code + ";}";
